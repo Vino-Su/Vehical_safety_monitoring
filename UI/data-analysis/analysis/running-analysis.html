@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>运行状态分析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>运行状态分析</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openExportReport()">导出分析报告</button></div></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>开始日期</label><input class="ant-input" type="date" value="2026-04-01" style="width:140px"></div>
+          <div class="filter-item"><label>结束日期</label><input class="ant-input" type="date" value="2026-05-08" style="width:140px"></div>
+          <div class="filter-item"><label>所属企业</label><select class="ant-input" id="filterCompany" style="width:150px"><option value="all">全部</option><option>襄阳智行科技</option><option>汉江出行</option><option>顺捷科技</option><option>东风出行</option></select></div>
+          <div class="filter-item"><label>行政区域</label><select class="ant-input" id="filterDistrict" style="width:110px"><option value="all">全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option></select></div>
+          <div class="filter-item"><label>运行模式</label><select class="ant-input" id="filterMode" style="width:110px"><option value="all">全部</option><option>自动驾驶</option><option>人工驾驶</option><option>远程接管</option></select></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="handleQuery()">查询</button><button class="ant-btn" onclick="handleReset()">重置</button></div>
+        </div>
+      </div>
+
+      <!-- 维度切换Tab -->
+      <div style="display:flex;gap:0;background:#fff;border-radius:8px;padding:4px;margin-bottom:16px;box-shadow:var(--shadow-sm);border:1px solid #f0f0f0;width:fit-content;" id="dimensionTabs">
+        <button class="dimension-tab active" data-dim="company" style="padding:8px 20px;border:none;background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:#595959;border-radius:6px;transition:0.2s;white-space:nowrap;" onclick="switchDimension('company')">按企业</button>
+        <button class="dimension-tab" data-dim="vehicleType" style="padding:8px 20px;border:none;background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:#595959;border-radius:6px;transition:0.2s;white-space:nowrap;" onclick="switchDimension('vehicleType')">按车型</button>
+        <button class="dimension-tab" data-dim="district" style="padding:8px 20px;border:none;background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:#595959;border-radius:6px;transition:0.2s;white-space:nowrap;" onclick="switchDimension('district')">按行政区域</button>
+      </div>
+
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-5 gap-4 mb-6">
+        <div class="stat-card" style="border-left:3px solid #1890ff;"><div class="stat-info"><div class="stat-value" id="statMileage">186.5 <span style="font-size:14px;font-weight:500;">万km</span></div><div class="stat-label">总测试里程</div><div style="font-size:11px;color:#8c8c8c;">统计周期内累计</div></div></div>
+        <div class="stat-card" style="border-left:3px solid #52c41a;"><div class="stat-info"><div class="stat-value" id="statDuration">4.8 <span style="font-size:14px;font-weight:500;">万小时</span></div><div class="stat-label">总测试时长</div><div style="font-size:11px;color:#8c8c8c;">自动驾驶占比 72%</div></div></div>
+        <div class="stat-card" style="border-left:3px solid #faad14;"><div class="stat-info"><div class="stat-value" id="statAvgSpeed">38.6 <span style="font-size:14px;font-weight:500;">km/h</span></div><div class="stat-label">平均速度</div><div style="font-size:11px;color:#8c8c8c;">自动驾驶模式均值</div></div></div>
+        <div class="stat-card" style="border-left:3px solid #52c41a;"><div class="stat-info"><div class="stat-value" style="color:#52c41a;" id="statCompleteness">96.8 <span style="font-size:14px;font-weight:500;">%</span></div><div class="stat-label">数据完整率</div><div style="font-size:11px;color:#8c8c8c;">同比 ↑ 1.2%</div></div></div>
+        <div class="stat-card" style="border-left:3px solid #1890ff;"><div class="stat-info"><div class="stat-value" id="statOnlineVehicles">328 <span style="font-size:14px;font-weight:500;">辆</span></div><div class="stat-label">在线车辆数</div><div style="font-size:11px;color:#8c8c8c;">当前正在测试</div></div></div>
+      </div>
+
+      <!-- 图表区第一行 -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card"><div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;" id="chartMileageTitle">各企业测试里程对比</div><div id="chartMileageBar" style="height:300px;"></div></div>
+        <div class="card"><div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;" id="chartDurationTitle">各企业测试时长分布</div><div id="chartDurationPie" style="height:300px;"></div></div>
+      </div>
+
+      <!-- 图表区第二行 -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card"><div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">速度区间分布（车辆数）</div><div id="chartSpeedDist" style="height:300px;"></div></div>
+        <div class="card"><div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">数据完整率趋势（近30天）</div><div id="chartQualityTrend" style="height:300px;"></div></div>
+      </div>
+
+      <!-- 数据采集质量表格 -->
+      <div class="card">
+        <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">数据采集质量明细</div>
+        <div class="overflow-x-auto">
+          <table class="ant-table">
+            <thead><tr><th>车牌号</th><th>VIN码</th><th>所属企业</th><th>最后上报时间</th><th>数据完整率</th><th>缺失字段</th><th>数据延迟</th><th>当日里程</th><th>运行模式</th><th>操作</th></tr></thead>
+            <tbody id="qualityTableBody"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-end gap-3 mt-4 text-sm text-[#00000073]">
+          <span>共 <b id="totalCount">328</b> 条</span>
+          <select id="pageSizeSelect" class="ant-input" style="width:70px;height:30px;padding:0 6px;">
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>条/页</span>
+          <button class="ant-btn" style="height:30px;padding:0 12px;font-size:12px;" id="prevBtn">上一页</button>
+          <span class="font-medium">第 <b id="currPage">1</b> / <b id="totalPage">33</b> 页</span>
+          <button class="ant-btn" style="height:30px;padding:0 12px;font-size:12px;" id="nextBtn">下一页</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div id="detailModalOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1001;display:none;align-items:center;justify-content:center;">
+  <div id="detailModalBox" style="background:#fff;border-radius:8px;width:800px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 6px 16px rgba(0,0,0,0.08),0 3px 6px -4px rgba(0,0,0,0.12),0 9px 28px 8px rgba(0,0,0,0.05);">
+    <div style="padding:16px 24px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;"><h3 id="detailModalTitle" style="font-size:16px;font-weight:600;color:#000000d9;margin:0;">车辆运行详情</h3><span style="cursor:pointer;color:#00000073;font-size:18px;line-height:1;transition:color .2s;" onclick="closeDetailModal()" onmouseover="this.style.color='#000000d9'" onmouseout="this.style.color='#00000073'">✕</span></div>
+    <div id="detailModalBody" style="padding:24px;overflow-y:auto;flex:1;"></div>
+  </div>
+</div>
+
+<script>
+const PAGE_ID='running-analysis';
+
+let currentDimension = 'company';
+
+// ==================== 维度切换 ====================
+function switchDimension(dim) {
+  currentDimension = dim;
+  document.querySelectorAll('.dimension-tab').forEach(t => {
+    if (t.dataset.dim === dim) {
+      t.style.color = '#fff';
+      t.style.background = '#1677ff';
+      t.style.boxShadow = '0 2px 6px rgba(24,144,255,0.35)';
+      t.style.fontWeight = '600';
+    } else {
+      t.style.color = '#595959';
+      t.style.background = 'transparent';
+      t.style.boxShadow = 'none';
+      t.style.fontWeight = '500';
+    }
+  });
+  updateChartTitles();
+  updateChartsByDimension();
+}
+
+function updateChartTitles() {
+  const titleMap = {
+    company: ['各企业测试里程对比', '各企业测试时长分布'],
+    vehicleType: ['各车型测试里程对比', '各车型测试时长分布'],
+    district: ['各行政区域测试里程对比', '各行政区域测试时长分布'],
+  };
+  const titles = titleMap[currentDimension] || titleMap.company;
+  document.getElementById('chartMileageTitle').textContent = titles[0];
+  document.getElementById('chartDurationTitle').textContent = titles[1];
+}
+
+// ==================== 模拟数据 ====================
+const companies = ['襄阳智行科技', '汉江出行', '顺捷科技', '东风出行', '百度Apollo', '滴滴自动驾驶', '小马智行', '文远知行', 'AutoX', '元戎启行'];
+const vehicleTypes = ['轿车', 'SUV', 'MPV', '微面', '轻卡', '公交'];
+const districts = ['樊城区', '襄城区', '襄州区', '南漳县', '谷城县'];
+const plates = ['鄂F·A1234', '鄂F·B5678', '鄂F·C3456', '鄂F·D7890', '鄂F·E9012', '鄂F·F4567', '鄂F·G8901', '鄂F·H2345', '鄂F·I6789', '鄂F·J0123', '鄂F·K3456', '鄂F·L7890', '鄂F·M1234', '鄂F·N5678', '鄂F·O9012'];
+const vins = ['LSVAA4189N2000001', 'LSVAA4189N2000002', 'LSVAA4189N2000003', 'LSVAA4189N2000004', 'LSVAA4189N2000005', 'LSVAA4189N2000006', 'LSVAA4189N2000007', 'LSVAA4189N2000008', 'LSVAA4189N2000009', 'LSVAA4189N2000010', 'LSVAA4189N2000011', 'LSVAA4189N2000012', 'LSVAA4189N2000013', 'LSVAA4189N2000014', 'LSVAA4189N2000015'];
+const modes = ['自动驾驶', '人工驾驶', '远程接管'];
+
+function randomEl(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function generateQualityData(count) {
+  const arr = [];
+  for (let i = 0; i < count; i++) {
+    const date = new Date(2026, 4, 8);
+    date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), Math.floor(Math.random() * 60));
+    const completeness = 85 + Math.random() * 14.8;
+    const plateIdx = Math.floor(Math.random() * plates.length);
+    arr.push({
+      plate: plates[plateIdx],
+      vin: vins[plateIdx],
+      company: randomEl(companies),
+      lastReportTime: date.toISOString().replace('T', ' ').substring(0, 19),
+      completeness: completeness,
+      missingFields: Math.floor(Math.random() * 6),
+      dataDelay: Math.floor(20 + Math.random() * 180),
+      dailyMileage: Math.floor(30 + Math.random() * 250),
+      mode: randomEl(modes),
+      vehicleType: randomEl(vehicleTypes),
+      district: randomEl(districts),
+    });
+  }
+  arr.sort((a, b) => b.lastReportTime.localeCompare(a.lastReportTime));
+  return arr;
+}
+
+const allQualityData = generateQualityData(328);
+let currentPage = 1;
+let pageSize = 10;
+
+function renderTable(page) {
+  const tbody = document.getElementById('qualityTableBody');
+  const start = (page - 1) * pageSize;
+  const end = Math.min(start + pageSize, allQualityData.length);
+  const pageData = allQualityData.slice(start, end);
+
+  tbody.innerHTML = pageData.map(d => {
+    const compTag = d.completeness >= 95 ? 'ant-tag-success' : d.completeness >= 90 ? 'ant-tag-processing' : 'ant-tag-error';
+    const delayTag = d.dataDelay <= 50 ? 'ant-tag-success' : d.dataDelay <= 120 ? 'ant-tag-warning' : 'ant-tag-error';
+    const modeTag = d.mode === '自动驾驶' ? 'ant-tag-processing' : d.mode === '人工驾驶' ? 'ant-tag-success' : 'ant-tag-warning';
+    return '<tr onclick="openDetail(\'' + d.plate + '\')" style="cursor:pointer;">' +
+      '<td><strong>' + d.plate + '</strong></td>' +
+      '<td style="font-family:monospace;font-size:12px;">' + d.vin + '</td>' +
+      '<td>' + d.company + '</td>' +
+      '<td>' + d.lastReportTime + '</td>' +
+      '<td><span class="ant-tag ' + compTag + '">' + d.completeness.toFixed(1) + '%</span></td>' +
+      '<td>' + d.missingFields + ' 个</td>' +
+      '<td><span class="ant-tag ' + delayTag + '">' + d.dataDelay + 'ms</span></td>' +
+      '<td>' + d.dailyMileage + ' km</td>' +
+      '<td><span class="ant-tag ' + modeTag + '">' + d.mode + '</span></td>' +
+      '<td><button class="ant-btn ant-btn-link" style="font-size:12px;" onclick="event.stopPropagation();openDetail(\'' + d.plate + '\')">详情</button></td>' +
+      '</tr>';
+  }).join('');
+
+  document.getElementById('totalCount').textContent = allQualityData.length;
+  document.getElementById('currPage').textContent = page;
+  document.getElementById('totalPage').textContent = Math.ceil(allQualityData.length / pageSize);
+}
+
+document.getElementById('prevBtn').addEventListener('click', function() {
+  if (currentPage > 1) { currentPage--; renderTable(currentPage); }
+});
+document.getElementById('nextBtn').addEventListener('click', function() {
+  const totalPages = Math.ceil(allQualityData.length / pageSize);
+  if (currentPage < totalPages) { currentPage++; renderTable(currentPage); }
+});
+document.getElementById('pageSizeSelect').addEventListener('change', function() {
+  pageSize = parseInt(this.value);
+  currentPage = 1;
+  renderTable(currentPage);
+});
+
+// ==================== 详情弹窗 ====================
+function openDetail(plate) {
+  const d = allQualityData.find(item => item.plate === plate) || allQualityData[0];
+  const html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;line-height:2;">' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">车牌号</div><div style="font-weight:500;">' + d.plate + '</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">VIN码</div><div style="font-weight:500;font-family:monospace;">' + d.vin + '</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">所属企业</div><div style="font-weight:500;">' + d.company + '</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">车型</div><div style="font-weight:500;">' + d.vehicleType + '</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">行政区域</div><div style="font-weight:500;">' + d.district + '</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">最后上报时间</div><div style="font-weight:500;">' + d.lastReportTime + '</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">数据完整率</div><div style="font-weight:500;">' + d.completeness.toFixed(1) + '%</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">缺失字段数</div><div style="font-weight:500;">' + d.missingFields + ' 个</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">数据延迟</div><div style="font-weight:500;">' + d.dataDelay + ' ms</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">当日里程</div><div style="font-weight:500;">' + d.dailyMileage + ' km</div></div>' +
+    '<div><div style="color:#8c8c8c;font-size:12px;">运行模式</div><div style="font-weight:500;">' + d.mode + '</div></div>' +
+    '</div>' +
+    '<hr style="margin:14px 0;border-color:#f0f0f0;">' +
+    '<p style="font-weight:600;margin-bottom:8px;">近7日数据质量趋势</p>' +
+    '<div id="detailTrendChart" style="height:180px;"></div>';
+  document.getElementById('detailModalTitle').textContent = '车辆运行详情 - ' + d.plate;
+  document.getElementById('detailModalBody').innerHTML = html;
+  document.getElementById('detailModalOverlay').style.display = 'flex';
+  setTimeout(function() {
+    const trendDom = document.getElementById('detailTrendChart');
+    if (trendDom) {
+      const chart = echarts.init(trendDom);
+      chart.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: 45, right: 20, top: 10, bottom: 25 },
+        xAxis: { type: 'category', data: ['5/2', '5/3', '5/4', '5/5', '5/6', '5/7', '5/8'] },
+        yAxis: { type: 'value', name: '%', min: 80, max: 100 },
+        series: [{ type: 'line', data: [94.5, 95.2, 93.8, 96.1, 95.5, 97.0, 96.8], lineStyle: { color: '#1890ff' }, areaStyle: { color: 'rgba(24,144,255,0.15)' }, smooth: true }],
+      });
+    }
+  }, 200);
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModalOverlay').style.display = 'none';
+}
+document.getElementById('detailModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDetailModal();
+});
+
+// ==================== 查询/重置 ====================
+function handleQuery() {
+  alert('查询功能：根据筛选条件重新加载数据（演示交互）');
+}
+function handleReset() {
+  document.querySelectorAll('.filter-bar select').forEach(s => s.selectedIndex = 0);
+  document.querySelectorAll('.filter-bar input[type="date"]').forEach((inp, i) => {
+    inp.value = i === 0 ? '2026-04-01' : '2026-05-08';
+  });
+}
+
+// ==================== ECharts 图表 ====================
+const chartInstances = {};
+
+function initChart(id) {
+  const dom = document.getElementById(id);
+  if (!dom) return null;
+  if (chartInstances[id]) { chartInstances[id].dispose(); }
+  const chart = echarts.init(dom);
+  chartInstances[id] = chart;
+  return chart;
+}
+
+function updateChartsByDimension() {
+  const mileageChart = chartInstances['chartMileageBar'];
+  if (mileageChart && !mileageChart.isDisposed()) {
+    let categories, data;
+    if (currentDimension === 'company') {
+      categories = companies.slice(0, 8);
+      data = [42.5, 35.8, 28.2, 22.1, 18.6, 15.3, 12.9, 10.5];
+    } else if (currentDimension === 'vehicleType') {
+      categories = vehicleTypes;
+      data = [58.2, 45.6, 32.1, 22.8, 16.5, 11.3];
+    } else {
+      categories = districts;
+      data = [68.5, 52.3, 35.6, 20.2, 9.9];
+    }
+    mileageChart.setOption({
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 10, right: 70, top: 10, bottom: 20, containLabel: true },
+      xAxis: { type: 'value', name: '里程(万km)', axisLabel: { fontSize: 11 } },
+      yAxis: { type: 'category', data: categories, axisLabel: { fontSize: 11 }, inverse: true },
+      series: [{ type: 'bar', data: data, barWidth: '55%', itemStyle: { color: '#1677ff', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', fontSize: 11, formatter: '{c} 万km' } }],
+    });
+  }
+
+  const durationChart = chartInstances['chartDurationPie'];
+  if (durationChart && !durationChart.isDisposed()) {
+    let pieData;
+    if (currentDimension === 'company') {
+      pieData = [{ value: 12000, name: '襄阳智行科技' }, { value: 9800, name: '汉江出行' }, { value: 7500, name: '顺捷科技' }, { value: 6200, name: '东风出行' }, { value: 5100, name: '百度Apollo' }, { value: 4200, name: '滴滴自动驾驶' }, { value: 3500, name: '小马智行' }, { value: 2800, name: '文远知行' }];
+    } else if (currentDimension === 'vehicleType') {
+      pieData = [{ value: 16000, name: '轿车' }, { value: 12000, name: 'SUV' }, { value: 8500, name: 'MPV' }, { value: 5500, name: '微面' }, { value: 3800, name: '轻卡' }, { value: 2800, name: '公交' }];
+    } else {
+      pieData = [{ value: 18000, name: '樊城区' }, { value: 14000, name: '襄城区' }, { value: 9500, name: '襄州区' }, { value: 5200, name: '南漳县' }, { value: 3100, name: '谷城县' }];
+    }
+    durationChart.setOption({
+      tooltip: { trigger: 'item', formatter: '{b}: {c} 小时 ({d}%)' },
+      legend: { bottom: 0, textStyle: { fontSize: 10 } },
+      series: [{ type: 'pie', radius: ['48%', '72%'], center: ['50%', '44%'], itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 }, label: { formatter: '{b}\n{d}%', fontSize: 10 }, data: pieData }],
+    });
+  }
+
+  const statData = {
+    company: { mileage: '186.5', duration: '4.8', avgSpeed: '38.6', completeness: '96.8', online: '328' },
+    vehicleType: { mileage: '192.3', duration: '5.1', avgSpeed: '36.2', completeness: '95.4', online: '312' },
+    district: { mileage: '178.9', duration: '4.5', avgSpeed: '40.1', completeness: '97.3', online: '335' },
+  };
+  const sd = statData[currentDimension] || statData.company;
+  document.getElementById('statMileage').innerHTML = sd.mileage + ' <span style="font-size:14px;font-weight:500;">万km</span>';
+  document.getElementById('statDuration').innerHTML = sd.duration + ' <span style="font-size:14px;font-weight:500;">万小时</span>';
+  document.getElementById('statAvgSpeed').innerHTML = sd.avgSpeed + ' <span style="font-size:14px;font-weight:500;">km/h</span>';
+  document.getElementById('statCompleteness').innerHTML = sd.completeness + ' <span style="font-size:14px;font-weight:500;">%</span>';
+  document.getElementById('statOnlineVehicles').innerHTML = sd.online + ' <span style="font-size:14px;font-weight:500;">辆</span>';
+}
+
+// 初始化里程对比柱状图
+const chartMileageBar = initChart('chartMileageBar');
+chartMileageBar.setOption({
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  grid: { left: 10, right: 70, top: 10, bottom: 20, containLabel: true },
+  xAxis: { type: 'value', name: '里程(万km)', axisLabel: { fontSize: 11 } },
+  yAxis: { type: 'category', data: companies.slice(0, 8), axisLabel: { fontSize: 11 }, inverse: true },
+  series: [{ type: 'bar', data: [42.5, 35.8, 28.2, 22.1, 18.6, 15.3, 12.9, 10.5], barWidth: '55%', itemStyle: { color: '#1677ff', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', fontSize: 11, formatter: '{c} 万km' } }],
+});
+
+// 初始化时长分布饼图
+const chartDurationPie = initChart('chartDurationPie');
+chartDurationPie.setOption({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} 小时 ({d}%)' },
+  legend: { bottom: 0, textStyle: { fontSize: 10 } },
+  series: [{ type: 'pie', radius: ['48%', '72%'], center: ['50%', '44%'], itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 }, label: { formatter: '{b}\n{d}%', fontSize: 10 }, data: [{ value: 12000, name: '襄阳智行科技' }, { value: 9800, name: '汉江出行' }, { value: 7500, name: '顺捷科技' }, { value: 6200, name: '东风出行' }, { value: 5100, name: '百度Apollo' }, { value: 4200, name: '滴滴自动驾驶' }, { value: 3500, name: '小马智行' }, { value: 2800, name: '文远知行' }] }],
+});
+
+// 速度区间分布柱状图
+const chartSpeedDist = initChart('chartSpeedDist');
+chartSpeedDist.setOption({
+  tooltip: { trigger: 'axis' },
+  grid: { left: 50, right: 30, top: 10, bottom: 35 },
+  xAxis: { type: 'category', data: ['0-15', '15-25', '25-35', '35-45', '45-55', '55-65', '65+'], axisLabel: { fontSize: 11, formatter: '{value} km/h' } },
+  yAxis: { type: 'value', name: '车辆数' },
+  series: [{ type: 'bar', data: [48, 72, 95, 62, 35, 18, 8], barWidth: '55%', itemStyle: { color: function(p) { var colors = ['#52c41a', '#73d13d', '#1677ff', '#fa8c16', '#ff7a45', '#f5222d', '#cf1322']; return colors[p.dataIndex]; }, borderRadius: [4, 4, 0, 0] }, label: { show: true, position: 'top', fontSize: 12, fontWeight: 500 } }],
+});
+
+// 数据质量趋势折线图
+const chartQualityTrend = initChart('chartQualityTrend');
+const qualityDays = [];
+const qualityData = [];
+for (let i = 29; i >= 0; i--) {
+  const d = new Date(2026, 4, 8);
+  d.setDate(d.getDate() - i);
+  qualityDays.push((d.getMonth() + 1) + '/' + d.getDate());
+  qualityData.push(94 + Math.random() * 5);
+}
+chartQualityTrend.setOption({
+  tooltip: { trigger: 'axis', formatter: function(p) { return p[0].name + '<br/>数据完整率：<b>' + p[0].value.toFixed(1) + '%</b>'; } },
+  grid: { left: 50, right: 20, top: 10, bottom: 35 },
+  xAxis: { type: 'category', data: qualityDays, axisLabel: { rotate: 45, fontSize: 10 } },
+  yAxis: { type: 'value', name: '%', min: 90, max: 100 },
+  series: [{ type: 'line', data: qualityData, lineStyle: { color: '#1677ff', width: 2 }, itemStyle: { color: '#1677ff' }, smooth: true, areaStyle: { color: 'rgba(22,119,255,0.12)' }, markLine: { silent: true, data: [{ yAxis: 96.8, lineStyle: { color: '#52c41a', type: 'dashed' }, label: { formatter: '均值 96.8%' } }] } }],
+});
+
+function resizeAllCharts() {
+  Object.values(chartInstances).forEach(function(c) { if (c && !c.isDisposed()) c.resize(); });
+}
+window.addEventListener('resize', function() {
+  clearTimeout(window._resizeTimer);
+  window._resizeTimer = setTimeout(resizeAllCharts, 200);
+});
+
+// ==================== 导出报告 ====================
+function openExportReport() {
+  openModal('导出分析报告',
+    '<div class="ant-form-item"><div class="ant-form-label">选择报告模板</div><div class="ant-form-control"><div class="ant-select" style="width:100%">智能网联汽车安全监测平台数据分析报告模板 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">导出文件格式</div><div class="ant-form-control"><div class="flex gap-3"><label class="flex items-center gap-2 text-sm"><input type="radio" name="format" checked> PDF</label><label class="flex items-center gap-2 text-sm"><input type="radio" name="format"> Word</label></div></div></div>',
+    {footer: '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal();alert(\'分析报告已生成\')">确认导出</button>'});
+}
+
+// 初始渲染
+switchDimension('company');
+renderTable(1);
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

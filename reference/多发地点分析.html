@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事故分析研判 - 多发地点分析</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-layout {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: #fff;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar-logo {
+            padding: 18px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.5px;
+        }
+        .sidebar-logo .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            background: var(--error);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .sidebar-menu {
+            flex: 1;
+            padding: 8px 0;
+            overflow-y: auto;
+        }
+        .menu-group-title {
+            padding: 14px 20px 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            user-select: none;
+        }
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        .menu-item.active {
+            background: rgba(24, 144, 255, 0.2);
+            color: #fff;
+            border-left-color: var(--primary);
+            font-weight: 500;
+        }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 30px;
+            background: var(--bg);
+        }
+        .page-header {
+            margin-bottom: 16px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 14px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 110px;
+        }
+        .form-group label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        select,
+        input {
+            height: 32px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-family: var(--font);
+            background: #fff;
+            outline: none;
+            min-width: 100px;
+            transition: all 0.2s;
+        }
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+        .btn {
+            height: 32px;
+            padding: 0 14px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-default {
+            background: #fff;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-default:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-sm {
+            height: 26px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 3px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 400;
+            font-size: 12px;
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+        .card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 16px;
+        }
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .map-container {
+            height: 420px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            background: #fafafa;
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 11px;
+            text-transform: uppercase;
+            cursor: pointer;
+            user-select: none;
+        }
+        th:hover {
+            background: #f0f0f0;
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f5f5f5;
+            color: var(--text-primary);
+        }
+        tbody tr:hover {
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-yellow {
+            background: #fffbe6;
+            color: #d4b106;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 14px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .pagination-bar select {
+            width: 70px;
+            height: 28px;
+        }
+        .pagination-bar .btn-sm {
+            height: 28px;
+        }
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 8px;
+            width: 780px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        @media (max-width:1200px) {
+            .sidebar {
+                width: 200px;
+            }
+        }
+        @media (max-width:768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            .sidebar-menu {
+                display: flex;
+                padding: 0;
+            }
+            .menu-item {
+                padding: 10px 14px;
+                border-left: none;
+                border-bottom: 2px solid transparent;
+            }
+            .menu-item.active {
+                border-bottom-color: var(--primary);
+            }
+            .main-content {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 左侧导航 -->
+        <aside class="sidebar">
+            <div class="sidebar-logo"><span class="icon">🛡️</span>事故分析研判</div>
+            <nav class="sidebar-menu">
+                <div class="menu-group-title">研判分析</div>
+                <div class="menu-item active" data-page="hotspot">📍 多发地点分析</div>
+                <div class="menu-item" data-page="risk">⚠️ 风险区域分析</div>
+                <div class="menu-item" data-page="trend">📈 事故趋势分析</div>
+                <div class="menu-item" data-page="vehicle">🚗 车辆主体分析</div>
+                <div class="menu-group-title">决策输出</div>
+                <div class="menu-item" data-page="report">📋 分析报告与建议</div>
+            </nav>
+        </aside>
+        <!-- 右侧内容 -->
+        <main class="main-content">
+            <div class="page-header">
+                <div class="page-title">多发地点分析</div>
+                <div class="page-subtitle">基于空间聚合统计，识别事故高发点位并输出特征画像</div>
+            </div>
+            <!-- 筛选条件 -->
+            <div class="query-bar">
+                <div class="form-group"><label>时间范围</label>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="date" value="2026-04-01" style="width:130px;"><span>-</span><input type="date" value="2026-05-08" style="width:130px;"></div>
+                </div>
+                <div class="form-group"><label>行政区域</label><select><option>全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option></select></div>
+                <div class="form-group"><label>事故类型</label><select><option>全部</option><option>碰撞</option><option>追尾</option><option>刮擦</option><option>行人冲突</option></select></div>
+                <div class="form-group"><label>判定阈值</label><select><option>默认(月≥3起)</option><option>自定义</option></select></div>
+                <button class="btn btn-primary" onclick="showToast('查询完成')">🔍 查询</button>
+                <button class="btn btn-default" onclick="showToast('导出成功')">📥 导出Excel</button>
+            </div>
+            <!-- 地图全宽 -->
+            <div class="card">
+                <div class="card-header">多发地点GIS地图 <span style="font-weight:400;font-size:12px;color:var(--text-tertiary);">符号大小按事故数分级</span></div>
+                <div id="hotspotMap" class="map-container"></div>
+            </div>
+            <!-- 多发地点清单 -->
+            <div class="card">
+                <div class="card-header">多发地点清单 <span style="font-weight:400;font-size:12px;color:var(--text-tertiary);">共 10 条 | 点击行查看事故明细</span></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>点位编号</th><th>点位名称</th><th>所属区县</th><th>道路类型</th><th>事故总数</th><th>死亡</th><th>受伤</th><th>主要类型</th><th>高发时段</th><th>核心致因</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="hotspotTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="pagination-bar">
+                    <span>共 <b>10</b> 条</span>
+                    <select><option value="10">10</option><option value="20">20</option></select>
+                    <span>条/页</span>
+                    <button class="btn btn-sm btn-default" disabled>上一页</button>
+                    <span>第 <b>1</b> / <b>1</b> 页</span>
+                    <button class="btn btn-sm btn-default" disabled>下一页</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- 详情弹窗：事故清单 -->
+    <div class="modal-mask" id="accidentModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="modalTitle">点位事故清单</span>
+                <button class="btn btn-sm btn-default" onclick="closeAccidentModal()">✕ 关闭</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // 模拟多发地点数据
+            const hotspotPoints = [
+                { id: 'HP-001', name: '长虹路与建华路交叉口', lat: 32.045, lng: 112.140, district: '樊城区', roadType: '主干道',
+                    accidents: 28, deaths: 2, injuries: 12, mainType: '追尾', peakHours: '早高峰/晚高峰',
+                cause: '未按规定让行' },
+                { id: 'HP-002', name: '檀溪路与铁佛寺路交叉口', lat: 32.010, lng: 112.105, district: '襄城区', roadType: '主干道',
+                    accidents: 22, deaths: 1, injuries: 15, mainType: '碰撞', peakHours: '平峰', cause: '信号违规' },
+                { id: 'HP-003', name: '航空路与金富士路交叉口', lat: 32.080, lng: 112.200, district: '襄州区', roadType: '次干道',
+                    accidents: 18, deaths: 3, injuries: 8, mainType: '行人冲突', peakHours: '晚高峰',
+                cause: '行人横穿' },
+                { id: 'HP-004', name: '人民路天元四季城路段', lat: 32.035, lng: 112.125, district: '樊城区', roadType: '支路',
+                    accidents: 12, deaths: 0, injuries: 6, mainType: '刮擦', peakHours: '夜间', cause: '疲劳驾驶' },
+                { id: 'HP-005', name: '建设路与银城大道交叉口', lat: 31.780, lng: 111.860, district: '南漳县', roadType: '次干道',
+                    accidents: 10, deaths: 0, injuries: 5, mainType: '正面碰撞', peakHours: '早高峰', cause: '超速行驶' },
+                { id: 'HP-006', name: '卧龙大道与中原路交叉口', lat: 32.060, lng: 112.090, district: '樊城区', roadType: '快速路',
+                    accidents: 25, deaths: 1, injuries: 18, mainType: '追尾', peakHours: '晚高峰', cause: '制动响应延迟' },
+                { id: 'HP-007', name: '大庆路与人民路交叉口', lat: 32.025, lng: 112.115, district: '樊城区', roadType: '主干道',
+                    accidents: 15, deaths: 0, injuries: 9, mainType: '碰撞', peakHours: '平峰', cause: '视距不足' },
+                { id: 'HP-008', name: '环城南路与檀溪路交叉口', lat: 31.995, lng: 112.098, district: '襄城区', roadType: '主干道',
+                    accidents: 8, deaths: 0, injuries: 4, mainType: '刮擦', peakHours: '早高峰', cause: '车道偏离' },
+                { id: 'HP-009', name: '前进路与长征路交叉口', lat: 32.050, lng: 112.155, district: '襄州区', roadType: '次干道',
+                    accidents: 6, deaths: 0, injuries: 3, mainType: '追尾', peakHours: '夜间', cause: '信号灯识别失败' },
+                { id: 'HP-010', name: '解放路与明珠路交叉口', lat: 31.805, lng: 111.890, district: '南漳县', roadType: '支路',
+                    accidents: 4, deaths: 0, injuries: 2, mainType: '行人冲突', peakHours: '平峰', cause: '路口博弈' },
+            ];
+
+            // 为每个点位生成模拟事故列表（用于详情弹窗）
+            const accidentDetails = {};
+            const baseAccidents = [
+                { id: 'ACC-001', time: '2026-05-08 08:30', type: '追尾', severity: '轻伤', plate: '鄂F·A1234',
+                    company: '襄阳智行科技' },
+                { id: 'ACC-002', time: '2026-05-07 18:15', type: '碰撞', severity: '重伤', plate: '鄂F·B5678',
+                    company: '汉江出行' },
+                { id: 'ACC-003', time: '2026-05-05 14:20', type: '刮擦', severity: '无伤亡', plate: '鄂F·C3456',
+                company: '顺捷科技' },
+                { id: 'ACC-004', time: '2026-04-28 07:45', type: '行人冲突', severity: '死亡', plate: '鄂F·D7890',
+                    company: '东风出行' },
+                { id: 'ACC-005', time: '2026-04-22 20:00', type: '追尾', severity: '轻伤', plate: '鄂F·E9012',
+                company: '百度Apollo' },
+            ];
+            hotspotPoints.forEach(p => {
+                accidentDetails[p.id] = baseAccidents.map((a, idx) => ({
+                    ...a,
+                    id: `ACC-${p.id}-${idx+1}`,
+                    time: a.time.replace(/2026-\d{2}-\d{2}/, '2026-' + (4 + Math.floor(Math
+                        .random() * 2)).toString().padStart(2, '0') + '-' + (8 + idx)
+                        .toString().padStart(2, '0')),
+                }));
+            });
+
+            // 渲染清单表格
+            function renderTable() {
+                const tbody = document.getElementById('hotspotTableBody');
+                tbody.innerHTML = hotspotPoints.map(p => `
+                    <tr onclick="showAccidentList('${p.id}')">
+                        <td>${p.id}</td>
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.district}</td>
+                        <td>${p.roadType}</td>
+                        <td><span class="tag tag-red">${p.accidents}</span></td>
+                        <td>${p.deaths}</td>
+                        <td>${p.injuries}</td>
+                        <td>${p.mainType}</td>
+                        <td>${p.peakHours}</td>
+                        <td>${p.cause}</td>
+                        <td><button class="btn-link" onclick="event.stopPropagation();showAccidentList('${p.id}')">查看详情</button></td>
+                    </tr>
+                `).join('');
+            }
+            renderTable();
+
+            // 初始化Leaflet地图
+            let map;
+            function initMap() {
+                const container = document.getElementById('hotspotMap');
+                if (!container) return;
+                if (map) map.remove();
+                map = L.map(container).setView([32.0, 112.12], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+                    .addTo(map);
+
+                hotspotPoints.forEach(p => {
+                    let color, radius;
+                    if (p.accidents >= 20) { color = '#f5222d';
+                        radius = 18; } else if (p.accidents >= 10) { color = '#fa8c16';
+                        radius = 14; } else { color = '#ffc107';
+                        radius = 10; }
+                    L.circleMarker([p.lat, p.lng], {
+                        radius: radius,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 2,
+                        fillOpacity: 0.85,
+                    }).addTo(map).bindPopup(
+                        `<b>${p.name}</b><br>事故数：${p.accidents}起<br>主要类型：${p.mainType}<br>核心致因：${p.cause}`
+                        );
+                });
+            }
+
+            // 弹窗：事故清单
+            window.showAccidentList = function(pointId) {
+                const point = hotspotPoints.find(p => p.id === pointId) || hotspotPoints[0];
+                const accidents = accidentDetails[pointId] || [];
+                const severityColor = { '死亡': 'tag-red', '重伤': 'tag-orange', '轻伤': 'tag-yellow',
+                '无伤亡': 'tag-green' };
+                const html = `
+                    <p><b>点位：</b>${point.name} | <b>事故总数：</b>${point.accidents}起</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>事故编号</th><th>时间</th><th>事故类型</th><th>严重程度</th><th>车牌号</th><th>所属企业</th></tr></thead>
+                            <tbody>${accidents.map(a => `
+                                <tr>
+                                    <td>${a.id}</td>
+                                    <td>${a.time}</td>
+                                    <td>${a.type}</td>
+                                    <td><span class="tag ${severityColor[a.severity]||'tag-blue'}">${a.severity}</span></td>
+                                    <td>${a.plate}</td>
+                                    <td>${a.company}</td>
+                                </tr>
+                            `).join('')}</tbody>
+                        </table>
+                    </div>
+                `;
+                document.getElementById('modalTitle').textContent = `事故清单 - ${point.name}`;
+                document.getElementById('modalBody').innerHTML = html;
+                document.getElementById('accidentModal').classList.add('show');
+            };
+
+            window.closeAccidentModal = function() {
+                document.getElementById('accidentModal').classList.remove('show');
+            };
+            document.getElementById('accidentModal').addEventListener('click', function(e) {
+                if (e.target === this) closeAccidentModal();
+            });
+
+            window.showToast = function(msg) {
+                const t = document.createElement('div');
+                t.style.cssText =
+                    'position:fixed;top:20px;right:20px;z-index:999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:13px;border-left:3px solid #1890ff;';
+                t.textContent = '✅ ' + msg;
+                document.body.appendChild(t);
+                setTimeout(() => { t.style.opacity = '0';
+                    t.style.transition = '0.3s';
+                    setTimeout(() => t.remove(), 300); }, 2000);
+            };
+
+            initMap();
+            window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
+
+            // 侧边导航点击（其他菜单仅提示，保持当前页面不变）
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove(
+                        'active'));
+                    this.classList.add('active');
+                    if (this.dataset.page !== 'hotspot') {
+                        showToast('该功能正在建设中，当前仅演示多发地点分析');
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

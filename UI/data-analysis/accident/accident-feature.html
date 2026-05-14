@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事故特征分析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.0.2/wordcloud2.min.js"></script>
+  <style>
+    .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .chart-row.single{grid-template-columns:1fr}
+    .chart-panel{background:#fff;border-radius:8px;padding:18px 20px;box-shadow:0 1px 2px 0 rgba(0,0,0,.03);border:1px solid #f0f0f0;min-height:300px;display:flex;flex-direction:column}
+    .chart-panel .panel-title{font-size:14px;font-weight:600;color:#262626;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+    .chart-panel .panel-title .panel-sub{font-weight:400;font-size:12px;color:#8c8c8c}
+    .chart-container{flex:1;min-height:220px}
+    .chart-container.tall{flex:1;min-height:280px}
+    .tag-acc{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:500;letter-spacing:.3px;white-space:nowrap}
+    .tag-acc.tag-red{background:#fff1f0;color:#cf1322}
+    .tag-acc.tag-orange{background:#fff7e6;color:#d46b08}
+    .tag-acc.tag-blue{background:#e6f7ff;color:#096dd9}
+    .tag-acc.tag-green{background:#f6ffed;color:#389e0d}
+    .tag-acc.tag-purple{background:#f9f0ff;color:#722ed1}
+    .map-container{width:100%;border-radius:6px;min-height:380px;z-index:1}
+    .toast-msg{position:fixed;top:20px;right:20px;z-index:9999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,.08);font-size:13px;animation:slideInRight .3s ease;display:flex;align-items:center;gap:8px;border-left:3px solid #1677ff}
+    @keyframes slideInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+    @media(max-width:1000px){.chart-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>事故特征分析</h2></div>
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-spacetime')">事故时空特征</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-search')">事故关联检索</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-portrait')">多维特征画像</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-collision')">碰撞形态分析</span>
+      </div>
+
+      <!-- ==================== TAB 1: 事故时空特征 ==================== -->
+      <div id="tab-spacetime">
+        <div class="filter-bar" id="spacetimeFilterBar"></div>
+        <div class="chart-row">
+          <div class="chart-panel">
+            <div class="panel-title">24小时分布
+              <div class="ant-select" id="hourFilterSelect" style="height:28px;font-size:12px;min-width:90px;padding:0 8px;cursor:pointer;border:1px solid #d9d9d9;border-radius:4px;display:flex;align-items:center;justify-content:space-between;background:#fff"><span>工作日</span><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div>
+            </div>
+            <div class="chart-container" id="chartHour"></div>
+          </div>
+          <div class="chart-panel">
+            <div class="panel-title">星期分布</div>
+            <div class="chart-container" id="chartWeekday"></div>
+          </div>
+        </div>
+        <div class="chart-row single">
+          <div class="chart-panel">
+            <div class="panel-title">月度趋势（多年度叠加）</div>
+            <div class="chart-container tall" id="chartMonth"></div>
+          </div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-panel">
+            <div class="panel-title">区域分布</div>
+            <div class="chart-container" id="chartRegion"></div>
+          </div>
+          <div class="chart-panel">
+            <div class="panel-title">道路等级分布</div>
+            <div class="chart-container" id="chartRoadLevel"></div>
+          </div>
+        </div>
+        <div class="chart-row single">
+          <div class="chart-panel">
+            <div class="panel-title">事故热力图（地图）<span class="panel-sub">可缩放拖拽</span></div>
+            <div class="map-container" id="mapContainer"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 2: 事故关联检索 ==================== -->
+      <div id="tab-search" style="display:none">
+        <div class="filter-bar" id="searchFilterBar"></div>
+        <div class="card">
+          <div class="ant-table-wrapper">
+            <div class="px-6 py-3 font-semibold text-sm border-b border-[#f0f0f0] flex items-center justify-between">
+              <span>事故列表</span>
+              <span class="font-normal text-xs text-[#8c8c8c]">共 <span id="searchTotal">247</span> 条</span>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="ant-table">
+                <thead><tr><th>事故编号</th><th>时间</th><th>地点</th><th>类型</th><th>车牌</th><th>企业</th><th>驾驶员</th><th>操作</th></tr></thead>
+                <tbody id="searchTableBody"></tbody>
+              </table>
+            </div>
+            <div class="ant-pagination mt-4 flex justify-center">
+              <div class="page-item" onclick="showToastMsg('上一页')">上一页</div>
+              <div class="page-item active">1</div>
+              <div class="page-item" onclick="showToastMsg('第2页')">2</div>
+              <div class="page-item" onclick="showToastMsg('第3页')">3</div>
+              <div class="page-item" onclick="showToastMsg('下一页')">下一页</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: 多维特征画像 ==================== -->
+      <div id="tab-portrait" style="display:none">
+        <div class="filter-bar" id="portraitFilterBar"></div>
+        <div class="chart-row">
+          <div class="chart-panel">
+            <div class="panel-title">交叉统计矩阵
+              <span style="display:flex;align-items:center;gap:8px;">
+                <div class="ant-select" id="profileXSel" style="height:28px;font-size:12px;min-width:90px;padding:0 8px;border:1px solid #d9d9d9;border-radius:4px;display:flex;align-items:center;justify-content:space-between;background:#fff;cursor:pointer"><span>事故类型</span><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div>
+                <span style="line-height:28px;">×</span>
+                <div class="ant-select" id="profileYSel" style="height:28px;font-size:12px;min-width:90px;padding:0 8px;border:1px solid #d9d9d9;border-radius:4px;display:flex;align-items:center;justify-content:space-between;background:#fff;cursor:pointer"><span>时段</span><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div>
+              </span>
+            </div>
+            <div class="chart-container" id="chartCrossMatrix"></div>
+          </div>
+          <div class="chart-panel">
+            <div class="panel-title">典型特征组合</div>
+            <div style="overflow-y:auto;flex:1">
+              <table class="ant-table">
+                <thead><tr><th>特征组合</th><th>事故数</th><th>占比</th><th>显著</th></tr></thead>
+                <tbody>
+                  <tr><td>城区道路 × 自动驾驶 × 追尾 × 高峰</td><td>38</td><td>15.4%</td><td><span class="tag-acc tag-green">是</span></td></tr>
+                  <tr><td>次干路 × 手动驾驶 × 刮擦 × 平峰</td><td>22</td><td>8.9%</td><td><span class="tag-acc tag-green">是</span></td></tr>
+                  <tr><td>快速路 × 手动驾驶 × 追尾 × 夜间</td><td>15</td><td>6.1%</td><td><span class="tag-acc tag-orange">否</span></td></tr>
+                  <tr><td>支路 × 自动驾驶 × 行人冲突 × 平峰</td><td>10</td><td>4.0%</td><td><span class="tag-acc tag-orange">否</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-panel">
+            <div class="panel-title">单维度分布
+              <div class="ant-select" id="singleDimSelect" style="height:28px;font-size:12px;min-width:90px;padding:0 8px;border:1px solid #d9d9d9;border-radius:4px;display:flex;align-items:center;justify-content:space-between;background:#fff;cursor:pointer"><span>事故类型</span><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div>
+            </div>
+            <div class="chart-container" id="chartSingleDim"></div>
+          </div>
+          <div class="chart-panel">
+            <div class="panel-title">特征标签云</div>
+            <canvas id="tagCloudCanvas" width="400" height="200" style="width:100%;height:200px;flex:1"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 4: 碰撞形态分析 ==================== -->
+      <div id="tab-collision" style="display:none">
+        <div class="filter-bar" id="collisionFilterBar"></div>
+        <div class="chart-row">
+          <div class="chart-panel">
+            <div class="panel-title">碰撞形态分布 (GA/T 16)</div>
+            <div class="chart-container" id="chartCollisionPie"></div>
+          </div>
+          <div class="chart-panel">
+            <div class="panel-title">碰撞角度玫瑰图</div>
+            <div class="chart-container" id="chartAngleRose"></div>
+          </div>
+        </div>
+        <div class="chart-row single">
+          <div class="chart-panel">
+            <div class="panel-title">伤亡等级 × 碰撞形态交叉表</div>
+            <div style="overflow-x:auto">
+              <table class="ant-table" id="collisionCrossTable"></table>
+            </div>
+          </div>
+        </div>
+        <div class="chart-row single">
+          <div class="chart-panel">
+            <div class="panel-title">碰撞速度区间分布</div>
+            <div class="chart-container tall" id="chartSpeedBox"></div>
+          </div>
+        </div>
+        <div class="chart-row single">
+          <div class="chart-panel">
+            <div class="panel-title">空间分布（不同形态）</div>
+            <div class="map-container" id="collisionMapContainer"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div id="toastContainer"></div>
+<script>
+  const PAGE_ID = 'accident-feature';
+  var allTabs = ['tab-spacetime','tab-search','tab-portrait','tab-collision'];
+
+  function switchTab(el, tabId) {
+    document.querySelectorAll('.ant-tab').forEach(function(t){ t.classList.remove('active'); });
+    el.classList.add('active');
+    allTabs.forEach(function(id){ document.getElementById(id).style.display = id === tabId ? '' : 'none'; });
+    setTimeout(function() {
+      resizeAllCharts();
+      if (tabId === 'tab-spacetime' && heatMap) heatMap.invalidateSize();
+      if (tabId === 'tab-collision' && collisionMap) collisionMap.invalidateSize();
+    }, 150);
+  }
+
+  function showToastMsg(msg) {
+    var container = document.getElementById('toastContainer');
+    var toast = document.createElement('div');
+    toast.className = 'toast-msg';
+    toast.textContent = '✅ ' + msg;
+    container.appendChild(toast);
+    setTimeout(function(){ toast.style.opacity='0'; toast.style.transition='opacity .3s'; setTimeout(function(){ toast.remove(); },300); },2500);
+  }
+
+  // ==================== Chart Management ====================
+  var chartInstances = {};
+  function initChart(id) {
+    var dom = document.getElementById(id);
+    if (!dom) return null;
+    if (chartInstances[id]) chartInstances[id].dispose();
+    var chart = echarts.init(dom);
+    chartInstances[id] = chart;
+    return chart;
+  }
+  function resizeAllCharts() {
+    Object.values(chartInstances).forEach(function(c){ if (c && !c.isDisposed()) c.resize(); });
+    if (heatMap) heatMap.invalidateSize();
+    if (collisionMap) collisionMap.invalidateSize();
+  }
+
+  // ==================== TAB 1 Charts ====================
+  function renderHour() {
+    var chart = initChart('chartHour');
+    if (!chart) return;
+    var data = [15,8,5,3,6,12,28,45,52,38,35,42,40,44,48,55,62,58,49,42,35,28,22,18];
+    chart.setOption({
+      tooltip: { trigger:'axis' },
+      grid: { left:40, right:20, bottom:30 },
+      xAxis: { data: Array.from({length:24},function(_,i){return i+'时'}) },
+      yAxis: { name:'事故数' },
+      series: [{ type:'bar', data: data, itemStyle: { color:'#1677ff', borderRadius:[4,4,0,0] }, barWidth:'60%' }]
+    });
+  }
+  function renderWeekday() {
+    var chart = initChart('chartWeekday');
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger:'axis' },
+      grid: { left:40, right:20, bottom:30 },
+      xAxis: { data: ['周一','周二','周三','周四','周五','周六','周日'] },
+      yAxis: { name:'事故数' },
+      series: [{ type:'bar', data:[210,205,198,215,230,180,165], itemStyle:{ color:'#52c41a', borderRadius:[4,4,0,0] }, barWidth:'60%' }]
+    });
+  }
+  function renderMonth() {
+    var chart = initChart('chartMonth');
+    if (!chart) return;
+    var m = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    chart.setOption({
+      tooltip: { trigger:'axis' },
+      legend: { data:['2024','2025','2026'], bottom:0 },
+      grid: { left:45, right:20, bottom:45 },
+      xAxis: { data: m },
+      yAxis: { name:'事故数' },
+      series: [
+        { name:'2024', type:'line', data:[120,100,130,140,150,160,170,165,155,145,135,125], itemStyle:{color:'#52c41a'}, symbol:'circle', symbolSize:6 },
+        { name:'2025', type:'line', data:[130,110,140,155,165,175,185,180,168,158,148,138], itemStyle:{color:'#faad14'}, symbol:'circle', symbolSize:6 },
+        { name:'2026', type:'line', data:[140,120,150,165,180,190,200,195,182,172,162,152], itemStyle:{color:'#1677ff'}, symbol:'circle', symbolSize:6 }
+      ]
+    });
+  }
+  function renderRegion() {
+    var chart = initChart('chartRegion');
+    if (!chart) return;
+    var regions = ['樊城区','襄城区','襄州区','南漳县','谷城县'];
+    var vals = [386,298,215,178,170];
+    chart.setOption({
+      tooltip: { trigger:'axis' },
+      grid: { left:50, right:20, bottom:30 },
+      xAxis: { data: regions, axisLabel:{fontSize:11} },
+      yAxis: { name:'事故数' },
+      series: [{ type:'bar', data: vals.map(function(v,i){ return { value:v, itemStyle:{ color:['#ff7875','#ff9c6e','#ffc53d','#73d13d','#36cfc9'][i]||'#fa8c16' } }; }), barWidth:'55%', label:{show:true,position:'top',fontSize:11} }]
+    });
+  }
+  function renderRoadLevel() {
+    var chart = initChart('chartRoadLevel');
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger:'item' },
+      legend: { bottom:0 },
+      series: [{ type:'pie', radius:['45%','72%'], center:['50%','46%'], itemStyle:{borderRadius:5,borderColor:'#fff',borderWidth:3},
+        data: [
+          { value:520, name:'主干道', itemStyle:{color:'#1677ff'} },
+          { value:340, name:'次干道', itemStyle:{color:'#52c41a'} },
+          { value:210, name:'支路', itemStyle:{color:'#faad14'} },
+          { value:177, name:'快速路', itemStyle:{color:'#722ed1'} }
+        ]}
+    ]});
+  }
+
+  // ==================== Leaflet Heat Map ====================
+  var heatMap = null, heatLayer = null;
+  function initHeatMap() {
+    var container = document.getElementById('mapContainer');
+    if (!container) return;
+    if (heatMap) { heatMap.remove(); heatMap = null; }
+    heatMap = L.map(container).setView([32.0, 112.1], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(heatMap);
+    var areas = [
+      { lat:32.04, lng:112.14, r:0.03, cnt:300 },
+      { lat:31.98, lng:112.10, r:0.025, cnt:250 },
+      { lat:32.08, lng:112.20, r:0.02, cnt:180 },
+      { lat:31.78, lng:111.85, r:0.018, cnt:150 },
+      { lat:32.10, lng:111.65, r:0.016, cnt:130 }
+    ];
+    var points = [];
+    areas.forEach(function(a){ for(var i=0;i<a.cnt;i++){ var angle=Math.random()*Math.PI*2; var dist=Math.random()*a.r; points.push([a.lat+Math.cos(angle)*dist, a.lng+Math.sin(angle)*dist, Math.random()*0.8+0.2]); }});
+    heatLayer = L.heatLayer(points, { radius:20, blur:15, maxZoom:17 }).addTo(heatMap);
+  }
+
+  // ==================== TAB 2: 关联检索 ====================
+  var mockAccidents = [
+    { id:'ACC-0508-001', time:'2026-05-08 14:32', loc:'长虹路建华路口', type:'追尾', plate:'鄂F·A1234', company:'襄阳智行', driver:'张三' },
+    { id:'ACC-0507-015', time:'2026-05-07 08:15', loc:'檀溪路铁佛寺路口', type:'碰撞', plate:'鄂F·C3456', company:'汉江出行', driver:'李四' },
+    { id:'ACC-0506-022', time:'2026-05-06 19:48', loc:'航空路金富士路口', type:'行人冲突', plate:'鄂F·E9012', company:'襄阳智行', driver:'王五' },
+    { id:'ACC-0505-008', time:'2026-05-05 11:22', loc:'人民路天元四季城', type:'刮擦', plate:'鄂F·F4567', company:'顺捷科技', driver:'赵六' },
+    { id:'ACC-0504-031', time:'2026-05-04 17:05', loc:'建设路银城大道路口', type:'追尾', plate:'鄂F·H2345', company:'襄阳智行', driver:'孙七' },
+    { id:'ACC-0503-012', time:'2026-05-03 09:12', loc:'檀溪路中段', type:'追尾', plate:'鄂F·J5678', company:'汉江出行', driver:'周八' },
+    { id:'ACC-0502-045', time:'2026-05-02 16:40', loc:'长虹路万达广场', type:'刮擦', plate:'鄂F·L1234', company:'顺捷科技', driver:'吴九' }
+  ];
+  function renderSearchTable() {
+    var tbody = document.getElementById('searchTableBody');
+    if (!tbody) return;
+    var typeTag = { '追尾':'tag-red', '碰撞':'tag-red', '行人冲突':'tag-purple', '刮擦':'tag-blue' };
+    tbody.innerHTML = mockAccidents.map(function(a){
+      var cls = typeTag[a.type] || 'tag-blue';
+      return '<tr><td>' + a.id + '</td><td>' + a.time + '</td><td>' + a.loc + '</td><td><span class="tag-acc ' + cls + '">' + a.type + '</span></td><td>' + a.plate + '</td><td>' + a.company + '</td><td>' + a.driver + '</td><td>' +
+        '<button class="ant-btn-link" onclick="showRelated(\'同车辆\',\'' + a.plate + '\')">同车辆</button>' +
+        '<button class="ant-btn-link" onclick="showRelated(\'同路段\',\'' + a.loc + '\')">同路段</button>' +
+        '<button class="ant-btn-link" onclick="showRelated(\'同企业\',\'' + a.company + '\')">同企业</button>' +
+        '<button class="ant-btn-link" onclick="showEvents(\'' + a.id + '\')">关联事件</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+  window.showRelated = function(type, key) {
+    var filtered = mockAccidents.filter(function(){ return Math.random() > 0.4; });
+    if (filtered.length < 2) filtered = mockAccidents.slice(0,3);
+    var html = '<p>基于 <b>' + key + '</b> 的关联事故：</p><table class="ant-table" style="margin-top:8px"><thead><tr><th>事故编号</th><th>时间</th><th>地点</th><th>类型</th></tr></thead><tbody>' +
+      filtered.map(function(a){ return '<tr><td>' + a.id + '</td><td>' + a.time + '</td><td>' + a.loc + '</td><td>' + a.type + '</td></tr>'; }).join('') +
+      '</tbody></table>';
+    openModal(type + ' - 关联事故', html, { footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>' });
+  };
+  window.showEvents = function(accId) {
+    var events = [
+      { type:'告警', time:'14:30:12', desc:'行人闯入预警' },
+      { type:'故障', time:'14:31:05', desc:'制动系统温度过高' },
+      { type:'驾驶行为', time:'14:31:20', desc:'急减速 -2.1m/s²' },
+      { type:'路侧事件', time:'14:31:45', desc:'路侧单元探测到异常' }
+    ];
+    var html = '<p>事故 <b>' + accId + '</b> 前后30分钟关联事件：</p><table class="ant-table" style="margin-top:8px"><thead><tr><th>类型</th><th>时间</th><th>描述</th></tr></thead><tbody>' +
+      events.map(function(e){ return '<tr><td><span class="tag-acc tag-orange">' + e.type + '</span></td><td>' + e.time + '</td><td>' + e.desc + '</td></tr>'; }).join('') +
+      '</tbody></table>';
+    openModal('关联事件 - ' + accId, html, { footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>' });
+  };
+
+  // ==================== TAB 3: 多维特征画像 Charts ====================
+  function renderCrossMatrix() {
+    var chart = initChart('chartCrossMatrix');
+    if (!chart) return;
+    var x = ['追尾','碰撞','刮擦','行人冲突'];
+    var y = ['高峰','平峰','夜间'];
+    var data = [[0,0,38],[0,1,28],[0,2,12],[1,0,20],[1,1,35],[1,2,8],[2,0,15],[2,1,22],[2,2,5],[3,0,10],[3,1,18],[3,2,6]];
+    chart.setOption({
+      tooltip: { trigger:'item' },
+      grid: { left:80, right:30, bottom:35 },
+      xAxis: { type:'category', data:x },
+      yAxis: { type:'category', data:y },
+      visualMap: { min:0, max:40, orient:'horizontal', left:'center', bottom:0, inRange:{color:['#e6f4ff','#91caff','#1677ff','#0958d9']} },
+      series: [{ type:'heatmap', data:data, label:{show:true,fontWeight:'bold',fontSize:13} }]
+    });
+  }
+  function renderSingleDim(type) {
+    type = type || '事故类型';
+    var chart = initChart('chartSingleDim');
+    if (!chart) return;
+    var dataMap = {
+      '事故类型':[ {value:180,name:'追尾',itemStyle:{color:'#ff4d4f'}}, {value:95,name:'碰撞',itemStyle:{color:'#fa8c16'}}, {value:72,name:'刮擦',itemStyle:{color:'#1677ff'}}, {value:50,name:'行人冲突',itemStyle:{color:'#722ed1'}} ],
+      '车辆类型':[ {value:210,name:'轿车',itemStyle:{color:'#1677ff'}}, {value:120,name:'SUV',itemStyle:{color:'#52c41a'}}, {value:45,name:'货车',itemStyle:{color:'#faad14'}} ],
+      '测试场景':[ {value:150,name:'封闭道路',itemStyle:{color:'#1677ff'}}, {value:200,name:'开放道路',itemStyle:{color:'#ff4d4f'}} ],
+      '道路类型':[ {value:180,name:'主干道',itemStyle:{color:'#1677ff'}}, {value:120,name:'次干道',itemStyle:{color:'#52c41a'}}, {value:70,name:'支路',itemStyle:{color:'#faad14'}} ]
+    };
+    chart.setOption({
+      tooltip: { trigger:'item' },
+      legend: { bottom:0 },
+      series: [{ type:'pie', radius:['45%','72%'], center:['50%','46%'], data: dataMap[type]||dataMap['事故类型'], itemStyle:{borderRadius:5,borderColor:'#fff',borderWidth:3} }]
+    });
+  }
+  function renderTagCloud() {
+    var canvas = document.getElementById('tagCloudCanvas');
+    if (!canvas) return;
+    canvas.width = 400;
+    canvas.height = 200;
+    var words = [['追尾',38],['自动驾驶',32],['城区道路',28],['高峰时段',25],['轻伤',20],['未按规定让行',18],['碰撞',30],['手动驾驶',16],['夜间',14],['行人冲突',22],['刮擦',12],['制动效能不足',10]];
+    WordCloud(canvas, { list: words.map(function(w){ return [w[0], w[1]]; }), gridSize:10, weightFactor:3, fontFamily:'sans-serif', color:'random-dark', rotateRatio:0.3, backgroundColor:'#fff', shape:'square' });
+  }
+
+  // ==================== TAB 4: 碰撞形态分析 Charts ====================
+  function renderCollisionPie() {
+    var chart = initChart('chartCollisionPie');
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger:'item' },
+      legend: { bottom:0 },
+      series: [{ type:'pie', radius:['35%','65%'], center:['50%','46%'], itemStyle:{borderRadius:5,borderColor:'#fff',borderWidth:2},
+        data: [
+          { value:85, name:'追尾碰撞', itemStyle:{color:'#ff4d4f'} },
+          { value:62, name:'侧面碰撞', itemStyle:{color:'#fa8c16'} },
+          { value:48, name:'正面碰撞', itemStyle:{color:'#1677ff'} },
+          { value:35, name:'刮擦', itemStyle:{color:'#52c41a'} },
+          { value:17, name:'行人冲突', itemStyle:{color:'#722ed1'} }
+        ]}
+    ]});
+  }
+  function renderAngleRose() {
+    var chart = initChart('chartAngleRose');
+    if (!chart) return;
+    var angles = ['0°','30°','60°','90°','120°','150°','180°','210°','240°','270°','300°','330°'];
+    var vals = [5,8,14,22,30,18,12,8,7,5,4,3];
+    chart.setOption({
+      angleAxis: { type:'category', data:angles },
+      radiusAxis: {},
+      polar: {},
+      tooltip: {},
+      series: [{ type:'bar', data:vals, coordinateSystem:'polar', itemStyle:{color:'#ff7875',borderRadius:[4,4,0,0]} }]
+    });
+  }
+  function renderCollisionCrossTable() {
+    var tbody = document.getElementById('collisionCrossTable');
+    if (!tbody) return;
+    var rows = [
+      ['死亡','2','1','3','0','2'],
+      ['重伤','5','4','6','1','3'],
+      ['轻伤','12','15','22','8','10'],
+      ['无伤亡','30','25','40','35','5']
+    ];
+    tbody.innerHTML = '<thead><tr><th>伤亡等级</th><th>正面碰撞</th><th>侧面碰撞</th><th>追尾碰撞</th><th>刮擦</th><th>行人冲突</th></tr></thead><tbody>' +
+      rows.map(function(r){
+        return '<tr><td style="font-weight:600">' + r[0] + '</td>' + r.slice(1).map(function(v){
+          var alpha = Math.min(parseInt(v)/40*0.35, 0.65);
+          return '<td style="text-align:center;font-weight:500;background:rgba(245,34,45,' + alpha.toFixed(2) + ')">' + v + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody>';
+  }
+  function renderSpeedBox() {
+    var chart = initChart('chartSpeedBox');
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger:'item' },
+      grid: { left:45, right:20, bottom:30 },
+      xAxis: { data:['追尾','侧面','正面','刮擦','行人'] },
+      yAxis: { name:'km/h' },
+      series: [{
+        type:'boxplot',
+        data:[[15,22,28,35,42],[12,18,25,30,38],[20,28,35,42,50],[8,12,18,22,28],[5,8,12,15,20]],
+        itemStyle:{ color:'#1677ff', borderColor:'#69b0ff' }
+      }]
+    });
+  }
+
+  // ==================== Collision Leaflet Map ====================
+  var collisionMap = null;
+  function initCollisionMap() {
+    var container = document.getElementById('collisionMapContainer');
+    if (!container) return;
+    if (collisionMap) { collisionMap.remove(); collisionMap = null; }
+    collisionMap = L.map(container).setView([32.0, 112.1], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(collisionMap);
+    var typeColors = { '追尾':'#f5222d','侧面':'#fa8c16','正面':'#1677ff','刮擦':'#52c41a','行人':'#722ed1' };
+    var types = Object.keys(typeColors);
+    for (var i=0; i<250; i++) {
+      var lat = 31.75 + Math.random() * 0.4;
+      var lng = 111.70 + Math.random() * 0.65;
+      var type = types[Math.floor(Math.random() * types.length)];
+      L.circleMarker([lat, lng], {
+        radius: 5 + Math.random() * 3,
+        fillColor: typeColors[type],
+        color: '#fff',
+        weight: 1,
+        fillOpacity: 0.8
+      }).addTo(collisionMap).bindPopup('<b>' + type + '</b>碰撞');
+    }
+  }
+
+  // ==================== Dropdown Utilities ====================
+  function initSelectDropdown(id, options) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var currentIdx = 0;
+    var defaultVal = sel.getAttribute('data-default');
+    if (defaultVal) { var idx = options.indexOf(defaultVal); if (idx >= 0) currentIdx = idx; }
+    sel.style.position = 'relative';
+    function renderSelText() {
+      sel.innerHTML = '<span>' + options[currentIdx] + '</span><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" style="flex-shrink:0"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+    }
+    sel.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var existing = document.getElementById(id + 'DD');
+      if (existing) { existing.remove(); return; }
+      var dropdown = document.createElement('div');
+      dropdown.id = id + 'DD';
+      dropdown.style.cssText = 'position:absolute;top:100%;left:0;background:#fff;border:1px solid #d9d9d9;border-radius:6px;box-shadow:0 3px 6px rgba(0,0,0,.12);z-index:200;min-width:100px;margin-top:4px;max-height:180px;overflow-y:auto';
+      var html = '';
+      options.forEach(function(opt, i) {
+        html += '<div data-idx="' + i + '" style="padding:6px 12px;cursor:pointer;font-size:13px;color:' + (i === currentIdx ? '#1677ff' : '#262626') + ';background:' + (i === currentIdx ? '#e6f4ff' : '') + '">' + opt + '</div>';
+      });
+      dropdown.innerHTML = html;
+      sel.appendChild(dropdown);
+      dropdown.querySelectorAll('[data-idx]').forEach(function(item) {
+        item.addEventListener('click', function(e2) {
+          e2.stopPropagation();
+          currentIdx = parseInt(item.getAttribute('data-idx'));
+          renderSelText();
+          dropdown.remove();
+          var onChange = sel.getAttribute('data-onchange');
+          if (onChange && typeof window[onChange] === 'function') { window[onChange](options[currentIdx]); }
+        });
+      });
+    });
+    document.addEventListener('click', function() { var d = document.getElementById(id + 'DD'); if (d) d.remove(); });
+    renderSelText();
+  }
+
+  function onHourFilterChange(val) { showToastMsg('切换为：' + val); }
+  function onProfileXChange(val) { showToastMsg('X轴：' + val); }
+  function onProfileYChange(val) { showToastMsg('Y轴：' + val); }
+  function onSingleDimChange(val) { renderSingleDim(val); }
+
+  // ==================== Filter Bar Init ====================
+  function initSpacetimeFilterBar() {
+    var container = document.getElementById('spacetimeFilterBar');
+    if (!container) return;
+    container.innerHTML =
+      '<div class="filter-row">' +
+        '<div class="filter-item"><label>时间范围</label><input class="ant-input" type="date" value="2026-04-01" style="width:145px"> <span style="line-height:32px;color:#8c8c8c;font-size:12px">至</span> <input class="ant-input" type="date" value="2026-05-08" style="width:145px"></div>' +
+        '<div class="filter-item"><label>行政区</label><div class="ant-select" id="spacetimeAreaSel" style="min-width:120px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff" data-default="全部"><span>全部</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<div class="filter-item"><label>事故类型</label><div class="ant-select" id="spacetimeTypeSel" style="min-width:120px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<div class="filter-item"><label>企业</label><div class="ant-select" id="spacetimeEnterpriseSel" style="min-width:130px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部企业</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<button class="ant-btn ant-btn-primary">查询</button>' +
+        '<button class="ant-btn">导出</button>' +
+      '</div>';
+    initSelectDropdown('spacetimeAreaSel', ['全部', '樊城区', '襄城区', '襄州区', '南漳县', '谷城县']);
+    initSelectDropdown('spacetimeTypeSel', ['全部', '碰撞', '追尾', '刮擦', '行人冲突']);
+    initSelectDropdown('spacetimeEnterpriseSel', ['全部企业', '襄阳智行科技', '汉江出行', '顺捷科技']);
+  }
+
+  function initSearchFilterBar() {
+    var container = document.getElementById('searchFilterBar');
+    if (!container) return;
+    container.innerHTML =
+      '<div class="filter-row">' +
+        '<div class="filter-item"><label>驾驶员/安全员</label><input class="ant-input" placeholder="姓名" style="width:110px"></div>' +
+        '<div class="filter-item"><label>车牌/VIN</label><input class="ant-input" placeholder="车牌或VIN" style="width:130px"></div>' +
+        '<div class="filter-item"><label>道路名称</label><input class="ant-input" placeholder="路段" style="width:120px"></div>' +
+        '<div class="filter-item"><label>时间范围</label><input class="ant-input" type="date" value="2026-04-01" style="width:135px"> <span style="line-height:32px;color:#8c8c8c;font-size:12px">至</span> <input class="ant-input" type="date" value="2026-05-08" style="width:135px"></div>' +
+        '<div class="filter-item"><label>企业</label><div class="ant-select" id="searchEnterpriseSel" style="min-width:110px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<button class="ant-btn ant-btn-primary">检索</button>' +
+      '</div>';
+    initSelectDropdown('searchEnterpriseSel', ['全部', '襄阳智行科技', '汉江出行', '顺捷科技']);
+  }
+
+  function initPortraitFilterBar() {
+    var container = document.getElementById('portraitFilterBar');
+    if (!container) return;
+    container.innerHTML =
+      '<div class="filter-row">' +
+        '<div class="filter-item"><label>画像维度</label><div class="ant-select" id="portraitScopeSel" style="min-width:120px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全局画像</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<div class="filter-item"><button class="ant-btn ant-btn-primary">查询</button></div>' +
+      '</div>';
+    initSelectDropdown('portraitScopeSel', ['全局画像', '襄阳智行科技', '汉江出行', '顺捷科技']);
+  }
+
+  function initCollisionFilterBar() {
+    var container = document.getElementById('collisionFilterBar');
+    if (!container) return;
+    container.innerHTML =
+      '<div class="filter-row">' +
+        '<div class="filter-item"><label>时间范围</label><input class="ant-input" type="date" value="2026-04-01" style="width:145px"> <span style="line-height:32px;color:#8c8c8c;font-size:12px">至</span> <input class="ant-input" type="date" value="2026-05-08" style="width:145px"></div>' +
+        '<div class="filter-item"><label>行政区</label><div class="ant-select" id="collisionAreaSel" style="min-width:110px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<div class="filter-item"><label>企业</label><div class="ant-select" id="collisionEnterpriseSel" style="min-width:110px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<div class="filter-item"><label>事故类型</label><div class="ant-select" id="collisionTypeSel" style="min-width:110px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<button class="ant-btn ant-btn-primary">应用筛选</button>' +
+      '</div>';
+    initSelectDropdown('collisionAreaSel', ['全部', '樊城区', '襄城区', '襄州区', '南漳县', '谷城县']);
+    initSelectDropdown('collisionEnterpriseSel', ['全部', '襄阳智行科技', '汉江出行', '顺捷科技']);
+    initSelectDropdown('collisionTypeSel', ['全部', '碰撞', '追尾', '刮擦', '行人冲突']);
+  }
+
+  // ==================== Init All ====================
+  function initAll() {
+    // Filter bars
+    initSpacetimeFilterBar();
+    initSearchFilterBar();
+    initPortraitFilterBar();
+    initCollisionFilterBar();
+    // TAB 1 Charts
+    renderHour(); renderWeekday(); renderMonth(); renderRegion(); renderRoadLevel();
+    initHeatMap();
+    // TAB 2
+    renderSearchTable();
+    // TAB 3
+    renderCrossMatrix(); renderSingleDim(); renderTagCloud();
+    // Inline selectors
+    initSelectDropdown('hourFilterSelect', ['工作日', '非工作日']);
+    initSelectDropdown('profileXSel', ['事故类型', '车辆类型', '测试场景', '道路类型']);
+    initSelectDropdown('profileYSel', ['时段', '伤亡等级', '自动驾驶等级', '驾驶模式']);
+    initSelectDropdown('singleDimSelect', ['事故类型', '车辆类型', '测试场景', '道路类型']);
+    // TAB 4
+    renderCollisionPie(); renderAngleRose(); renderCollisionCrossTable(); renderSpeedBox();
+    initCollisionMap();
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initAll();
+    window.addEventListener('resize', function() {
+      clearTimeout(window._rt);
+      window._rt = setTimeout(resizeAllCharts, 200);
+    });
+  });
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

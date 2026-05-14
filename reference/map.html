@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道路资源可视�?- 开放道路资源管�?/title>
+    <style>
+        :root {
+            --primary: #1677ff;
+            --success: #52c41a;
+            --warning: #fa8c16;
+            --error: #ff4d4f;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --border: #e8e8e8;
+            --text: #1f1f1f;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --radius: 8px;
+            --shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12);
+            --transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部导航 */
+        .app-header {
+            height: 48px;
+            background: #001529;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            gap: 12px;
+            flex-shrink: 0;
+            z-index: 100;
+            position: relative;
+        }
+        .app-header .logo {
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .app-header .logo .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #52c41a;
+            box-shadow: 0 0 6px #52c41a;
+        }
+        .breadcrumb {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.65);
+            margin-left: 8px;
+        }
+        .breadcrumb span {
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        /* 主布局 */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 48px);
+            overflow: hidden;
+        }
+
+        /* 地图区域 */
+        .map-area {
+            flex: 1;
+            position: relative;
+            background: #fafbfc;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .map-area canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        .map-area canvas:active {
+            cursor: grabbing;
+        }
+
+        /* 主题图层切换�?*/
+        .layer-tabs {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: flex;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            padding: 4px;
+            gap: 2px;
+            z-index: 10;
+        }
+        .layer-tab {
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            white-space: nowrap;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+        .layer-tab:hover {
+            color: var(--primary);
+            background: #f0f5ff;
+        }
+        .layer-tab.active {
+            color: #fff;
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 2px 6px rgba(22, 119, 255, 0.3);
+        }
+
+        /* 搜索�?*/
+        .search-box {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            gap: 0;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+        .search-box input {
+            width: 240px;
+            padding: 9px 14px;
+            border: none;
+            outline: none;
+            font-size: 13px;
+            color: var(--text);
+        }
+        .search-box input::placeholder {
+            color: #bfbfbf;
+        }
+        .search-box button {
+            padding: 9px 16px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .search-box button:hover {
+            background: #4096ff;
+        }
+
+        /* 搜索结果下拉 */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 280px;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            margin-top: 4px;
+            display: none;
+            z-index: 11;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .search-results.show {
+            display: block;
+        }
+        .search-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #f5f5f5;
+            transition: var(--transition);
+        }
+        .search-result-item:hover {
+            background: #f0f5ff;
+        }
+        .search-result-item .name {
+            font-weight: 500;
+        }
+        .search-result-item .detail {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* 图例 */
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 16px;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-md);
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 10;
+            backdrop-filter: blur(6px);
+        }
+        .map-legend .legend-title {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+        .map-legend .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .map-legend .legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .map-legend .legend-label {
+            color: #666;
+        }
+
+        /* 信息�?*/
+        .map-tooltip {
+            position: absolute;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            padding: 16px 20px;
+            font-size: 13px;
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.18s;
+            min-width: 260px;
+            border: 1px solid #eee;
+        }
+        .map-tooltip.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .map-tooltip .tt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .map-tooltip .tt-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .map-tooltip .tt-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        .tt-status.open {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        .tt-status.suspended {
+            background: #fff7e6;
+            color: #fa8c16;
+        }
+        .tt-status.closed {
+            background: #fff2f0;
+            color: #ff4d4f;
+        }
+        .map-tooltip .tt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            color: #666;
+            font-size: 12px;
+        }
+        .map-tooltip .tt-row span:last-child {
+            color: #1f1f1f;
+            font-weight: 500;
+        }
+        .map-tooltip .tt-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .map-tooltip .tt-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #f0f5ff;
+            color: #1677ff;
+        }
+        .map-tooltip .tt-close {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: #f5f5f5;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            color: #999;
+        }
+        .map-tooltip .tt-close:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        /* 空状态提�?*/
+        .empty-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 28px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            text-align: center;
+            z-index: 15;
+            display: none;
+            font-size: 14px;
+            color: #666;
+        }
+        .empty-hint.show {
+            display: block;
+        }
+        .empty-hint .icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .empty-hint .hint-text {
+            margin-bottom: 4px;
+        }
+        .empty-hint .hint-sub {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* 右侧面板 */
+        .side-panel {
+            width: 340px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.06);
+            z-index: 5;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .side-panel .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .side-panel .panel-header .count-badge {
+            background: #f0f5ff;
+            color: #1677ff;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .side-panel .filter-section {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f5f5f5;
+            flex-shrink: 0;
+        }
+        .side-panel .filter-section .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .side-panel .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .side-panel .filter-chip {
+            padding: 5px 12px;
+            border-radius: 14px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            transition: var(--transition);
+            user-select: none;
+            white-space: nowrap;
+        }
+        .side-panel .filter-chip:hover {
+            border-color: #1677ff;
+            color: #1677ff;
+        }
+        .side-panel .filter-chip.active {
+            background: #1677ff;
+            color: #fff;
+            border-color: #1677ff;
+        }
+        .side-panel .filter-select {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+            margin-bottom: 8px;
+            color: #333;
+            background: #fff;
+            cursor: pointer;
+        }
+        .side-panel .filter-select:focus {
+            border-color: #1677ff;
+            box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+        }
+        .side-panel .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .side-panel .btn-reset {
+            flex: 1;
+            padding: 7px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            transition: var(--transition);
+            color: #666;
+        }
+        .side-panel .btn-reset:hover {
+            border-color: #1677ff;
+            color: #1677ff;
+        }
+        .side-panel .road-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+        .side-panel .road-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .side-panel .road-list::-webkit-scrollbar-thumb {
+            background: #d9d9d9;
+            border-radius: 2px;
+        }
+        .road-item {
+            display: flex;
+            align-items: center;
+            padding: 11px 16px;
+            border-bottom: 1px solid #fafafa;
+            cursor: pointer;
+            transition: var(--transition);
+            gap: 10px;
+        }
+        .road-item:hover {
+            background: #fafafa;
+        }
+        .road-item.selected {
+            background: #e6f4ff;
+            border-left: 3px solid #1677ff;
+        }
+        .road-item .road-color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .road-item .road-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .road-item .road-name {
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .road-item .road-meta {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .road-item .road-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .tag-open {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        .tag-suspended {
+            background: #fff7e6;
+            color: #fa8c16;
+        }
+        .tag-closed {
+            background: #fff2f0;
+            color: #ff4d4f;
+        }
+
+        /* 响应�?*/
+        @media (max-width: 900px) {
+            .side-panel {
+                width: 100%;
+                height: 35vh;
+                flex-shrink: 0;
+            }
+            .main-container {
+                flex-direction: column;
+            }
+            .layer-tabs {
+                flex-wrap: wrap;
+                top: 8px;
+                left: 8px;
+            }
+            .layer-tab {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            .search-box input {
+                width: 160px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部导航 -->
+    <header class="app-header">
+        <div class="logo"><span class="dot"></span>智能网联汽车安全监测平台</div>
+        <div class="breadcrumb">/ 开放道路资源管�?/ <span>道路资源可视�?/span></div>
+    </header>
+
+    <!-- 主布局 -->
+    <div class="main-container">
+        <!-- 地图区域 -->
+        <div class="map-area" id="mapArea">
+            <canvas id="mapCanvas"></canvas>
+
+            <!-- 主题图层切换 -->
+            <div class="layer-tabs" id="layerTabs">
+                <div class="layer-tab active" data-layer="base">🏠 基础信息</div>
+                <div class="layer-tab" data-layer="complexity">📊 复杂�?/div>
+                <div class="layer-tab" data-layer="risk">⚠️ 风险评估</div>
+                <div class="layer-tab" data-layer="scene">🎯 场景适配</div>
+                <div class="layer-tab" data-layer="level">🔓 开放等�?/div>
+            </div>
+
+            <!-- 搜索�?-->
+            <div class="search-box" style="position:absolute;top:16px;right:16px;z-index:10;display:flex;gap:0;background:#fff;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,0.08);overflow:hidden;">
+                <input type="text" placeholder="搜索道路名称 / 编号..." id="searchInput" style="width:220px;padding:9px 14px;border:none;outline:none;font-size:13px;" oninput="handleSearchInput(this.value)" onfocus="handleSearchInput(this.value)">
+                <button style="padding:9px 16px;border:none;background:#1677ff;color:#fff;cursor:pointer;font-size:13px;">搜索</button>
+                <div class="search-results" id="searchResults"></div>
+            </div>
+
+            <!-- 图例 -->
+            <div class="map-legend" id="mapLegend">
+                <div class="legend-title" id="legendTitle">基础信息</div>
+                <div id="legendContent">
+                    <div class="legend-item"><span class="legend-color" style="background:#52c41a;"></span><span class="legend-label">开放道�?/span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#fa8c16;"></span><span class="legend-label">暂停道路</span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#ff4d4f;"></span><span class="legend-label">关闭道路</span></div>
+                </div>
+            </div>
+
+            <!-- 信息�?-->
+            <div class="map-tooltip" id="mapTooltip">
+                <button class="tt-close" onclick="closeTooltip()">�?/button>
+                <div id="tooltipContent"></div>
+            </div>
+
+            <!-- 空状态提�?-->
+            <div class="empty-hint" id="emptyHint">
+                <div class="icon">📍</div>
+                <div class="hint-text">当前筛选条件下无匹配道�?/div>
+                <div class="hint-sub">请调整筛选条件或切换主题图层</div>
+            </div>
+        </div>
+
+        <!-- 右侧筛选面�?-->
+        <div class="side-panel" id="sidePanel">
+            <div class="panel-header">
+                数据过滤�?<span class="count-badge" id="roadCount">�?12 �?/span>
+            </div>
+
+            <!-- 筛选条�?-->
+            <div class="filter-section">
+                <div class="filter-label">行政区域</div>
+                <select class="filter-select" id="filterDistrict" onchange="applyFilters()">
+                    <option value="all">全部区域</option>
+                    <option value="樊城�?>樊城�?/option>
+                    <option value="高新�?>高新�?/option>
+                    <option value="襄城�?>襄城�?/option>
+                    <option value="东津新区">东津新区</option>
+                </select>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-label">测试场景</div>
+                <div class="filter-row" id="filterScenes">
+                    <span class="filter-chip active" data-value="all" onclick="toggleChip(this,'scene')">全部</span>
+                    <span class="filter-chip" data-value="城区道路" onclick="toggleChip(this,'scene')">城区道路</span>
+                    <span class="filter-chip" data-value="园区道路" onclick="toggleChip(this,'scene')">园区道路</span>
+                    <span class="filter-chip" data-value="环卫作业道路" onclick="toggleChip(this,'scene')">环卫作业</span>
+                    <span class="filter-chip" data-value="物流配送道�? onclick="toggleChip(this,'scene')">物流配�?/span>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-label">基础设施覆盖</div>
+                <div class="filter-row" id="filterFacilities">
+                    <span class="filter-chip active" data-value="all" onclick="toggleChip(this,'facility')">全部</span>
+                    <span class="filter-chip" data-value="RSU" onclick="toggleChip(this,'facility')">RSU</span>
+                    <span class="filter-chip" data-value="激光雷�? onclick="toggleChip(this,'facility')">激光雷�?/span>
+                    <span class="filter-chip" data-value="摄像�? onclick="toggleChip(this,'facility')">摄像�?/span>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-label">开放状�?/div>
+                <div class="filter-row" id="filterStatus">
+                    <span class="filter-chip active" data-value="all" onclick="toggleChip(this,'status')">全部</span>
+                    <span class="filter-chip" data-value="开�? onclick="toggleChip(this,'status')">开�?/span>
+                    <span class="filter-chip" data-value="暂停" onclick="toggleChip(this,'status')">暂停</span>
+                    <span class="filter-chip" data-value="关闭" onclick="toggleChip(this,'status')">关闭</span>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-label">道路类型</div>
+                <select class="filter-select" id="filterRoadType" onchange="applyFilters()">
+                    <option value="all">全部类型</option>
+                    <option value="主干�?>主干�?/option>
+                    <option value="次干�?>次干�?/option>
+                    <option value="支路">支路</option>
+                    <option value="快速路">快速路</option>
+                </select>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-label">自动驾驶等级</div>
+                <div class="filter-row" id="filterADLevel">
+                    <span class="filter-chip active" data-value="all" onclick="toggleChip(this,'adLevel')">全部</span>
+                    <span class="filter-chip" data-value="L2" onclick="toggleChip(this,'adLevel')">L2</span>
+                    <span class="filter-chip" data-value="L3" onclick="toggleChip(this,'adLevel')">L3</span>
+                    <span class="filter-chip" data-value="L4" onclick="toggleChip(this,'adLevel')">L4</span>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="btn-row">
+                    <button class="btn-reset" onclick="resetAllFilters()">�?重置筛�?/button>
+                </div>
+            </div>
+
+            <!-- 道路列表 -->
+            <div class="road-list" id="roadList"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 道路数据 ====================
+        const roadData = [
+            { id: 'R001', name: '长虹北路', district: '樊城�?, level: '主干�?, lanes: 6, length: 3200,
+                scenes: ['城区道路', '物流配送道�?], facilities: ['RSU', '激光雷�?, '摄像�?], status: '开�?,
+                openHours: '06:00-22:00', adLevels: ['L2', 'L3', 'L4'], bizTypes: ['载人', '载货'], complexity: 72,
+                risk: 35, sceneFit: '载人', openLevel: '完全开�?,
+                points: [{ lat: 32.030, lng: 112.130 }, { lat: 32.068, lng: 112.130 }] },
+            { id: 'R002', name: '汉江�?, district: '樊城�?, level: '次干�?, lanes: 4, length: 2800, scenes: ['城区道路',
+                    '环卫作业道路'
+                ], facilities: ['RSU', '摄像�?], status: '开�?, openHours: '08:00-20:00', adLevels: ['L3', 'L4'],
+                bizTypes: ['载人', '环卫'], complexity: 55, risk: 28, sceneFit: '环卫', openLevel: '完全开�?,
+                points: [{ lat: 32.030, lng: 112.140 }, { lat: 32.068, lng: 112.140 }] },
+            { id: 'R003', name: '中原�?, district: '高新�?, level: '主干�?, lanes: 8, length: 4500, scenes: ['城区道路'],
+                facilities: ['RSU', '激光雷�?, '摄像�?], status: '开�?, openHours: '06:00-23:00', adLevels: ['L2',
+                    'L3', 'L4'
+                ], bizTypes: ['载人', '载货'], complexity: 85, risk: 62, sceneFit: '载人', openLevel: '条件开�?,
+                points: [{ lat: 32.048, lng: 112.118 }, { lat: 32.048, lng: 112.165 }] },
+            { id: 'R004', name: '春园�?, district: '樊城�?, level: '次干�?, lanes: 4, length: 2600, scenes: ['城区道路',
+                    '园区道路'
+                ], facilities: ['摄像�?], status: '暂停', openHours: '08:00-18:00', adLevels: ['L3'], bizTypes: ['载人'],
+                complexity: 48, risk: 45, sceneFit: '载人', openLevel: '条件开�?,
+                points: [{ lat: 32.040, lng: 112.118 }, { lat: 32.040, lng: 112.165 }] },
+            { id: 'R005', name: '前进�?, district: '高新�?, level: '支路', lanes: 2, length: 1800, scenes: ['园区道路',
+                    '物流配送道�?
+                ], facilities: ['RSU'], status: '开�?, openHours: '07:00-21:00', adLevels: ['L4'], bizTypes: ['载货',
+                    '物流'
+                ], complexity: 30, risk: 18, sceneFit: '物流', openLevel: '完全开�?,
+                points: [{ lat: 32.035, lng: 112.135 }, { lat: 32.060, lng: 112.135 }] },
+            { id: 'R006', name: '大庆东路', district: '襄城�?, level: '主干�?, lanes: 6, length: 3800, scenes: ['城区道路'],
+                facilities: ['RSU', '激光雷�?], status: '关闭', openHours: '06:00-20:00', adLevels: ['L2', 'L3'],
+                bizTypes: ['载人'], complexity: 78, risk: 80, sceneFit: '载人', openLevel: '禁止开�?,
+                points: [{ lat: 32.055, lng: 112.118 }, { lat: 32.055, lng: 112.165 }] },
+            { id: 'R007', name: '人民�?, district: '樊城�?, level: '主干�?, lanes: 6, length: 3500, scenes: ['城区道路',
+                    '环卫作业道路'
+                ], facilities: ['RSU', '摄像�?], status: '开�?, openHours: '06:00-22:00', adLevels: ['L3', 'L4'],
+                bizTypes: ['载人', '环卫'], complexity: 68, risk: 40, sceneFit: '环卫', openLevel: '完全开�?,
+                points: [{ lat: 32.043, lng: 112.118 }, { lat: 32.043, lng: 112.165 }] },
+            { id: 'R008', name: '襄阳大道', district: '高新�?, level: '快速路', lanes: 8, length: 5200, scenes: ['城区道路',
+                    '物流配送道�?
+                ], facilities: ['RSU', '激光雷�?, '摄像�?], status: '开�?, openHours: '00:00-24:00', adLevels: ['L2',
+                    'L3', 'L4'
+                ], bizTypes: ['载人', '载货', '物流'], complexity: 90, risk: 55, sceneFit: '载货', openLevel: '条件开�?,
+                points: [{ lat: 32.058, lng: 112.128 }, { lat: 32.058, lng: 112.170 }] },
+            { id: 'R009', name: '建设�?, district: '东津新区', level: '次干�?, lanes: 4, length: 2100, scenes: ['园区道路'],
+                facilities: ['摄像�?], status: '开�?, openHours: '08:00-18:00', adLevels: ['L4'], bizTypes: ['载人'],
+                complexity: 42, risk: 22, sceneFit: '载人', openLevel: '完全开�?,
+                points: [{ lat: 32.025, lng: 112.145 }, { lat: 32.045, lng: 112.145 }] },
+            { id: 'R010', name: '航天�?, district: '高新�?, level: '支路', lanes: 2, length: 1500, scenes: ['园区道路',
+                    '物流配送道�?
+                ], facilities: [], status: '开�?, openHours: '07:00-19:00', adLevels: ['L4'], bizTypes: ['物流'],
+                complexity: 25, risk: 10, sceneFit: '物流', openLevel: '完全开�?,
+                points: [{ lat: 32.052, lng: 112.150 }, { lat: 32.065, lng: 112.150 }] },
+            { id: 'R011', name: '环城南路', district: '襄城�?, level: '快速路', lanes: 8, length: 6000, scenes: ['城区道路'],
+                facilities: ['RSU', '激光雷�?, '摄像�?], status: '暂停', openHours: '06:00-21:00', adLevels: ['L2',
+                    'L3'], bizTypes: ['载人', '载货'], complexity: 88, risk: 70, sceneFit: '载人', openLevel: '限制开�?,
+                points: [{ lat: 32.050, lng: 112.110 }, { lat: 32.050, lng: 112.175 }] },
+            { id: 'R012', name: '邓城大道', district: '樊城�?, level: '主干�?, lanes: 6, length: 4000, scenes: ['城区道路',
+                    '环卫作业道路', '物流配送道�?
+                ], facilities: ['RSU', '激光雷�?, '摄像�?], status: '开�?, openHours: '05:00-23:00', adLevels: ['L2',
+                    'L3', 'L4'
+                ], bizTypes: ['载人', '载货', '环卫', '物流'], complexity: 80, risk: 48, sceneFit: '载货', openLevel: '完全开�?,
+                points: [{ lat: 32.062, lng: 112.122 }, { lat: 32.062, lng: 112.168 }] }
+        ];
+
+        // ==================== 状态管�?====================
+        let activeLayer = 'base';
+        let selectedRoadId = null;
+        let filters = {
+            district: 'all',
+            scene: 'all',
+            facility: 'all',
+            status: 'all',
+            roadType: 'all',
+            adLevel: 'all'
+        };
+        let mapOffsetX = 0;
+        let mapOffsetY = 0;
+        let mapScale = 1;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let hoveredRoadId = null;
+        let animationId = null;
+
+        // ==================== DOM引用 ====================
+        const mapArea = document.getElementById('mapArea');
+        const mapCanvas = document.getElementById('mapCanvas');
+        const mapTooltip = document.getElementById('mapTooltip');
+        const tooltipContent = document.getElementById('tooltipContent');
+        const emptyHint = document.getElementById('emptyHint');
+        const roadList = document.getElementById('roadList');
+        const roadCount = document.getElementById('roadCount');
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        const legendTitle = document.getElementById('legendTitle');
+        const legendContent = document.getElementById('legendContent');
+
+        // ==================== Canvas初始�?====================
+        function resizeCanvas() {
+            const rect = mapArea.getBoundingClientRect();
+            mapCanvas.width = rect.width * window.devicePixelRatio;
+            mapCanvas.height = rect.height * window.devicePixelRatio;
+            mapCanvas.style.width = rect.width + 'px';
+            mapCanvas.style.height = rect.height + 'px';
+            const ctx = mapCanvas.getContext('2d');
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function geoToPixel(lat, lng, w, h) {
+            const baseLat = 32.045;
+            const baseLng = 112.140;
+            const scaleX = 7000 * mapScale;
+            const scaleY = 5500 * mapScale;
+            const x = (lng - baseLng) * scaleX + w / 2 + mapOffsetX;
+            const y = -(lat - baseLat) * scaleY + h / 2 + mapOffsetY;
+            return { x, y };
+        }
+
+        function pixelToGeo(px, py, w, h) {
+            const baseLat = 32.045;
+            const baseLng = 112.140;
+            const scaleX = 7000 * mapScale;
+            const scaleY = 5500 * mapScale;
+            const lng = (px - w / 2 - mapOffsetX) / scaleX + baseLng;
+            const lat = -(py - h / 2 - mapOffsetY) / scaleY + baseLat;
+            return { lat, lng };
+        }
+
+        // ==================== 筛选逻辑 ====================
+        function getFilteredRoads() {
+            return roadData.filter(r => {
+                if (filters.district !== 'all' && r.district !== filters.district) return false;
+                if (filters.scene !== 'all' && !r.scenes.includes(filters.scene)) return false;
+                if (filters.facility !== 'all' && !r.facilities.includes(filters.facility)) return false;
+                if (filters.status !== 'all' && r.status !== filters.status) return false;
+                if (filters.roadType !== 'all' && r.level !== filters.roadType) return false;
+                if (filters.adLevel !== 'all' && !r.adLevels.includes(filters.adLevel)) return false;
+                return true;
+            });
+        }
+
+        function getLayerColor(road) {
+            switch (activeLayer) {
+                case 'base':
+                    return road.status === '开�? ? '#52c41a' : road.status === '暂停' ? '#fa8c16' : '#ff4d4f';
+                case 'complexity':
+                    if (road.complexity >= 80) return '#ff4d4f';
+                    if (road.complexity >= 50) return '#fa8c16';
+                    return '#52c41a';
+                case 'risk':
+                    if (road.risk >= 70) return '#ff4d4f';
+                    if (road.risk >= 35) return '#fa8c16';
+                    return '#52c41a';
+                case 'scene':
+                    if (road.sceneFit === '载人') return '#1677ff';
+                    if (road.sceneFit === '载货') return '#722ed1';
+                    if (road.sceneFit === '环卫') return '#52c41a';
+                    if (road.sceneFit === '物流') return '#fa8c16';
+                    return '#666';
+                case 'level':
+                    if (road.openLevel === '完全开�?) return '#52c41a';
+                    if (road.openLevel === '条件开�?) return '#fa8c16';
+                    if (road.openLevel === '限制开�?) return '#ff7a45';
+                    if (road.openLevel === '禁止开�?) return '#ff4d4f';
+                    return '#999';
+                default:
+                    return '#52c41a';
+            }
+        }
+
+        function getLayerLegend() {
+            switch (activeLayer) {
+                case 'base':
+                    legendTitle.textContent = '基础信息';
+                    legendContent.innerHTML = `
+                        <div class="legend-item"><span class="legend-color" style="background:#52c41a;"></span><span class="legend-label">开放道�?/span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#fa8c16;"></span><span class="legend-label">暂停道路</span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#ff4d4f;"></span><span class="legend-label">关闭道路</span></div>`;
+                    break;
+                case 'complexity':
+                    legendTitle.textContent = '道路复杂�?;
+                    legendContent.innerHTML = `
+                        <div class="legend-item"><span class="legend-color" style="background:#52c41a;"></span><span class="legend-label">低复杂度</span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#fa8c16;"></span><span class="legend-label">中复杂度</span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#ff4d4f;"></span><span class="legend-label">高复杂度</span></div>`;
+                    break;
+                case 'risk':
+                    legendTitle.textContent = '风险评估';
+                    legendContent.innerHTML = `
+                        <div class="legend-item"><span class="legend-color" style="background:#52c41a;"></span><span class="legend-label">低风�?/span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#fa8c16;"></span><span class="legend-label">中风�?/span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#ff4d4f;"></span><span class="legend-label">高风�?/span></div>`;
+                    break;
+                case 'scene':
+                    legendTitle.textContent = '场景适配';
+                    legendContent.innerHTML = `
+                        <div class="legend-item"><span class="legend-color" style="background:#1677ff;"></span><span class="legend-label">载人</span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#722ed1;"></span><span class="legend-label">载货</span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#52c41a;"></span><span class="legend-label">环卫</span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#fa8c16;"></span><span class="legend-label">物流</span></div>`;
+                    break;
+                case 'level':
+                    legendTitle.textContent = '开放等�?;
+                    legendContent.innerHTML = `
+                        <div class="legend-item"><span class="legend-color" style="background:#52c41a;"></span><span class="legend-label">完全开�?/span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#fa8c16;"></span><span class="legend-label">条件开�?/span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#ff7a45;"></span><span class="legend-label">限制开�?/span></div>
+                        <div class="legend-item"><span class="legend-color" style="background:#ff4d4f;"></span><span class="legend-label">禁止开�?/span></div>`;
+                    break;
+            }
+        }
+
+        // ==================== 地图绘制 ====================
+        function drawMap() {
+            const ctx = mapCanvas.getContext('2d');
+            const w = mapCanvas.width / window.devicePixelRatio;
+            const h = mapCanvas.height / window.devicePixelRatio;
+            ctx.clearRect(0, 0, w, h);
+
+            // 背景
+            ctx.fillStyle = '#fafbfc';
+            ctx.fillRect(0, 0, w, h);
+
+            // 网格
+            ctx.strokeStyle = '#eceff5';
+            ctx.lineWidth = 0.5;
+            const gridSize = 35 * mapScale;
+            const ox = mapOffsetX % gridSize;
+            const oy = mapOffsetY % gridSize;
+            for (let x = ox; x < w; x += gridSize) { ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke(); }
+            for (let y = oy; y < h; y += gridSize) { ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke(); }
+
+            // 获取筛选后的道�?            const filteredRoads = getFilteredRoads();
+
+            // 空状态判�?            if (filteredRoads.length === 0) {
+                emptyHint.classList.add('show');
+            } else {
+                emptyHint.classList.remove('show');
+            }
+
+            // 绘制道路
+            filteredRoads.forEach(road => {
+                const startPt = geoToPixel(road.points[0].lat, road.points[0].lng, w, h);
+                const endPt = geoToPixel(road.points[1].lat, road.points[1].lng, w, h);
+                const isSelected = road.id === selectedRoadId;
+                const isHovered = road.id === hoveredRoadId;
+                const color = getLayerColor(road);
+                const lineWidth = isSelected ? 7 : (isHovered ? 6 : 4);
+
+                ctx.beginPath();
+                ctx.moveTo(startPt.x, startPt.y);
+                ctx.lineTo(endPt.x, endPt.y);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth * mapScale;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.75;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // 选中高亮
+                if (isSelected) {
+                    ctx.beginPath();
+                    ctx.moveTo(startPt.x, startPt.y);
+                    ctx.lineTo(endPt.x, endPt.y);
+                    ctx.strokeStyle = 'rgba(22,119,255,0.3)';
+                    ctx.lineWidth = (lineWidth + 6) * mapScale;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+
+                // 端点标记
+                [startPt, endPt].forEach(pt => {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 4 * mapScale, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                });
+
+                // 道路名称标签
+                const midX = (startPt.x + endPt.x) / 2;
+                const midY = (startPt.y + endPt.y) / 2;
+                ctx.fillStyle = '#1f1f1f';
+                ctx.font = `${Math.max(9, 11 * mapScale)}px -apple-system, sans-serif`;
+                ctx.fillText(road.name, midX + 6 * mapScale, midY - 4 * mapScale);
+            });
+
+            // 设施图标（基础信息图层�?            if (activeLayer === 'base') {
+                filteredRoads.forEach(road => {
+                    if (road.facilities.length > 0) {
+                        const startPt = geoToPixel(road.points[0].lat, road.points[0].lng, w, h);
+                        const endPt = geoToPixel(road.points[1].lat, road.points[1].lng, w, h);
+                        const midX = (startPt.x + endPt.x) / 2;
+                        const midY = (startPt.y + endPt.y) / 2;
+                        const icons = [];
+                        if (road.facilities.includes('RSU')) icons.push('📡');
+                        if (road.facilities.includes('激光雷�?)) icons.push('🔴');
+                        if (road.facilities.includes('摄像�?)) icons.push('📷');
+                        icons.forEach((icon, i) => {
+                            ctx.font = `${Math.max(10,13*mapScale)}px sans-serif`;
+                            ctx.fillText(icon, midX + 10 + i * 18 * mapScale, midY + 12 * mapScale);
+                        });
+                    }
+                });
+            }
+
+            // 中心十字
+            ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(w / 2 - 8, h / 2);
+            ctx.lineTo(w / 2 + 8, h / 2);
+            ctx.moveTo(w / 2, h / 2 - 8);
+            ctx.lineTo(w / 2, h / 2 + 8);
+            ctx.stroke();
+        }
+
+        function renderLoop() {
+            drawMap();
+            animationId = requestAnimationFrame(renderLoop);
+        }
+
+        // ==================== 道路列表渲染 ====================
+        function renderRoadList() {
+            const filtered = getFilteredRoads();
+            roadCount.textContent = `�?${filtered.length} 条`;
+            let html = '';
+            if (filtered.length === 0) {
+                html = '<div style="text-align:center;padding:30px;color:#999;">暂无匹配道路</div>';
+            }
+            filtered.forEach(r => {
+                const isSelected = r.id === selectedRoadId;
+                const color = getLayerColor(r);
+                let statusTag = '';
+                if (r.status === '开�?) statusTag = '<span class="road-tag tag-open">开�?/span>';
+                else if (r.status === '暂停') statusTag = '<span class="road-tag tag-suspended">暂停</span>';
+                else statusTag = '<span class="road-tag tag-closed">关闭</span>';
+                html += `
+                <div class="road-item${isSelected ? ' selected' : ''}" onclick="selectRoad('${r.id}')">
+                    <span class="road-color-dot" style="background:${color};"></span>
+                    <div class="road-info">
+                        <div class="road-name">${r.name}</div>
+                        <div class="road-meta">${r.district} · ${r.level} · ${r.length}m · 设施: ${r.facilities.length>0 ? r.facilities.join('/') : '�?}</div>
+                    </div>
+                    ${statusTag}
+                </div>`;
+            });
+            roadList.innerHTML = html;
+        }
+
+        function selectRoad(id) {
+            selectedRoadId = id;
+            const road = roadData.find(r => r.id === id);
+            if (road) {
+                const w = mapCanvas.width / window.devicePixelRatio;
+                const h = mapCanvas.height / window.devicePixelRatio;
+                const baseLat = 32.045;
+                const baseLng = 112.140;
+                const scaleX = 7000 * mapScale;
+                const scaleY = 5500 * mapScale;
+                const midLat = (road.points[0].lat + road.points[1].lat) / 2;
+                const midLng = (road.points[0].lng + road.points[1].lng) / 2;
+                mapOffsetX = -(midLng - baseLng) * scaleX;
+                mapOffsetY = (midLat - baseLat) * scaleY;
+                showTooltip(road);
+            }
+            renderRoadList();
+        }
+
+        function showTooltip(road) {
+            const w = mapCanvas.width / window.devicePixelRatio;
+            const h = mapCanvas.height / window.devicePixelRatio;
+            const midLat = (road.points[0].lat + road.points[1].lat) / 2;
+            const midLng = (road.points[0].lng + road.points[1].lng) / 2;
+            const pt = geoToPixel(midLat, midLng, w, h);
+            const color = getLayerColor(road);
+            let statusClass = road.status === '开�? ? 'open' : road.status === '暂停' ? 'suspended' : 'closed';
+            tooltipContent.innerHTML = `
+                <div class="tt-header">
+                    <span class="tt-name">${road.name}</span>
+                    <span class="tt-status ${statusClass}">${road.status}</span>
+                </div>
+                <div class="tt-row"><span>道路编号</span><span>${road.id}</span></div>
+                <div class="tt-row"><span>所属区�?/span><span>${road.district}</span></div>
+                <div class="tt-row"><span>道路等级</span><span>${road.level}</span></div>
+                <div class="tt-row"><span>车道�?/span><span>${road.lanes} 车道</span></div>
+                <div class="tt-row"><span>路段长度</span><span>${road.length} �?/span></div>
+                <div class="tt-row"><span>开放时�?/span><span>${road.openHours}</span></div>
+                <div class="tt-row"><span>适用自动驾驶等级</span><span>${road.adLevels.join(' / ')}</span></div>
+                <div class="tt-row"><span>适用业务类型</span><span>${road.bizTypes.join(' / ')}</span></div>
+                ${activeLayer==='complexity' ? `<div class="tt-row"><span>复杂度得�?/span><span style="color:${color}">${road.complexity}</span></div>` : ''}
+                ${activeLayer==='risk' ? `<div class="tt-row"><span>风险得分</span><span style="color:${color}">${road.risk}</span></div>` : ''}
+                ${activeLayer==='scene' ? `<div class="tt-row"><span>场景适配</span><span style="color:${color}">${road.sceneFit}</span></div>` : ''}
+                ${activeLayer==='level' ? `<div class="tt-row"><span>开放等�?/span><span style="color:${color}">${road.openLevel}</span></div>` : ''}
+                <div class="tt-tags">
+                    ${road.scenes.map(s=>`<span class="tt-tag">${s}</span>`).join('')}
+                    ${road.facilities.map(f=>`<span class="tt-tag" style="background:#fff7e6;color:#fa8c16;">${f}</span>`).join('')}
+                </div>
+            `;
+            mapTooltip.classList.add('visible');
+            const tipX = Math.min(pt.x + 20, w - 280);
+            const tipY = Math.max(10, pt.y - 100);
+            mapTooltip.style.left = tipX + 'px';
+            mapTooltip.style.top = tipY + 'px';
+        }
+
+        function closeTooltip() {
+            mapTooltip.classList.remove('visible');
+            selectedRoadId = null;
+            renderRoadList();
+        }
+
+        // ==================== 筛选交�?====================
+        function toggleChip(chip, filterType) {
+            const parent = chip.parentElement;
+            const chips = parent.querySelectorAll('.filter-chip');
+            const value = chip.dataset.value;
+
+            if (value === 'all') {
+                chips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                updateFilter(filterType, 'all');
+            } else {
+                const allChip = parent.querySelector('[data-value="all"]');
+                if (allChip) allChip.classList.remove('active');
+                chip.classList.toggle('active');
+                const activeChips = parent.querySelectorAll('.filter-chip.active');
+                if (activeChips.length === 0) {
+                    if (allChip) allChip.classList.add('active');
+                    updateFilter(filterType, 'all');
+                } else {
+                    const values = Array.from(activeChips).map(c => c.dataset.value);
+                    updateFilter(filterType, values[0]); // 单选模�?                }
+            }
+            applyFilters();
+        }
+
+        function updateFilter(filterType, value) {
+            switch (filterType) {
+                case 'scene':
+                    filters.scene = value;
+                    break;
+                case 'facility':
+                    filters.facility = value;
+                    break;
+                case 'status':
+                    filters.status = value;
+                    break;
+                case 'adLevel':
+                    filters.adLevel = value;
+                    break;
+            }
+        }
+
+        function applyFilters() {
+            filters.district = document.getElementById('filterDistrict').value;
+            filters.roadType = document.getElementById('filterRoadType').value;
+            selectedRoadId = null;
+            mapTooltip.classList.remove('visible');
+            renderRoadList();
+        }
+
+        function resetAllFilters() {
+            filters = { district: 'all', scene: 'all', facility: 'all', status: 'all', roadType: 'all',
+            adLevel: 'all' };
+            document.getElementById('filterDistrict').value = 'all';
+            document.getElementById('filterRoadType').value = 'all';
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.filter-chip[data-value="all"]').forEach(c => c.classList.add('active'));
+            selectedRoadId = null;
+            mapTooltip.classList.remove('visible');
+            searchInput.value = '';
+            searchResults.classList.remove('show');
+            renderRoadList();
+        }
+
+        function handleSearchInput(val) {
+            if (!val || val.trim() === '') {
+                searchResults.classList.remove('show');
+                return;
+            }
+            const q = val.toLowerCase().trim();
+            const matched = roadData.filter(r =>
+                r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)
+            );
+            if (matched.length > 0) {
+                let html = '';
+                matched.forEach(r => {
+                    html += `
+                    <div class="search-result-item" onclick="searchSelectRoad('${r.id}')">
+                        <div class="name">${r.name}</div>
+                        <div class="detail">${r.id} · ${r.district} · ${r.level}</div>
+                    </div>`;
+                });
+                searchResults.innerHTML = html;
+                searchResults.classList.add('show');
+            } else {
+                searchResults.innerHTML =
+                    '<div style="padding:10px 14px;font-size:12px;color:#999;">未找到匹配道�?/div>';
+                searchResults.classList.add('show');
+            }
+        }
+
+        function searchSelectRoad(id) {
+            searchResults.classList.remove('show');
+            searchInput.value = roadData.find(r => r.id === id)?.name || '';
+            selectRoad(id);
+        }
+
+        // ==================== 图层切换 ====================
+        document.getElementById('layerTabs').addEventListener('click', (e) => {
+            if (e.target.classList.contains('layer-tab')) {
+                document.querySelectorAll('.layer-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                activeLayer = e.target.dataset.layer;
+                selectedRoadId = null;
+                mapTooltip.classList.remove('visible');
+                getLayerLegend();
+                renderRoadList();
+            }
+        });
+
+        // ==================== 地图事件 ====================
+        mapArea.addEventListener('mousedown', (e) => {
+            if (e.target === mapCanvas) {
+                isDragging = true;
+                dragStartX = e.clientX - mapOffsetX;
+                dragStartY = e.clientY - mapOffsetY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                mapOffsetX = e.clientX - dragStartX;
+                mapOffsetY = e.clientY - dragStartY;
+            }
+            if (!isDragging && e.target === mapCanvas) {
+                const rect = mapCanvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const w = mapCanvas.width / window.devicePixelRatio;
+                const h = mapCanvas.height / window.devicePixelRatio;
+                let found = null;
+                const filtered = getFilteredRoads();
+                for (const road of [...filtered].reverse()) {
+                    const startPt = geoToPixel(road.points[0].lat, road.points[0].lng, w, h);
+                    const endPt = geoToPixel(road.points[1].lat, road.points[1].lng, w, h);
+                    const dist = pointToSegmentDist(mx, my, startPt.x, startPt.y, endPt.x, endPt.y);
+                    if (dist < 14) { found = road; break; }
+                }
+                if (found && found.id !== hoveredRoadId) {
+                    hoveredRoadId = found.id;
+                    mapCanvas.style.cursor = 'pointer';
+                } else if (!found && hoveredRoadId) {
+                    hoveredRoadId = null;
+                    mapCanvas.style.cursor = 'grab';
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            if (mapCanvas) mapCanvas.style.cursor = hoveredRoadId ? 'pointer' : 'grab';
+        });
+
+        mapCanvas.addEventListener('click', (e) => {
+            if (isDragging) return;
+            const rect = mapCanvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            const w = mapCanvas.width / window.devicePixelRatio;
+            const h = mapCanvas.height / window.devicePixelRatio;
+            const filtered = getFilteredRoads();
+            for (const road of [...filtered].reverse()) {
+                const startPt = geoToPixel(road.points[0].lat, road.points[0].lng, w, h);
+                const endPt = geoToPixel(road.points[1].lat, road.points[1].lng, w, h);
+                const dist = pointToSegmentDist(mx, my, startPt.x, startPt.y, endPt.x, endPt.y);
+                if (dist < 14) {
+                    selectRoad(road.id);
+                    return;
+                }
+            }
+            closeTooltip();
+        });
+
+        mapArea.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            mapScale = Math.max(0.3, Math.min(3, mapScale * delta));
+        });
+
+        function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const lenSq = dx * dx + dy * dy;
+            if (lenSq === 0) return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+            let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+            t = Math.max(0, Math.min(1, t));
+            const nearX = x1 + t * dx;
+            const nearY = y1 + t * dy;
+            return Math.sqrt((px - nearX) ** 2 + (py - nearY) ** 2);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!searchResults.contains(e.target) && e.target !== searchInput) {
+                searchResults.classList.remove('show');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTooltip(); });
+
+        // ==================== 初始�?====================
+        function init() {
+            resizeCanvas();
+            getLayerLegend();
+            renderRoadList();
+            renderLoop();
+        }
+
+        window.addEventListener('resize', () => { resizeCanvas(); });
+        init();
+
+        console.log('🗺�?道路资源可视化已就绪 | 主题图层 + 数据过滤�?| 道路总数: ' + roadData.length + ' �?);
+    </script>
+</body>
+</html>

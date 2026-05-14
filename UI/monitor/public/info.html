@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信息公开 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>信息公开</h2></div>
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-announce')">公告公示</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-guide')">办事指南</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-report')">测试示范报告</span>
+      </div>
+
+      <!-- 公告公示 -->
+      <div id="tab-announce">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>标题关键词</label><input class="ant-input" placeholder="请输入标题关键词搜索"></div>
+            <div class="filter-item"><label>子类型</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>标题</th><th>子类型</th><th>发布范围</th><th>发布时间</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td>关于开展2026年度智能网联汽车道路测试安全专项检查工作的通知</td><td><span class="ant-tag ant-tag-processing">政策通知</span></td><td>全部企业</td><td>2026-04-27</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(0)">查看详情</button></td></tr>
+                <tr><td>关于近期恶劣天气下自动驾驶测试注意事项的通知</td><td><span class="ant-tag ant-tag-error">安全预警</span></td><td>全部企业</td><td>2026-04-25</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(1)">查看详情</button></td></tr>
+                <tr><td>襄阳市智能网联汽车道路测试与示范应用管理办法（修订版）</td><td><span class="ant-tag ant-tag-default">法规文件</span></td><td>全部企业</td><td>2026-04-20</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(2)">查看详情</button></td></tr>
+                <tr><td>2026年第一季度智能网联汽车测试示范工作总结</td><td><span class="ant-tag ant-tag-success">工作通报</span></td><td>已准入企业</td><td>2026-04-15</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(3)">查看详情</button></td></tr>
+                <tr><td>关于调整测试车辆数据上报频率的通知</td><td><span class="ant-tag ant-tag-processing">政策通知</span></td><td>已准入企业</td><td>2026-04-10</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(4)">查看详情</button></td></tr>
+                <tr><td>襄阳市高新区智能网联汽车测试道路扩展公告</td><td><span class="ant-tag ant-tag-default">法规文件</span></td><td>全部企业</td><td>2026-04-05</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(5)">查看详情</button></td></tr>
+                <tr><td>关于规范自动驾驶车辆临时号牌使用的通知</td><td><span class="ant-tag ant-tag-processing">政策通知</span></td><td>已准入企业</td><td>2026-03-28</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(6)">查看详情</button></td></tr>
+                <tr><td>2026年春节假期测试安排及安全提示</td><td><span class="ant-tag ant-tag-error">安全预警</span></td><td>全部企业</td><td>2026-03-20</td><td><button class="ant-btn-link" onclick="openAnnounceDetail(7)">查看详情</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 28 条</span>
+            <div class="ant-pagination"><span class="page-item">‹</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 办事指南 -->
+      <div id="tab-guide" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>标题关键词</label><input class="ant-input" placeholder="请输入标题关键词搜索"></div>
+            <div class="filter-item"><label>适用对象</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>时间段</label><input class="ant-input" type="date" value="2026-01-01"><span>至</span><input class="ant-input" type="date" value="2026-04-30"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>标题</th><th>适用对象</th><th>发布部门</th><th>发布时间</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td>智能网联汽车道路测试准入申请指南</td><td>整车制造企业、自动驾驶解决方案提供商</td><td>联席小组办公室</td><td>2026-04-22</td><td><button class="ant-btn-link" onclick="openGuideDetail(0)">查看详情</button></td></tr>
+                <tr><td>示范应用准入申请操作手册</td><td>整车制造企业、运营服务商</td><td>联席小组办公室</td><td>2026-04-18</td><td><button class="ant-btn-link" onclick="openGuideDetail(1)">查看详情</button></td></tr>
+                <tr><td>测试车辆临时号牌办理流程说明</td><td>已准入企业</td><td>市交管部门</td><td>2026-04-12</td><td><button class="ant-btn-link" onclick="openGuideDetail(2)">查看详情</button></td></tr>
+                <tr><td>自动驾驶系统安全评估报告编制规范</td><td>第三方服务机构</td><td>联席小组办公室</td><td>2026-04-08</td><td><button class="ant-btn-link" onclick="openGuideDetail(3)">查看详情</button></td></tr>
+                <tr><td>智能网联汽车数据上报操作指引</td><td>已准入企业</td><td>平台技术支持组</td><td>2026-03-25</td><td><button class="ant-btn-link" onclick="openGuideDetail(4)">查看详情</button></td></tr>
+                <tr><td>示范运营准入申请材料清单及填写说明</td><td>运营服务商、公共交通企业</td><td>联席小组办公室</td><td>2026-03-15</td><td><button class="ant-btn-link" onclick="openGuideDetail(5)">查看详情</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 12 条</span>
+            <div class="ant-pagination"><span class="page-item">‹</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 测试示范报告 -->
+      <div id="tab-report" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>报告名称</label><input class="ant-input" placeholder="请输入报告名称搜索"></div>
+            <div class="filter-item"><label>报告周期</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>报告名称</th><th>报告周期</th><th>关键数据概览</th><th>发布时间</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td>2026年第一季度道路测试情况报告</td><td>2026年Q1</td><td>测试车辆32台，测试里程12.8万公里，事故率0</td><td>2026-04-20</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openReportDetail(0)">查看详情</button><button class="ant-btn-link">下载</button></td></tr>
+                <tr><td>2026年第一季度示范应用运营报告</td><td>2026年Q1</td><td>运营车辆18台，载客5.6万人次，运营里程8.3万公里</td><td>2026-04-18</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openReportDetail(1)">查看详情</button><button class="ant-btn-link">下载</button></td></tr>
+                <tr><td>2025年度智能网联汽车测试示范年度报告</td><td>2025年度</td><td>测试车辆85台，测试里程58.6万公里，示范运营12万次</td><td>2026-03-30</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openReportDetail(2)">查看详情</button><button class="ant-btn-link">下载</button></td></tr>
+                <tr><td>2025年第四季度道路测试情况报告</td><td>2025年Q4</td><td>测试车辆28台，测试里程15.2万公里，事故率0</td><td>2026-01-15</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openReportDetail(3)">查看详情</button><button class="ant-btn-link">下载</button></td></tr>
+                <tr><td>2025年第四季度示范应用运营报告</td><td>2025年Q4</td><td>运营车辆15台，载客4.8万人次，运营里程7.1万公里</td><td>2026-01-12</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openReportDetail(4)">查看详情</button><button class="ant-btn-link">下载</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 8 条</span>
+            <div class="ant-pagination"><span class="page-item">‹</span><span class="page-item active">1</span><span class="page-item">›</span></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='info';
+
+var announceData=[
+  {title:'关于开展2026年度智能网联汽车道路测试安全专项检查工作的通知',subType:'政策通知',scope:'全部企业',time:'2026-04-27',dept:'联席小组办公室',content:'为加强智能网联汽车道路测试安全管理，保障公共交通安全，根据《智能网联汽车道路测试与示范应用管理规范》要求，决定开展2026年度安全专项检查工作。检查范围包括：测试车辆安全性能、自动驾驶系统运行状态、测试驾驶员资质、安全管理制度执行情况等。请各相关企业于2026年5月15日前完成自查并提交自查报告。'},
+  {title:'关于近期恶劣天气下自动驾驶测试注意事项的通知',subType:'安全预警',scope:'全部企业',time:'2026-04-25',dept:'安全管理办公室',content:'根据气象部门预报，近期我市将出现持续强降雨天气，路面湿滑、能见度低，对自动驾驶系统传感器感知和决策能力构成较大挑战。请各测试企业注意：1.恶劣天气期间减少或暂停自动驾驶测试；2.必须测试时需配备安全员全程监控；3.加强传感器清洁维护；4.遇到异常情况立即切换人工驾驶模式。'},
+  {title:'襄阳市智能网联汽车道路测试与示范应用管理办法（修订版）',subType:'法规文件',scope:'全部企业',time:'2026-04-20',dept:'市交通运输局',content:'为进一步规范智能网联汽车道路测试与示范应用活动，促进智能网联汽车产业健康发展，根据国家相关法律法规，结合本市实际，对原管理办法进行修订。主要修订内容包括：扩大测试道路范围、简化准入审批流程、强化安全监管措施、新增示范运营管理章节等。'},
+  {title:'2026年第一季度智能网联汽车测试示范工作通报',subType:'工作通报',scope:'已准入企业',time:'2026-04-15',dept:'联席小组办公室',content:'2026年第一季度，我市智能网联汽车测试示范工作总体运行平稳。道路测试方面，累计测试里程12.8万公里，无安全事故发生；示范应用方面，累计载客5.6万人次，乘客满意度达96.5%。新增准入企业2家，新增测试车辆8台。'},
+  {title:'关于调整测试车辆数据上报频率的通知',subType:'政策通知',scope:'已准入企业',time:'2026-04-10',dept:'平台技术支持组',content:'为提升监管效率和数据时效性，自2026年5月1日起，测试车辆运行数据上报频率由每5分钟一次调整为每1分钟一次。请各企业于4月25日前完成车载终端和平台接口的升级适配工作。'},
+  {title:'襄阳市高新区智能网联汽车测试道路扩展公告',subType:'法规文件',scope:'全部企业',time:'2026-04-05',dept:'市交管部门',content:'经研究决定，自2026年4月15日起，襄阳市高新区智能网联汽车测试道路范围扩展至以下路段：东风大道全段、奔驰大道东段、科技城环路等，新增测试道路总长约28公里。'},
+  {title:'关于规范自动驾驶车辆临时号牌使用的通知',subType:'政策通知',scope:'已准入企业',time:'2026-03-28',dept:'市交管部门',content:'近期发现部分测试车辆存在临时号牌超期使用、未按规定悬挂等问题。现就规范临时号牌使用通知如下：1.临时号牌须在有效期内使用；2.号牌须按规定位置悬挂；3.号牌到期前15日须申请续期；4.严禁将号牌转借其他车辆使用。'},
+  {title:'2026年春节假期测试安排及安全提示',subType:'安全预警',scope:'全部企业',time:'2026-03-20',dept:'安全管理办公室',content:'2026年春节假期（3月25日-3月31日）期间，市区道路交通流量增大，请各测试企业注意：1.合理调整测试计划，避开高峰时段和路段；2.加强安全员管理，确保精神状态良好；3.做好车辆检查维护；4.遇紧急情况及时上报。'}
+];
+
+var guideData=[
+  {title:'智能网联汽车道路测试准入申请指南',object:'整车制造企业、自动驾驶解决方案提供商',dept:'联席小组办公室',time:'2026-04-22',content:'一、申请条件\n1.具有独立法人资格\n2.具备相应车辆生产或研发能力\n3.建立安全管理制度\n\n二、申请材料\n1.道路测试准入申请书\n2.安全评估报告\n3.安全性自我声明\n4.车辆出厂合格证\n5.驾驶员资质证明\n6.自动驾驶功能测试报告\n7.测试路线方案\n8.保险凭证\n9.企业营业执照\n10.车辆技术参数说明\n11.传感器配置信息\n\n三、审批流程\n提交申请→第三方初审→联席小组审批→临牌回传'},
+  {title:'示范应用准入申请操作手册',object:'整车制造企业、运营服务商',dept:'联席小组办公室',time:'2026-04-18',content:'一、申请条件\n1.已取得道路测试许可\n2.测试里程达到规定要求\n3.无严重安全事故记录\n\n二、申请材料\n1.示范应用准入申请书\n2.安全评估报告\n3.示范应用计划书\n4.安全性自我声明\n5.车辆出厂合格证\n6.驾驶员资质证明\n7.保险凭证\n8.企业营业执照\n9.平台对接证明\n\n三、审批流程\n提交申请→第三方初审→联席小组审批→临牌回传'},
+  {title:'测试车辆临时号牌办理流程说明',object:'已准入企业',dept:'市交管部门',time:'2026-04-12',content:'一、办理条件\n已通过道路测试或示范应用准入审批的企业\n\n二、所需材料\n1.准入审批通过通知书\n2.车辆信息登记表\n3.保险凭证\n\n三、办理流程\n1.线上提交申请\n2.交管部门审核\n3.领取临时号牌\n\n四、注意事项\n临时号牌有效期最长6个月，到期前15日须申请续期'},
+  {title:'自动驾驶系统安全评估报告编制规范',object:'第三方服务机构',dept:'联席小组办公室',time:'2026-04-08',content:'一、报告结构\n1.评估概述\n2.系统功能描述\n3.测试方法与结果\n4.安全风险分析\n5.评估结论与建议\n\n二、评估要求\n1.功能安全评估\n2.预期功能安全评估\n3.网络安全评估\n4.数据安全评估'},
+  {title:'智能网联汽车数据上报操作指引',object:'已准入企业',dept:'平台技术支持组',time:'2026-03-25',content:'一、数据上报内容\n1.车辆位置信息\n2.车辆运行状态\n3.自动驾驶系统状态\n4.传感器数据摘要\n5.事件记录数据\n\n二、上报方式\n通过平台API接口实时上报，频率为每1分钟一次\n\n三、数据格式\n采用JSON格式，字段定义详见接口文档'},
+  {title:'示范运营准入申请材料清单及填写说明',object:'运营服务商、公共交通企业',dept:'联席小组办公室',time:'2026-03-15',content:'一、申请材料清单\n1.示范运营准入申请书\n2.安全评估报告\n3.示范运营计划书\n4.安全性自我声明\n5.车辆出厂合格证\n6.驾驶员资质证明\n7.保险凭证\n8.企业营业执照\n9.平台对接证明\n\n二、填写注意事项\n1.运营计划书须包含运营路线、时段、班次等详细信息\n2.保险凭证须包含乘客意外险\n3.安全性自我声明须由企业法定代表人签字'}
+];
+
+var reportData=[
+  {name:'2026年第一季度道路测试情况报告',period:'2026年Q1',overview:'测试车辆32台，测试里程12.8万公里，事故率0',time:'2026-04-20',
+    stats:{totalVehicles:32,totalMileage:'12.8万公里',totalTestHours:'3,200小时',accidentRate:'0',activeEnterprises:5,
+    vehicleByType:[{type:'乘用车',count:22},{type:'客车',count:6},{type:'配送车',count:4}],
+    mileageByMonth:[{month:'1月',km:'3.8万'},{month:'2月',km:'4.2万'},{month:'3月',km:'4.8万'}],
+    mileageByEnterprise:[{name:'襄阳智行科技',km:'4.5万'},{name:'上海蔚来汽车',km:'3.2万'},{name:'东风汽车',km:'2.8万'},{name:'百度Apollo',km:'1.5万'},{name:'华为MDC',km:'0.8万'}]}},
+  {name:'2026年第一季度示范应用运营报告',period:'2026年Q1',overview:'运营车辆18台，载客5.6万人次，运营里程8.3万公里',time:'2026-04-18',
+    stats:{totalVehicles:18,totalTrips:'5.6万人次',totalMileage:'8.3万公里',satisfaction:'96.5%',activeEnterprises:3,
+    tripsByMonth:[{month:'1月',trips:'1.6万'},{month:'2月',trips:'1.8万'},{month:'3月',trips:'2.2万'}],
+    tripsByEnterprise:[{name:'襄阳智行科技',trips:'2.8万'},{name:'东风汽车',trips:'1.6万'},{name:'上海蔚来汽车',trips:'1.2万'}]}},
+  {name:'2025年度智能网联汽车测试示范年度报告',period:'2025年度',overview:'测试车辆85台，测试里程58.6万公里，示范运营12万次',time:'2026-03-30',
+    stats:{totalVehicles:85,totalMileage:'58.6万公里',totalTrips:'12万次',accidentRate:'0',activeEnterprises:8,
+    vehicleByType:[{type:'乘用车',count:55},{type:'客车',count:15},{type:'配送车',count:10},{type:'环卫车',count:5}],
+    mileageByQuarter:[{quarter:'Q1',km:'11.2万'},{quarter:'Q2',km:'14.5万'},{quarter:'Q3',km:'16.8万'},{quarter:'Q4',km:'16.1万'}]}},
+  {name:'2025年第四季度道路测试情况报告',period:'2025年Q4',overview:'测试车辆28台，测试里程15.2万公里，事故率0',time:'2026-01-15',
+    stats:{totalVehicles:28,totalMileage:'15.2万公里',totalTestHours:'3,800小时',accidentRate:'0',activeEnterprises:5}},
+  {name:'2025年第四季度示范应用运营报告',period:'2025年Q4',overview:'运营车辆15台，载客4.8万人次，运营里程7.1万公里',time:'2026-01-12',
+    stats:{totalVehicles:15,totalTrips:'4.8万人次',totalMileage:'7.1万公里',satisfaction:'95.8%',activeEnterprises:3}}
+];
+
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  ['tab-announce','tab-guide','tab-report'].forEach(function(id){
+    document.getElementById(id).style.display=id===tabId?'':'none'
+  });
+}
+
+function openAnnounceDetail(idx){
+  var d=announceData[idx];
+  openModal('公告详情',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">标题</div><div class="ant-descriptions-value" style="flex:3">'+d.title+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">子类型</div><div class="ant-descriptions-value"><span class="ant-tag '+(d.subType==='安全预警'?'ant-tag-error':d.subType==='政策通知'?'ant-tag-processing':d.subType==='工作通报'?'ant-tag-success':'ant-tag-default')+'">'+d.subType+'</span></div><div class="ant-descriptions-label">发布范围</div><div class="ant-descriptions-value">'+d.scope+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">发布部门</div><div class="ant-descriptions-value">'+d.dept+'</div><div class="ant-descriptions-label">发布时间</div><div class="ant-descriptions-value">'+d.time+'</div></div>' +
+    '</div>' +
+    '<div class="mt-4 p-4 bg-[#fafafa] rounded text-sm text-[#000000d9] whitespace-pre-line leading-relaxed">'+d.content+'</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+
+function openGuideDetail(idx){
+  var d=guideData[idx];
+  openModal('指南详情',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">标题</div><div class="ant-descriptions-value" style="flex:3">'+d.title+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">适用对象</div><div class="ant-descriptions-value">'+d.object+'</div><div class="ant-descriptions-label">发布部门</div><div class="ant-descriptions-value">'+d.dept+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">发布时间</div><div class="ant-descriptions-value">'+d.time+'</div></div>' +
+    '</div>' +
+    '<div class="mt-4 p-4 bg-[#fafafa] rounded text-sm text-[#000000d9] whitespace-pre-line leading-relaxed">'+d.content+'</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+
+function openReportDetail(idx){
+  var d=reportData[idx];
+  var s=d.stats;
+  var html='<div class="ant-descriptions">' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报告名称</div><div class="ant-descriptions-value" style="flex:3">'+d.name+'</div></div>' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报告周期</div><div class="ant-descriptions-value">'+d.period+'</div><div class="ant-descriptions-label">发布时间</div><div class="ant-descriptions-value">'+d.time+'</div></div>' +
+  '</div>';
+
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-3 pb-2 border-b border-[#f0f0f0]">关键数据概览</h4>';
+  html+='<div class="grid grid-cols-4 gap-3 mb-4">';
+  if(s.totalVehicles)html+='<div class="p-3 bg-[#e6f4ff] rounded text-center"><div class="text-2xl font-bold text-[#1677ff]">'+s.totalVehicles+'</div><div class="text-xs text-[#00000073] mt-1">车辆总数</div></div>';
+  if(s.totalMileage)html+='<div class="p-3 bg-[#f6ffed] rounded text-center"><div class="text-2xl font-bold text-[#52c41a]">'+s.totalMileage+'</div><div class="text-xs text-[#00000073] mt-1">总里程</div></div>';
+  if(s.totalTrips)html+='<div class="p-3 bg-[#fff7e6] rounded text-center"><div class="text-2xl font-bold text-[#fa8c16]">'+s.totalTrips+'</div><div class="text-xs text-[#00000073] mt-1">载客/运营次数</div></div>';
+  if(s.accidentRate!==undefined)html+='<div class="p-3 bg-[#f6ffed] rounded text-center"><div class="text-2xl font-bold text-[#52c41a]">'+s.accidentRate+'</div><div class="text-xs text-[#00000073] mt-1">事故率</div></div>';
+  if(s.satisfaction)html+='<div class="p-3 bg-[#e6f4ff] rounded text-center"><div class="text-2xl font-bold text-[#1677ff]">'+s.satisfaction+'</div><div class="text-xs text-[#00000073] mt-1">满意度</div></div>';
+  if(s.totalTestHours)html+='<div class="p-3 bg-[#fff7e6] rounded text-center"><div class="text-2xl font-bold text-[#fa8c16]">'+s.totalTestHours+'</div><div class="text-xs text-[#00000073] mt-1">测试时长</div></div>';
+  if(s.activeEnterprises)html+='<div class="p-3 bg-[#f9f0ff] rounded text-center"><div class="text-2xl font-bold text-[#722ed1]">'+s.activeEnterprises+'</div><div class="text-xs text-[#00000073] mt-1">活跃企业</div></div>';
+  html+='</div>';
+
+  if(s.mileageByMonth||s.mileageByQuarter){
+    var items=s.mileageByMonth||s.mileageByQuarter;
+    var label=s.mileageByMonth?'月份':'季度';
+    var key=s.mileageByMonth?'month':'quarter';
+    html+='<h4 class="text-sm font-semibold text-[#000000d9] mb-2">里程统计</h4>';
+    html+='<table class="ant-table mb-4"><thead><tr><th>'+label+'</th>';
+    items.forEach(function(it){html+='<th>'+it[key]+'</th>';});
+    html+='</tr></thead><tbody><tr><td>里程</td>';
+    items.forEach(function(it){html+='<td>'+it.km+'</td>';});
+    html+='</tr></tbody></table>';
+  }
+
+  if(s.tripsByMonth){
+    html+='<h4 class="text-sm font-semibold text-[#000000d9] mb-2">载客统计</h4>';
+    html+='<table class="ant-table mb-4"><thead><tr><th>月份</th>';
+    s.tripsByMonth.forEach(function(it){html+='<th>'+it.month+'</th>';});
+    html+='</tr></thead><tbody><tr><td>载客人次</td>';
+    s.tripsByMonth.forEach(function(it){html+='<td>'+it.trips+'</td>';});
+    html+='</tr></tbody></table>';
+  }
+
+  if(s.vehicleByType){
+    html+='<h4 class="text-sm font-semibold text-[#000000d9] mb-2">车辆类型分布</h4>';
+    html+='<table class="ant-table mb-4"><thead><tr><th>车辆类型</th><th>数量</th></tr></thead><tbody>';
+    s.vehicleByType.forEach(function(it){html+='<tr><td>'+it.type+'</td><td>'+it.count+'</td></tr>';});
+    html+='</tbody></table>';
+  }
+
+  if(s.mileageByEnterprise){
+    html+='<h4 class="text-sm font-semibold text-[#000000d9] mb-2">企业里程排名</h4>';
+    html+='<table class="ant-table mb-4"><thead><tr><th>企业名称</th><th>测试里程</th></tr></thead><tbody>';
+    s.mileageByEnterprise.forEach(function(it){html+='<tr><td>'+it.name+'</td><td>'+it.km+'</td></tr>';});
+    html+='</tbody></table>';
+  }
+
+  if(s.tripsByEnterprise){
+    html+='<h4 class="text-sm font-semibold text-[#000000d9] mb-2">企业载客排名</h4>';
+    html+='<table class="ant-table mb-4"><thead><tr><th>企业名称</th><th>载客人次</th></tr></thead><tbody>';
+    s.tripsByEnterprise.forEach(function(it){html+='<tr><td>'+it.name+'</td><td>'+it.trips+'</td></tr>';});
+    html+='</tbody></table>';
+  }
+
+  openModal('报告详情',html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary">下载报告</button>'});
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

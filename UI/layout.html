@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { primary: { DEFAULT: '#1677ff', hover: '#4096ff', disabled: '#85a5cc' } } } }
+    }
+  </script>
+</head>
+<body>
+  <div id="app" class="flex h-screen overflow-hidden">
+    <aside id="sidebar"></aside>
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <header id="topnav"></header>
+      <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+        <div class="grid grid-cols-4 gap-6 mb-6">
+          <div class="stat-card">
+            <div class="stat-icon bg-[#e6f4ff] text-[#1677ff]">🚗</div>
+            <div class="stat-info">
+              <div class="stat-value">128</div>
+              <div class="stat-label">在线车辆数 / 总测试车辆</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-[#f6ffed] text-[#52c41a]"></div>
+            <div class="stat-info">
+              <div class="stat-value">96</div>
+              <div class="stat-label">今日告警数 / 累计告警</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-[#fffbe6] text-[#faad14]">⚠️</div>
+            <div class="stat-info">
+              <div class="stat-value">24</div>
+              <div class="stat-label">今日事故数 / 待处理</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-[#fff2f0] text-[#ff4d4f]">🔴</div>
+            <div class="stat-info">
+              <div class="stat-value">352</div>
+              <div class="stat-label">累计测试里程 / km</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="text-base font-semibold text-[#000000d9] mb-4">快捷入口</h3>
+          <div class="grid grid-cols-4 gap-4">
+            <a href="road/catalog/filing.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
+              <span class="text-2xl">📋</span>
+              <div><div class="text-sm font-medium text-[#000000d9]">道路信息登记</div><div class="text-xs text-[#00000073]">路段备案管理、道路属性登记</div></div>
+            </a>
+            <a href="road/visualization/map.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
+              <span class="text-2xl">🗺️</span>
+              <div><div class="text-sm font-medium text-[#000000d9]">道路可视化展示</div><div class="text-xs text-[#00000073]">电子地图、实时监控、数据可视化展示</div></div>
+            </a>
+            <a href="monitor/vehicle-monitor/monitor-map.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
+              <span class="text-2xl">🚗</span>
+              <div><div class="text-sm font-medium text-[#000000d9]">监控一张图</div><div class="text-xs text-[#00000073]">车辆状态、轨迹回放、视频监控</div></div>
+            </a>
+            <a href="monitor/access-apply/road-test.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
+              <span class="text-2xl">📝</span>
+              <div><div class="text-sm font-medium text-[#000000d9]">准入申请管理</div><div class="text-xs text-[#00000073]">道路测试、示范应用、示范运营申请</div></div>
+            </a>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script>const PAGE_ID = 'home';</script>
+  <script src="./common.js"></script>
+</body>
+</html>

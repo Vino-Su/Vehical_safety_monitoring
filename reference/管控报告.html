@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事故分析研判 - 分析报告与管控建议</title>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei',
+                sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-layout {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: #fff;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar-logo {
+            padding: 18px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.5px;
+        }
+        .sidebar-logo .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            background: var(--error);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .sidebar-menu {
+            flex: 1;
+            padding: 8px 0;
+            overflow-y: auto;
+        }
+        .menu-group-title {
+            padding: 14px 20px 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            user-select: none;
+        }
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        .menu-item.active {
+            background: rgba(24, 144, 255, 0.2);
+            color: #fff;
+            border-left-color: var(--primary);
+            font-weight: 500;
+        }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 30px;
+            background: var(--bg);
+        }
+        .page-header {
+            margin-bottom: 16px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 110px;
+        }
+        .form-group label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        select,
+        input {
+            height: 32px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-family: var(--font);
+            background: #fff;
+            outline: none;
+            min-width: 100px;
+            transition: all 0.2s;
+        }
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+        .btn {
+            height: 32px;
+            padding: 0 14px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-default {
+            background: #fff;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-default:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-sm {
+            height: 26px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 3px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 400;
+            font-size: 12px;
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+        .card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            background: #fafafa;
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        tbody tr:hover {
+            background: #fafafa;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 14px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .pagination-bar select {
+            width: 70px;
+            height: 28px;
+        }
+        .pagination-bar .btn-sm {
+            height: 28px;
+        }
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 8px;
+            width: 820px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .suggestion-card {
+            background: #fff;
+            border-radius: 6px;
+            padding: 10px 14px;
+            border-left: 3px solid #d9d9d9;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .suggestion-card.red {
+            border-left-color: #f5222d;
+            background: #fff1f0;
+        }
+        .suggestion-card.orange {
+            border-left-color: #fa8c16;
+            background: #fff7e6;
+        }
+        .suggestion-card.blue {
+            border-left-color: #1890ff;
+            background: #e6f7ff;
+        }
+        @media (max-width:768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            .sidebar-menu {
+                display: flex;
+                padding: 0;
+            }
+            .menu-item {
+                padding: 10px 14px;
+                border-left: none;
+                border-bottom: 2px solid transparent;
+            }
+            .menu-item.active {
+                border-bottom-color: var(--primary);
+            }
+            .main-content {
+                padding: 12px;
+            }
+            .modal {
+                width: 95vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo"><span class="icon">🛡️</span>事故分析研判</div>
+            <nav class="sidebar-menu">
+                <div class="menu-group-title">研判分析</div>
+                <div class="menu-item" data-page="hotspot">📍 多发地点分析</div>
+                <div class="menu-item" data-page="risk">⚠️ 风险区域分析</div>
+                <div class="menu-item" data-page="trend">📈 事故趋势分析</div>
+                <div class="menu-item" data-page="vehicle">🚗 车辆主体分析</div>
+                <div class="menu-group-title">决策输出</div>
+                <div class="menu-item active" data-page="report">📋 分析报告与建议</div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header">
+                <div class="page-title">事故分析报告与管控建议</div>
+                <div class="page-subtitle">整合各维度研判结果，自动生成标准化报告与管控建议清单</div>
+            </div>
+            <!-- 报告生成操作区 -->
+            <div class="query-bar">
+                <div class="form-group">
+                    <label>报告类型</label>
+                    <select id="reportTypeSelect"><option value="monthly">月报</option><option value="weekly">周报</option><option value="quarterly">季报</option><option value="annual">年报</option><option value="special">专项报告</option></select>
+                </div>
+                <div class="form-group" id="specialThemeGroup" style="display:none;">
+                    <label>专项主题</label>
+                    <select><option>重大节日保障分析</option><option>恶劣天气影响分析</option></select>
+                </div>
+                <div class="form-group">
+                    <label>统计周期</label>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="date" value="2026-04-01" style="width:130px;"><span>-</span><input type="date" value="2026-04-30" style="width:130px;"></div>
+                </div>
+                <button class="btn btn-primary" onclick="generateReport()">📄 手动生成报告</button>
+                <button class="btn btn-default" onclick="showToast('已设置自动生成（每月1日02:00）')">⏰ 自动生成设置</button>
+            </div>
+            <!-- 历史报告列表 -->
+            <div class="card">
+                <div class="card-header">历史报告 <span style="font-weight:400;font-size:12px;color:var(--text-tertiary);">点击"预览"查看完整报告内容 | 共 10 条</span></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>报告编号</th><th>报告名称</th><th>类型</th><th>统计周期</th><th>生成时间</th><th>生成方式</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody id="reportTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="pagination-bar">
+                    <span>共 <b>10</b> 条</span>
+                    <select><option value="10">10</option><option value="20">20</option></select>
+                    <span>条/页</span>
+                    <button class="btn btn-sm btn-default" disabled>上一页</button>
+                    <span>第 <b>1</b> / <b>1</b> 页</span>
+                    <button class="btn btn-sm btn-default" disabled>下一页</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- 报告预览弹窗（包含完整报告内容） -->
+    <div class="modal-mask" id="previewModal">
+        <div class="modal">
+            <div class="modal-header"><span id="previewTitle">报告预览</span><button class="btn btn-sm btn-default" onclick="closePreview()">✕ 关闭</button></div>
+            <div class="modal-body" id="previewBody"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const reports = [
+                { id: 'RPT-2026-04', name: '2026年4月事故分析月报', type: '月报', period: '2026-04-01 ~ 2026-04-30', time: '2026-05-01 09:30', method: '自动', status: '已发布' },
+                { id: 'RPT-2026-W17', name: '2026年第17周事故分析周报', type: '周报', period: '2026-04-20 ~ 2026-04-26', time: '2026-04-27 09:00', method: '自动', status: '已发布' },
+                { id: 'RPT-2026-Q1', name: '2026年Q1事故分析季报', type: '季报', period: '2026-01-01 ~ 2026-03-31', time: '2026-04-05 14:30', method: '手动', status: '已发布' },
+                { id: 'RPT-2026-SP01', name: '清明节保障专项报告', type: '专项', period: '2026-04-03 ~ 2026-04-06', time: '2026-04-07 10:00', method: '手动', status: '已发布' },
+                { id: 'RPT-2026-03', name: '2026年3月事故分析月报', type: '月报', period: '2026-03-01 ~ 2026-03-31', time: '2026-04-01 08:30', method: '自动', status: '已发布' },
+                { id: 'RPT-2026-W13', name: '2026年第13周事故分析周报', type: '周报', period: '2026-03-23 ~ 2026-03-29', time: '2026-03-30 09:00', method: '自动', status: '已发布' },
+                { id: 'RPT-2026-02', name: '2026年2月事故分析月报', type: '月报', period: '2026-02-01 ~ 2026-02-28', time: '2026-03-01 09:30', method: '自动', status: '已发布' },
+                { id: 'RPT-2026-01', name: '2026年1月事故分析月报', type: '月报', period: '2026-01-01 ~ 2026-01-31', time: '2026-02-01 09:30', method: '自动', status: '已发布' },
+                { id: 'RPT-2025-Q4', name: '2025年Q4事故分析季报', type: '季报', period: '2025-10-01 ~ 2025-12-31', time: '2026-01-05 10:00', method: '手动', status: '已发布' },
+                { id: 'RPT-2025-12', name: '2025年12月事故分析月报', type: '月报', period: '2025-12-01 ~ 2025-12-31', time: '2026-01-01 09:30', method: '自动', status: '已发布' },
+            ];
+
+            function renderReportTable() {
+                const tbody = document.getElementById('reportTableBody');
+                tbody.innerHTML = reports.map(r => {
+                    const statusTag = r.status === '已发布' ? 'tag-green' : 'tag-orange';
+                    const methodTag = r.method === '自动' ? 'tag-blue' : 'tag-orange';
+                    return `<tr>
+                        <td>${r.id}</td><td><strong>${r.name}</strong></td>
+                        <td><span class="tag tag-blue">${r.type}</span></td><td>${r.period}</td><td>${r.time}</td>
+                        <td><span class="tag ${methodTag}">${r.method}</span></td>
+                        <td><span class="tag ${statusTag}">${r.status}</span></td>
+                        <td>
+                            <button class="btn-link" onclick="previewReport('${r.id}')">📄 预览</button>
+                            <button class="btn-link" onclick="exportPDF('${r.id}')">📥 PDF</button>
+                            <button class="btn-link" onclick="exportWord('${r.id}')">📥 Word</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+
+            window.previewReport = function(id) {
+                const r = reports.find(rep => rep.id === id) || reports[0];
+                const html = `
+                    <p><b>报告名称：</b>${r.name}</p>
+                    <p><b>类型：</b>${r.type} | <b>统计周期：</b>${r.period} | <b>生成时间：</b>${r.time} | <b>生成方式：</b>${r.method}</p>
+                    <hr>
+                    <h4>一、总体概况</h4>
+                    <p>本期共发生事故 <b>247</b> 起（环比 <span style="color:#f5222d;">+12%</span>，同比 <span style="color:#f5222d;">+16%</span>）。死亡 <b>3</b> 人，受伤 <b>45</b> 人，财产损失事故 <b>199</b> 起。事故率 <b>2.15</b> 起/10万km。</p>
+                    <h4>二、时空分布分析</h4>
+                    <p>时间维度：事故主要集中在早高峰（7:00‑9:00）和晚高峰（17:00‑19:00），占总数的 <b>42%</b>。空间维度：<b>樊城区</b> 事故最多（86起），其次为襄城区（65起）。</p>
+                    <h4>三、多发点位研判</h4>
+                    <p>本期共识别多发点位 <b>10</b> 处，其中新增 <b>2</b> 处（大庆路人民路口、环城南路檀溪路口），退出 <b>1</b> 处。长虹路建华路口仍为事故最高发点位（28起）。</p>
+                    <h4>四、风险区域研判</h4>
+                    <p>高风险区域 <b>4</b> 处（长虹路建华路口、檀溪路铁佛寺路口、人民路学校周边、解放路明珠路口），中风险区域 <b>4</b> 处，低风险区域 <b>2</b> 处。潜在风险区域 <b>2</b> 处需持续关注。</p>
+                    <h4>五、趋势变化研判</h4>
+                    <p>近3个月事故呈 <span style="color:#f5222d;font-weight:600;">上升趋势</span>，5月事故数（180起）较基线（155起）偏离 <b>+16.1%</b>。异常预警：樊城区、汉江出行主体存在显著异常增长。</p>
+                    <h4>六、车辆主体评价</h4>
+                    <p>高风险主体：<b>汉江出行</b>（风险评分78）、<b>襄阳智行科技</b>（风险评分72）。低风险主体：小马智行（30）、顺捷科技（45）。</p>
+                    <h4>七、管控建议清单</h4>
+                    <div class="suggestion-card red"><strong>🔴 高危</strong> — 长虹路建华路口增设信号灯，优化绿化带视距，建议高峰时段增派交警执勤。（设施类 · 责任部门：交通部门）</div>
+                    <div class="suggestion-card red"><strong>🔴 高危</strong> — 高风险企业（汉江出行）限制新增测试车辆数量，要求提交专项整改报告。（管理类 · 责任部门：交通部门）</div>
+                    <div class="suggestion-card orange"><strong>🟠 中危</strong> — 加强樊城区高峰时段巡查频次，针对性调整测试时段。（管理类 · 责任部门：公安部门）</div>
+                    <div class="suggestion-card orange"><strong>🟠 中危</strong> — 建议汉江出行全面检修制动系统，升级感知算法。（技术类 · 责任部门：企业自主）</div>
+                    <div class="suggestion-card blue"><strong>🔵 低危</strong> — 航空路金富士路口增加行人过街设施与人行横道预警标志。（设施类 · 责任部门：住建部门）</div>
+                    <div style="margin-top:12px;text-align:right;"><button class="btn btn-sm btn-default" onclick="showToast('建议清单已导出为Excel')">📥 导出建议清单</button></div>
+                `;
+                document.getElementById('previewTitle').textContent = r.name;
+                document.getElementById('previewBody').innerHTML = html;
+                document.getElementById('previewModal').classList.add('show');
+            };
+
+            window.exportPDF = function(id) {
+                const r = reports.find(rep => rep.id === id);
+                showToast(`正在导出PDF：${r ? r.name : '报告'}`);
+            };
+            window.exportWord = function(id) {
+                const r = reports.find(rep => rep.id === id);
+                showToast(`正在导出Word：${r ? r.name : '报告'}`);
+            };
+            window.closePreview = function() { document.getElementById('previewModal').classList.remove('show'); };
+            document.getElementById('previewModal').addEventListener('click', function(e) { if (e.target === this)
+                    closePreview(); });
+
+            function showToast(msg) {
+                const t = document.createElement('div');
+                t.style.cssText =
+                    'position:fixed;top:20px;right:20px;z-index:999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:13px;border-left:3px solid #1890ff;';
+                t.textContent = '✅ ' + msg;
+                document.body.appendChild(t);
+                setTimeout(() => { t.style.opacity = '0';
+                    t.style.transition = '0.3s';
+                    setTimeout(() => t.remove(), 300); }, 2000);
+            };
+            window.generateReport = function() {
+                const typeEl = document.getElementById('reportTypeSelect');
+                const typeName = typeEl.options[typeEl.selectedIndex].text;
+                showToast(`正在生成${typeName}……新报告将出现在历史列表中`);
+            };
+
+            document.getElementById('reportTypeSelect').addEventListener('change', function() {
+                document.getElementById('specialThemeGroup').style.display = this.value === 'special' ?
+                    'flex' : 'none';
+            });
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+                    this.classList.add('active');
+                    if (this.dataset.page !== 'report') showToast('该功能建设中，当前仅演示分析报告与建议');
+                });
+            });
+
+            renderReportTable();
+        })();
+    </script>
+</body>
+</html>

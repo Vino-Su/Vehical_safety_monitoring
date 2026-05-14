@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统日志管理 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header">
+        <h2>系统日志管理</h2>
+        <div class="flex gap-2">
+          <button class="ant-btn ant-btn-danger" onclick="openClearModal()">清空日志</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>操作模块</label><input class="ant-input" placeholder="请输入操作模块名称"></div>
+          <div class="filter-item"><label>操作人员</label><input class="ant-input" placeholder="请输入操作人员用户名"></div>
+          <div class="filter-item"><label>操作类型</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>状态</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>操作日期</label><input class="ant-input" type="date" style="width:140px"></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th><input type="checkbox"></th><th>ID</th><th>操作模块</th><th>操作描述</th><th>操作人</th><th>用时</th><th>状态</th><th>操作时间</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox"></td><td>10086</td><td>用户管理模块</td><td>导出用户列表数据操作</td><td>100</td><td>139ms</td><td><span class="ant-tag ant-tag-success">成功</span></td><td>2026-04-30 14:32:18</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+              <tr><td><input type="checkbox"></td><td>10085</td><td>测试示范监管模块</td><td>新增道路测试准入申请数据</td><td>1</td><td>256ms</td><td><span class="ant-tag ant-tag-success">成功</span></td><td>2026-04-30 14:28:05</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+              <tr><td><input type="checkbox"></td><td>10084</td><td>开放道路资源管理</td><td>道路评估指标配置数据导入操作</td><td>1</td><td>89ms</td><td><span class="ant-tag ant-tag-success">成功</span></td><td>2026-04-30 14:15:33</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+              <tr><td><input type="checkbox"></td><td>10083</td><td>数据字典管理模块</td><td>添加新字典类型 - 事故特征分类</td><td>1</td><td>45ms</td><td><span class="ant-tag ant-tag-success">成功</span></td><td>2026-04-30 14:10:12</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+              <tr><td><input type="checkbox"></td><td>10082</td><td>测试示范监管模块</td><td>查询车辆运行数据筛选结果导出</td><td>-</td><td>32ms</td><td><span class="ant-tag ant-tag-success">成功</span></td><td>2026-04-30 14:05:47</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+              <tr><td><input type="checkbox"></td><td>10081</td><td>开放道路资源管理</td><td>删除道路信息归档记录操作</td><td>1</td><td>67ms</td><td><span class="ant-tag ant-tag-error">失败</span></td><td>2026-04-30 13:58:22</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+              <tr><td><input type="checkbox"></td><td>10080</td><td>用户管理模块</td><td>用户角色权限配置变更操作</td><td>-</td><td>12ms</td><td><span class="ant-tag ant-tag-success">成功</span></td><td>2026-04-30 13:55:01</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+              <tr><td><input type="checkbox"></td><td>10079</td><td>测试示范监管模块</td><td>导出准入申请报告文件生成操作</td><td>25</td><td>320ms</td><td><span class="ant-tag ant-tag-success">成功</span></td><td>2026-04-30 13:45:18</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal()">查看</button><button class="ant-btn-link danger" onclick="openDeleteModal()">删除</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 3,256 条</span>
+          <div class="ant-pagination"><span class="page-item"><</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">4</span><span class="page-item">5</span><span class="page-item">></span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='log-manage';
+function openDetailModal(){
+  openModal('操作日志详情',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">操作模块</div><div class="ant-descriptions-value">用户管理模块</div><div class="ant-descriptions-label">请求方法</div><div class="ant-descriptions-value">GET</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">操作人用户名</div><div class="ant-descriptions-value">admin</div><div class="ant-descriptions-label">操作人IP</div><div class="ant-descriptions-value">192.168.1.36</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">请求路径</div><div class="ant-descriptions-value">/api/sys/user/export</div><div class="ant-descriptions-label">执行方法</div><div class="ant-descriptions-value">com.example.sys.controller.SysUserController.export()</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">操作描述</div><div class="ant-descriptions-value">导出用户列表数据操作</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">执行耗时</div><div class="ant-descriptions-value">139ms</div><div class="ant-descriptions-label">操作状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-success">成功</span></div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">操作时间</div><div class="ant-descriptions-value">2026-04-30 14:32:18</div></div>' +
+    '</div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">请求参数</h4>' +
+    '<div class="p-3 bg-[#fafafa] rounded text-xs text-[#00000073] font-mono break-all">{"pageNum":1,"pageSize":100,"sortField":"createTime","sortOrder":"DESC"}</div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">返回结果</h4>' +
+    '<div class="p-3 bg-[#fafafa] rounded text-xs text-[#00000073] font-mono break-all">{"code":200,"message":"操作成功","data":{"total":100,"list":[...],"filename":"用户数据导出_20260430.xlsx"}}</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openDeleteModal(){
+  openModal('确认删除日志记录',
+    '<div class="text-sm text-[#000000d9]">确认删除该条日志记录吗？删除后将无法恢复，如需保留日志记录请选择导出后再删除。</div>',
+    {footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-danger" onclick="closeModal()">确认删除</button>'});
+}
+function openClearModal(){
+  openModal('清空日志',
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>清空日期范围</div><div class="ant-form-control"><label class="inline-flex items-center gap-2"><input type="radio" name="clearRange" checked> 全部日志</label><label class="inline-flex items-center gap-2 ml-4"><input type="radio" name="clearRange"> 指定日期之前的日志</label></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>输入管理员密码确认</div><div class="ant-form-control"><input class="ant-input" type="password" placeholder="请输入当前登录管理员密码以确认清空操作"></div></div>' +
+    '<div class="p-3 bg-[#fff2f0] border border-[#ffccc7] rounded text-sm text-[#ff4d4f]"><strong>警告提示</strong>清空日志为不可逆操作，所有操作记录将被物理删除，且在系统审计中将无法追溯。请务必确认数据已导出备份。</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-danger" onclick="closeModal()">确认清空</button>'});
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

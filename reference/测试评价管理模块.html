@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试评价管理模块</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei',
+                sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-layout {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 220px;
+            background: #001529;
+            color: #fff;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar-logo {
+            padding: 18px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar-logo .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .sidebar-menu {
+            flex: 1;
+            padding: 8px 0;
+            overflow-y: auto;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            user-select: none;
+        }
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        .menu-item.active {
+            background: rgba(24, 144, 255, 0.2);
+            color: #fff;
+            border-left-color: var(--primary);
+            font-weight: 500;
+        }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 30px;
+            background: var(--bg);
+        }
+        .page-header {
+            margin-bottom: 14px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 14px 20px;
+            margin-bottom: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 110px;
+        }
+        .form-group label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        select,
+        input {
+            height: 32px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-family: var(--font);
+            background: #fff;
+            outline: none;
+            min-width: 100px;
+            transition: all 0.2s;
+        }
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+        .btn {
+            height: 32px;
+            padding: 0 14px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-default {
+            background: #fff;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-default:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-sm {
+            height: 26px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 3px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 400;
+            font-size: 12px;
+        }
+        .card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 14px;
+        }
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chart-container {
+            min-height: 260px;
+        }
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .row-1 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th {
+            background: #fafafa;
+            padding: 9px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        tbody tr:hover {
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .tag-gray {
+            background: #f5f5f5;
+            color: #8c8c8c;
+        }
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .pagination-bar select {
+            width: 70px;
+            height: 28px;
+        }
+        .pagination-bar .btn-sm {
+            height: 28px;
+        }
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 8px;
+            width: 820px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .modal-wide {
+            width: 920px;
+        }
+        .modal-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ccc;
+            transition: 0.3s;
+            border-radius: 22px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        .toggle-switch input:checked+.toggle-slider {
+            background: var(--success);
+        }
+        .toggle-switch input:checked+.toggle-slider:before {
+            transform: translateX(22px);
+        }
+        .score-card {
+            background: linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 14px;
+            border: 1px solid var(--border-light);
+        }
+        .score-value {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        .score-level {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-left: 4px;
+        }
+        @media (max-width:1200px) {
+            .row-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width:768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            .sidebar-menu {
+                display: flex;
+                padding: 0;
+            }
+            .menu-item {
+                padding: 10px 14px;
+                border-left: none;
+                border-bottom: 2px solid transparent;
+            }
+            .menu-item.active {
+                border-bottom-color: var(--primary);
+            }
+            .main-content {
+                padding: 10px;
+            }
+            .modal {
+                width: 95vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo"><span class="icon">📊</span>测试评价管理</div>
+            <nav class="sidebar-menu">
+                <div class="menu-item" data-page="params">评估参数配置</div>
+                <div class="menu-item" data-page="rules">评估规则配置</div>
+                <div class="menu-item active" data-page="vehicle">车辆评估</div>
+                <div class="menu-item" data-page="enterprise">企业评估</div>
+            </nav>
+        </aside>
+        <main class="main-content" id="mainContent"></main>
+    </div>
+    <div class="modal-mask" id="modalMask">
+        <div class="modal" id="modalDialog">
+            <div class="modal-header" id="modalHeader"></div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            const chartInstances = {};
+
+            function initChart(id) {
+                const dom = document.getElementById(id);
+                if (!dom) return null;
+                if (chartInstances[id]) chartInstances[id].dispose();
+                const c = echarts.init(dom);
+                chartInstances[id] = c;
+                return c;
+            }
+
+            function resizeAll() { Object.values(chartInstances).forEach(c => { if (c && !c.isDisposed()) c.resize(); }); }
+            window.addEventListener('resize', () => { clearTimeout(window._rt);
+                window._rt = setTimeout(resizeAll, 200); });
+
+            function showToast(msg) {
+                const t = document.createElement('div');
+                t.style.cssText =
+                    'position:fixed;top:20px;right:20px;z-index:999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:13px;border-left:3px solid #1890ff;';
+                t.textContent = '✅ ' + msg;
+                document.body.appendChild(t);
+                setTimeout(() => { t.style.opacity = '0';
+                    t.style.transition = '0.3s';
+                    setTimeout(() => t.remove(), 300); }, 2000);
+            }
+
+            function levelTag(lv) {
+                const m = { '优秀': 'tag-green', '良好': 'tag-blue', '合格': 'tag-orange', '不合格': 'tag-red' };
+                return '<span class="tag ' + (m[lv] || 'tag-gray') + '">' + lv + '</span>';
+            }
+
+            // 指标数据
+            const indicators = [
+                { code: 'P01', name: '临时行驶号牌有效期合规', source: '临牌发放记录+实时时间', auto: '全自动',
+                    rule: '布尔：有效期内=满分，过期0分', enabled: true },
+                { code: 'P02', name: '在规定测试范围内行驶', source: '实时位置+电子围栏', auto: '全自动',
+                    rule: '布尔：始终在围栏内=满分，有越界0分', enabled: true },
+                { code: 'P03', name: '避开高峰时段行驶', source: '申请时段限制+实时时间', auto: '全自动',
+                rule: '布尔：无高峰时段行驶=满分', enabled: true },
+                { code: 'P04', name: '避开重大节日/活动', source: '活动日历', auto: '全自动', rule: '布尔：无违规=满分',
+                enabled: true },
+                { code: 'P05', name: '避开安保活动', source: '安保活动配置', auto: '全自动', rule: '布尔：无违规=满分',
+                enabled: true },
+                { code: 'P06', name: '避开管控路段', source: '管控路段配置+实时位置', auto: '全自动', rule: '布尔：无违规=满分',
+                    enabled: true },
+                { code: 'P07', name: '在规定道路行驶', source: '轨迹+获批道路清单', auto: '全自动', rule: '布尔：无偏离=满分',
+                    enabled: true },
+                { code: 'P08', name: '遇行人减速', source: '车端急减速事件', auto: '暂不采集', rule: '暂不参与计算', enabled: false },
+                { code: 'P09', name: '事故时安全员正确处理', source: '事故审核记录', auto: '暂不采集', rule: '暂不参与计算',
+                    enabled: false },
+                { code: 'P10', name: '车辆在线率', source: '车端心跳记录', auto: '全自动',
+                rule: '线性：≥95%满分，每降1%扣权重×0.05', enabled: true },
+                { code: 'P11', name: '车辆故障率', source: '故障记录', auto: '全自动',
+                rule: '线性：≤5%满分，每增1%扣权重×0.1', enabled: true },
+                { code: 'P12', name: '电子围栏越界次数', source: '告警记录', auto: '全自动',
+                    rule: '阶梯：0次满分，1次扣50%权重，≥2次0分', enabled: true },
+                { code: 'P13', name: '超速次数', source: '告警记录', auto: '全自动',
+                rule: '阶梯：0次满分，1次扣50%权重', enabled: true },
+                { code: 'P14', name: '安全员脱岗次数', source: '告警记录', auto: '全自动',
+                rule: '阶梯：0次满分，1次扣50%权重', enabled: true },
+                { code: 'P15', name: '测试报告按时提交', source: '报告上报记录', auto: '全自动',
+                rule: '布尔：按时=满分，未按时0分', enabled: true },
+            ];
+
+            // 默认权重分配
+            function defaultWeightConfig() {
+                const enabled = indicators.filter(i => i.enabled);
+                const base = Math.floor(100 / enabled.length);
+                const remainder = 100 - base * enabled.length;
+                const cfg = {};
+                enabled.forEach((ind, idx) => { cfg[ind.code] = idx < remainder ? base + 1 : base; });
+                return cfg;
+            }
+
+            // 规则数据（带权重和版本历史）
+            const rulesData = [
+                { id: 'RUL-001', name: '2026年Q2测试车辆评估规则', vehicleType: '测试车辆', periodType: '季度',
+                    effectiveStart: '2026-04-01', effectiveEnd: '2026-06-30', version: 'V2.1', status: '生效中',
+                    weightConfig: defaultWeightConfig(), wn: 0.7, wf: 0.3,
+                    versions: [{ version: 'V2.0', time: '2026-01-01', wn: 0.7, wf: 0.3,
+                        weightConfig: defaultWeightConfig() }, { version: 'V1.0', time: '2025-10-01', wn: 0.6,
+                        wf: 0.4, weightConfig: defaultWeightConfig() }] },
+                { id: 'RUL-002', name: '2026年Q1测试车辆评估规则', vehicleType: '测试车辆', periodType: '季度',
+                    effectiveStart: '2026-01-01', effectiveEnd: '2026-03-31', version: 'V2.0', status: '已过期',
+                    weightConfig: defaultWeightConfig(), wn: 0.7, wf: 0.3, versions: [{ version: 'V1.0',
+                        time: '2025-10-01', wn: 0.6, wf: 0.4, weightConfig: defaultWeightConfig() }] },
+                { id: 'RUL-003', name: '2026年度示范运营车辆评估规则', vehicleType: '示范运营车辆', periodType: '年度',
+                    effectiveStart: '2026-01-01', effectiveEnd: '2026-12-31', version: 'V1.0', status: '生效中',
+                    weightConfig: defaultWeightConfig(), wn: 0.7, wf: 0.3, versions: [] },
+            ];
+
+            const enterprises = ['襄阳智行科技', '汉江出行', '顺捷科技', '东风出行', '百度Apollo', '滴滴自动驾驶', '小马智行',
+                '文远知行', 'AutoX', '元戎启行'
+            ];
+            const plates = ['鄂F·A1234', '鄂F·B5678', '鄂F·C3456', '鄂F·D7890', '鄂F·E9012', '鄂F·F4567', '鄂F·G8901',
+                '鄂F·H2345', '鄂F·I6789', '鄂F·J0123'
+            ];
+            const vins = ['LSVAA4189N2000001', 'LSVAA4189N2000002', 'LSVAA4189N2000003', 'LSVAA4189N2000004',
+                'LSVAA4189N2000005', 'LSVAA4189N2000006', 'LSVAA4189N2000007', 'LSVAA4189N2000008',
+                'LSVAA4189N2000009', 'LSVAA4189N2000010'
+            ];
+
+            const vehicleResults = [];
+            for (let i = 0; i < 10; i++) {
+                const score = 55 + Math.random() * 40;
+                const level = score >= 90 ? '优秀' : score >= 75 ? '良好' : score >= 60 ? '合格' : '不合格';
+                vehicleResults.push({
+                    vin: vins[i],
+                    plate: plates[i],
+                    enterprise: enterprises[i],
+                    rule: rulesData[0].name,
+                    period: '2026-04-01~2026-04-30',
+                    score: score.toFixed(1),
+                    level,
+                    time: '2026-05-01 02:00',
+                    detailScores: [
+                        { name: '在规定测试范围内行驶', weight: 15, actual: '始终在围栏内', score: 15,
+                        reason: '-' },
+                        { name: '电子围栏越界次数', weight: 20, actual: '越界1次', score: 10,
+                            reason: '一次越界扣50%权重' },
+                        { name: '车辆在线率', weight: 10, actual: '97.2%', score: 10, reason: '-' },
+                        { name: '超速次数', weight: 15, actual: '0次', score: 15, reason: '-' },
+                    ],
+                });
+            }
+            vehicleResults.sort((a, b) => b.score - a.score);
+
+            const enterpriseResults = [];
+            for (let i = 0; i < 8; i++) {
+                const normalCnt = Math.floor(5 + Math.random() * 20);
+                const faultCnt = Math.floor(Math.random() * 5);
+                const offlineCnt = Math.floor(Math.random() * 3);
+                const avgNormal = 60 + Math.random() * 30;
+                const baseScore = avgNormal * 0.7 + (faultCnt > 0 ? Math.floor(50 + Math.random() * 20) : 60) * 0.3;
+                const penalty = Math.min(offlineCnt * 2, 20);
+                const finalScore = Math.max(Math.round(baseScore - penalty), 0);
+                const level = finalScore >= 90 ? '优秀' : finalScore >= 75 ? '良好' : finalScore >= 60 ? '合格' : '不合格';
+                enterpriseResults.push({
+                    id: 'ENT-' + String(i + 1).padStart(3, '0'),
+                    name: enterprises[i],
+                    normalCnt,
+                    faultCnt,
+                    offlineCnt,
+                    avgNormal: avgNormal.toFixed(1),
+                    score: finalScore,
+                    level,
+                    period: '2026-04-01~2026-04-30',
+                    rank: i + 1,
+                });
+            }
+            enterpriseResults.sort((a, b) => b.score - a.score);
+            enterpriseResults.forEach((e, i) => e.rank = i + 1);
+
+            let currentPage = 'vehicle';
+
+            function renderPage(page) {
+                document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+                document.querySelector(`.menu-item[data-page="${page}"]`)?.classList.add('active');
+                currentPage = page;
+                const mc = document.getElementById('mainContent');
+                if (page === 'params') mc.innerHTML = buildParamsPage();
+                else if (page === 'rules') mc.innerHTML = buildRulesPage();
+                else if (page === 'vehicle') mc.innerHTML = buildVehiclePage();
+                else if (page === 'enterprise') mc.innerHTML = buildEnterprisePage();
+                setTimeout(resizeAll, 150);
+            }
+
+            // 弹窗工具
+            function openModal(title, html, wide = false) {
+                document.getElementById('modalHeader').innerHTML = '<span>' + title +
+                    '</span><button class="btn btn-sm btn-default" onclick="closeModal()">关闭</button>';
+                document.getElementById('modalBody').innerHTML = html;
+                document.getElementById('modalDialog').className = wide ? 'modal modal-wide' : 'modal';
+                document.getElementById('modalMask').classList.add('show');
+            }
+            window.closeModal = function() { document.getElementById('modalMask').classList.remove('show'); };
+            document.getElementById('modalMask').addEventListener('click', function(e) { if (e.target === this)
+                    closeModal(); });
+
+            // ========== 评估参数配置 ==========
+            function buildParamsPage() {
+                const enabledCount = indicators.filter(i => i.enabled).length;
+                return `<div class="page-header"><div class="page-title">评估参数配置</div><div class="page-subtitle">预置全部评估指标项，支持启用/停用及计分规则参数调整</div></div>
+                <div class="card"><div class="card-header">预置指标清单<span style="font-weight:400;font-size:12px;margin-left:8px;">共 ${indicators.length} 项 | 启用 ${enabledCount} 项</span></div>
+                <div class="table-wrap"><table><thead><tr><th>指标编码</th><th>指标名称</th><th>数据来源</th><th>采集自动化程度</th><th>默认计分规则</th><th>状态</th></tr></thead><tbody>${indicators.map(i=>`<tr><td>${i.code}</td><td><strong>${i.name}</strong></td><td>${i.source}</td><td>${i.auto==='全自动'?'<span class="tag tag-green">全自动</span>':'<span class="tag tag-orange">暂不采集</span>'}</td><td style="font-size:11px;">${i.rule}</td><td><label class="toggle-switch"><input type="checkbox" ${i.enabled?'checked':''} onchange="toggleIndicator('${i.code}',this.checked)"><span class="toggle-slider"></span></label> ${i.enabled?'<span class="tag tag-green">启用</span>':'<span class="tag tag-gray">停用</span>'}</td></tr>`).join('')}</tbody></table></div>
+                <button class="btn btn-primary" style="margin-top:12px;" onclick="showToast('配置已保存')">保存配置</button></div>`;
+            }
+            window.toggleIndicator = function(code, checked) {
+                const ind = indicators.find(i => i.code === code);
+                if (ind) { ind.enabled = checked;
+                    renderPage('params');
+                    showToast(`指标 ${code} 已${checked?'启用':'停用'}`); }
+            };
+
+            // ========== 评估规则配置 ==========
+            function buildRulesPage() {
+                return `<div class="page-header"><div class="page-title">评估规则配置</div><div class="page-subtitle">定义评估周期、各指标权重及计算公式，支持编辑与版本追溯</div></div>
+                <div class="card"><div class="card-header">规则列表 <button class="btn btn-primary btn-sm" onclick="openNewRuleModal()">新建规则</button></div>
+                <div class="table-wrap"><table><thead><tr><th>规则编号</th><th>规则名称</th><th>适用对象</th><th>周期类型</th><th>生效时间</th><th>版本</th><th>状态</th><th>操作</th></tr></thead><tbody>${rulesData.map(r=>`<tr><td>${r.id}</td><td><strong>${r.name}</strong></td><td>${r.vehicleType}</td><td>${r.periodType}</td><td>${r.effectiveStart} ~ ${r.effectiveEnd}</td><td>${r.version}</td><td>${r.status==='生效中'?'<span class="tag tag-green">生效中</span>':'<span class="tag tag-gray">已过期</span>'}</td><td><button class="btn-link" onclick="openRuleDetail('${r.id}')">查看权重</button> <button class="btn-link" onclick="openEditRuleModal('${r.id}')">编辑</button> <button class="btn-link" onclick="openVersionHistory('${r.id}')">版本历史</button> <button class="btn-link" onclick="copyRule('${r.id}')">复制</button></td></tr>`).join('')}</tbody></table></div></div>`;
+            }
+
+            // 新建规则弹窗
+            window.openNewRuleModal = function() {
+                const enabledIndicators = indicators.filter(i => i.enabled);
+                const html = `
+                <div class="form-group" style="margin-bottom:8px;"><label>规则名称</label><input id="ruleName" value="" style="width:260px;" placeholder="如：2026年Q3评估规则"></div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+                    <div class="form-group"><label>适用对象</label><select id="ruleVehicleType"><option>测试车辆</option><option>示范应用车辆</option><option>示范运营车辆</option></select></div>
+                    <div class="form-group"><label>周期类型</label><select id="rulePeriodType"><option>月度</option><option selected>季度</option><option>年度</option></select></div>
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+                    <div class="form-group"><label>生效开始</label><input type="date" id="ruleStart" value="2026-07-01"></div>
+                    <div class="form-group"><label>生效结束</label><input type="date" id="ruleEnd" value="2026-09-30"></div>
+                </div>
+                <p style="margin-top:8px;font-weight:600;">指标权重配置（已启用指标）</p>
+                <table><thead><tr><th>指标名称</th><th>权重(1-100)</th></tr></thead><tbody>${enabledIndicators.map(i=>`<tr><td>${i.name} (${i.code})</td><td><input type="number" class="weight-input-new" data-code="${i.code}" value="0" min="0" max="100" style="width:80px;"></td></tr>`).join('')}</tbody></table>
+                <p style="margin-top:8px;font-weight:600;">企业评估权重</p>
+                <div style="display:flex;gap:12px;"><div class="form-group"><label>正常车辆Wn</label><input type="number" id="ruleWn" value="0.7" step="0.1" style="width:80px;"></div><div class="form-group"><label>故障车辆Wf</label><input type="number" id="ruleWf" value="0.3" step="0.1" style="width:80px;"></div></div>
+                <button class="btn btn-primary" style="margin-top:12px;" onclick="submitRule('new')">提交创建</button>`;
+                openModal('新建评估规则', html);
+            };
+
+            // 编辑规则弹窗
+            window.openEditRuleModal = function(ruleId) {
+                const rule = rulesData.find(r => r.id === ruleId);
+                if (!rule) return;
+                const enabledIndicators = indicators.filter(i => i.enabled);
+                const html = `
+                <div class="form-group" style="margin-bottom:8px;"><label>规则名称</label><input id="ruleName" value="${rule.name}" style="width:260px;"></div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+                    <div class="form-group"><label>适用对象</label><select id="ruleVehicleType">${['测试车辆','示范应用车辆','示范运营车辆'].map(t=>`<option ${rule.vehicleType===t?'selected':''}>${t}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>周期类型</label><select id="rulePeriodType">${['月度','季度','年度'].map(t=>`<option ${rule.periodType===t?'selected':''}>${t}</option>`).join('')}</select></div>
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+                    <div class="form-group"><label>生效开始</label><input type="date" id="ruleStart" value="${rule.effectiveStart}"></div>
+                    <div class="form-group"><label>生效结束</label><input type="date" id="ruleEnd" value="${rule.effectiveEnd}"></div>
+                </div>
+                <p style="margin-top:8px;font-weight:600;">指标权重配置（已启用指标）</p>
+                <table><thead><tr><th>指标名称</th><th>权重(1-100)</th></tr></thead><tbody>${enabledIndicators.map(i=>`<tr><td>${i.name} (${i.code})</td><td><input type="number" class="weight-input-edt" data-code="${i.code}" value="${rule.weightConfig[i.code]||0}" min="0" max="100" style="width:80px;"></td></tr>`).join('')}</tbody></table>
+                <p style="margin-top:8px;font-weight:600;">企业评估权重</p>
+                <div style="display:flex;gap:12px;"><div class="form-group"><label>正常车辆Wn</label><input type="number" id="ruleWn" value="${rule.wn}" step="0.1" style="width:80px;"></div><div class="form-group"><label>故障车辆Wf</label><input type="number" id="ruleWf" value="${rule.wf}" step="0.1" style="width:80px;"></div></div>
+                <input type="hidden" id="editingRuleId" value="${rule.id}">
+                <button class="btn btn-primary" style="margin-top:12px;" onclick="submitRule('edit')">保存修改（生成新版本）</button>`;
+                openModal('编辑评估规则 - ' + rule.name, html);
+            };
+
+            // 提交新建/编辑
+            window.submitRule = function(mode) {
+                const name = document.getElementById('ruleName')?.value || '未命名规则';
+                const vehicleType = document.getElementById('ruleVehicleType')?.value || '测试车辆';
+                const periodType = document.getElementById('rulePeriodType')?.value || '季度';
+                const start = document.getElementById('ruleStart')?.value || '';
+                const end = document.getElementById('ruleEnd')?.value || '';
+                const wn = parseFloat(document.getElementById('ruleWn')?.value || '0.7');
+                const wf = parseFloat(document.getElementById('ruleWf')?.value || '0.3');
+                const inputClass = mode === 'new' ? '.weight-input-new' : '.weight-input-edt';
+                const inputs = document.querySelectorAll(inputClass);
+                const newWeightConfig = {};
+                let total = 0;
+                inputs.forEach(inp => { const w = parseInt(inp.value) || 0;
+                    newWeightConfig[inp.dataset.code] = w;
+                    total += w; });
+                if (Math.abs(total - 100) > 0.01) { showToast('指标权重和必须等于100！当前合计：' + total); return; }
+
+                if (mode === 'new') {
+                    rulesData.push({
+                        id: 'RUL-' + String(rulesData.length + 1).padStart(3, '0'),
+                        name,
+                        vehicleType,
+                        periodType,
+                        effectiveStart: start,
+                        effectiveEnd: end,
+                        version: 'V1.0',
+                        status: '生效中',
+                        weightConfig: newWeightConfig,
+                        wn,
+                        wf,
+                        versions: []
+                    });
+                } else {
+                    const ruleId = document.getElementById('editingRuleId')?.value;
+                    const rule = rulesData.find(r => r.id === ruleId);
+                    if (rule) {
+                        // 保存当前版本到历史
+                        rule.versions.push({
+                            version: rule.version,
+                            time: new Date().toISOString().substring(0, 10),
+                            wn: rule.wn,
+                            wf: rule.wf,
+                            weightConfig: { ...rule.weightConfig }
+                        });
+                        // 更新规则
+                        const oldVer = rule.version;
+                        const verNum = parseFloat(oldVer.replace('V', '')) || 1;
+                        rule.name = name;
+                        rule.vehicleType = vehicleType;
+                        rule.periodType = periodType;
+                        rule.effectiveStart = start;
+                        rule.effectiveEnd = end;
+                        rule.version = 'V' + (verNum + 0.1).toFixed(1);
+                        rule.weightConfig = newWeightConfig;
+                        rule.wn = wn;
+                        rule.wf = wf;
+                    }
+                }
+                closeModal();
+                renderPage('rules');
+                showToast(mode === 'new' ? '规则已创建' : '规则已更新，新版本号已生成');
+            };
+
+            // 查看规则权重详情
+            window.openRuleDetail = function(id) {
+                const r = rulesData.find(ru => ru.id === id);
+                if (!r) return;
+                const html = `<p><b>规则：</b>${r.name} (${r.version})</p><p><b>适用对象：</b>${r.vehicleType} | <b>周期：</b>${r.periodType} | <b>生效：</b>${r.effectiveStart}~${r.effectiveEnd}</p><p><b>指标权重配置：</b></p><table><thead><tr><th>指标</th><th>权重</th></tr></thead><tbody>${Object.entries(r.weightConfig).map(([code,w])=>{const ind=indicators.find(i=>i.code===code);return`<tr><td>${ind?ind.name:code}</td><td>${w}</td></tr>`;}).join('')}</tbody></table><p style="margin-top:8px;"><b>企业权重：</b>Wn=${r.wn}, Wf=${r.wf}</p>`;
+                openModal('规则权重详情 - ' + r.name, html);
+            };
+
+            // 版本历史
+            window.openVersionHistory = function(id) {
+                const r = rulesData.find(ru => ru.id === id);
+                if (!r) return;
+                const versions = r.versions || [];
+                const html = `<p><b>规则：</b>${r.name} | <b>当前版本：</b>${r.version}</p><table><thead><tr><th>版本</th><th>时间</th><th>Wn</th><th>Wf</th><th>操作</th></tr></thead><tbody>${versions.map(v=>`<tr><td>${v.version}</td><td>${v.time}</td><td>${v.wn}</td><td>${v.wf}</td><td><button class="btn-link" onclick="viewVersionSnapshot('${id}','${v.version}')">查看快照</button></td></tr>`).join('')}${versions.length===0?'<tr><td colspan="5" style="text-align:center;color:#8c8c8c;">暂无历史版本</td></tr>':''}</tbody></table>`;
+                openModal('版本历史 - ' + r.name, html);
+            };
+            window.viewVersionSnapshot = function(ruleId, version) {
+                const r = rulesData.find(ru => ru.id === ruleId);
+                if (!r) return;
+                const snap = r.versions.find(v => v.version === version);
+                if (!snap) return;
+                const html = `<p><b>版本：</b>${snap.version} | <b>时间：</b>${snap.time}</p><table><thead><tr><th>指标</th><th>权重</th></tr></thead><tbody>${Object.entries(snap.weightConfig).map(([code,w])=>{const ind=indicators.find(i=>i.code===code);return`<tr><td>${ind?ind.name:code}</td><td>${w}</td></tr>`;}).join('')}</tbody></table><p>Wn=${snap.wn}, Wf=${snap.wf}</p>`;
+                openModal('版本快照 - ' + version, html);
+            };
+            window.copyRule = function(id) {
+                const r = rulesData.find(ru => ru.id === id);
+                if (!r) return;
+                const newRule = { ...r, id: 'RUL-' + String(rulesData.length + 1).padStart(3, '0'), name: r.name +
+                        '（副本）', version: 'V1.0', versions: [], status: '生效中', weightConfig: { ...r.weightConfig },
+                    wn: r.wn, wf: r.wf };
+                rulesData.push(newRule);
+                renderPage('rules');
+                showToast('已复制规则：' + newRule.name);
+            };
+
+            // ========== 车辆评估 ==========
+            function buildVehiclePage() {
+                return `<div class="page-header"><div class="page-title">车辆评估</div><div class="page-subtitle">自动计算单车得分，支持详情查看与手动重新评估</div></div>
+                <div class="query-bar">
+                    <div class="form-group"><label>企业</label><select><option>全部</option>${enterprises.map(e=>'<option>'+e+'</option>').join('')}</select></div>
+                    <div class="form-group"><label>VIN/临牌</label><input placeholder="输入搜索"></div>
+                    <div class="form-group"><label>得分区间</label><select><option>全部</option><option>优秀≥90</option><option>良好75-89</option><option>合格60-74</option><option>不合格<60</option></select></div>
+                    <button class="btn btn-primary" onclick="showToast('查询完成')">查询</button>
+                    <button class="btn btn-default" onclick="showToast('导出成功')">导出Excel</button>
+                </div>
+                <div class="card">
+                    <div class="card-header">车辆评估列表<span style="font-weight:400;font-size:12px;margin-left:8px;">共 ${vehicleResults.length} 条</span></div>
+                    <div class="table-wrap"><table><thead><tr><th>车辆VIN</th><th>车牌号</th><th>所属企业</th><th>评估规则</th><th>评估周期</th><th>最终得分</th><th>等级</th><th>评估时间</th><th>操作</th></tr></thead><tbody>${vehicleResults.map(v=>`<tr><td style="font-family:monospace;">${v.vin}</td><td>${v.plate}</td><td>${v.enterprise}</td><td style="font-size:10px;">${v.rule}</td><td>${v.period}</td><td><strong>${v.score}</strong></td><td>${levelTag(v.level)}</td><td>${v.time}</td><td><button class="btn-link" onclick="openVehicleDetail('${v.vin}')">详情</button> <button class="btn-link" onclick="manualEvaluateVehicle('${v.vin}')">手动评估</button></td></tr>`).join('')}</tbody></table></div>
+                    <div class="pagination-bar"><span>共 <b>${vehicleResults.length}</b> 条</span><select><option>10</option></select><span>条/页</span><button class="btn btn-sm btn-default" disabled>上一页</button><span>第 <b>1</b>/<b>1</b> 页</span><button class="btn btn-sm btn-default" disabled>下一页</button></div>
+                </div>`;
+            }
+            window.openVehicleDetail = function(vin) {
+                const v = vehicleResults.find(r => r.vin === vin) || vehicleResults[0];
+                const scoreColor = v.score >= 90 ? '#52c41a' : v.score >= 75 ? '#1890ff' : v.score >= 60 ?
+                    '#fa8c16' : '#f5222d';
+                const html = `<div class="score-card"><div class="score-value" style="color:${scoreColor}">${v.score}</div><div class="score-level">${levelTag(v.level)}</div></div>
+                <p><b>VIN：</b>${v.vin} | <b>车牌：</b>${v.plate} | <b>企业：</b>${v.enterprise}</p><p><b>规则：</b>${v.rule} | <b>周期：</b>${v.period}</p>
+                <table><thead><tr><th>指标名称</th><th>权重</th><th>实际表现</th><th>单项得分</th><th>扣分原因</th></tr></thead><tbody>${v.detailScores.map(d=>`<tr><td>${d.name}</td><td>${d.weight}</td><td>${d.actual}</td><td>${d.score}</td><td>${d.reason}</td></tr>`).join('')}</tbody></table>
+                <div class="chart-container" id="detailTrendChart" style="height:200px;margin-top:10px;"></div>
+                <div style="margin-top:12px;text-align:right;"><button class="btn btn-primary btn-sm" onclick="showToast('PDF报告已下载')">下载PDF报告</button></div>`;
+                openModal('车辆评估详情 - ' + v.vin, html, true);
+                setTimeout(() => {
+                    const c = initChart('detailTrendChart');
+                    if (c) c.setOption({
+                        tooltip: {},
+                        xAxis: { data: ['12月', '1月', '2月', '3月', '4月'] },
+                        yAxis: { name: '得分', min: 0, max: 100 },
+                        series: [{ type: 'line', data: [72, 75, 80, 78, parseFloat(v.score)],
+                            lineStyle: { color: '#1890ff', width: 2 }, smooth: true,
+                            markLine: { silent: true, data: [{ yAxis: 60,
+                            lineStyle: { color: '#f5222d', type: 'dashed' },
+                            label: { formatter: '合格线' } }] } }],
+                        grid: { left: 45, right: 20, top: 10, bottom: 30 }
+                    });
+                }, 200);
+            };
+            window.manualEvaluateVehicle = function(vin) {
+                const v = vehicleResults.find(r => r.vin === vin);
+                const newScore = (55 + Math.random() * 40).toFixed(1);
+                if (v) { v.score = newScore;
+                    v.level = newScore >= 90 ? '优秀' : newScore >= 75 ? '良好' : newScore >= 60 ? '合格' : '不合格';
+                    v.time = new Date().toISOString().replace('T', ' ').substring(0, 19); }
+                renderPage('vehicle');
+                showToast(`车辆 ${vin} 手动评估完成，新得分：${newScore}`);
+            };
+
+            // ========== 企业评估 ==========
+            function buildEnterprisePage() {
+                return `<div class="page-header"><div class="page-title">企业评估</div><div class="page-subtitle">聚合企业下车辆得分，计算综合得分及排名</div></div>
+                <div class="query-bar">
+                    <div class="form-group"><label>企业名称</label><select><option>全部</option>${enterprises.map(e=>'<option>'+e+'</option>').join('')}</select></div>
+                    <div class="form-group"><label>评估周期</label><select><option>2026年4月</option></select></div>
+                    <button class="btn btn-primary" onclick="showToast('查询完成')">查询</button>
+                    <button class="btn btn-default" onclick="showToast('导出成功')">导出Excel</button>
+                </div>
+                <div class="card">
+                    <div class="card-header">企业评估列表<span style="font-weight:400;font-size:12px;margin-left:8px;">共 ${enterpriseResults.length} 条 | 按综合得分降序</span></div>
+                    <div class="table-wrap"><table><thead><tr><th>排名</th><th>企业名称</th><th>正常车辆数</th><th>故障车辆数</th><th>离线车辆数</th><th>平均得分(正常)</th><th>综合得分</th><th>等级</th><th>操作</th></tr></thead><tbody>${enterpriseResults.map(e=>`<tr><td><strong>#${e.rank}</strong></td><td>${e.name}</td><td>${e.normalCnt}</td><td>${e.faultCnt}</td><td>${e.offlineCnt}</td><td>${e.avgNormal}</td><td><strong>${e.score}</strong></td><td>${levelTag(e.level)}</td><td><button class="btn-link" onclick="openEnterpriseDetail('${e.id}')">详情</button> <button class="btn-link" onclick="manualEvaluateEnterprise('${e.id}')">手动评估</button></td></tr>`).join('')}</tbody></table></div>
+                    <div class="pagination-bar"><span>共 <b>${enterpriseResults.length}</b> 条</span><select><option>10</option></select><span>条/页</span><button class="btn btn-sm btn-default" disabled>上一页</button><span>第 <b>1</b>/<b>1</b> 页</span><button class="btn btn-sm btn-default" disabled>下一页</button></div>
+                </div>`;
+            }
+            window.openEnterpriseDetail = function(id) {
+                const e = enterpriseResults.find(r => r.id === id) || enterpriseResults[0];
+                const scoreColor = e.score >= 90 ? '#52c41a' : e.score >= 75 ? '#1890ff' : e.score >= 60 ?
+                    '#fa8c16' : '#f5222d';
+                const html = `<div class="score-card"><div class="score-value" style="color:${scoreColor}">${e.score}</div><div class="score-level">${levelTag(e.level)} | 排名：#${e.rank}</div></div>
+                <p><b>企业：</b>${e.name} | <b>周期：</b>${e.period}</p>
+                <div class="row-2"><div class="card"><div class="card-header">车辆构成分析</div><div class="chart-container" id="pieChart"></div></div><div class="card"><div class="card-header">车辆得分分布</div><div class="chart-container" id="distChart"></div></div></div>
+                <div class="card"><div class="card-header">车辆明细表</div><table><thead><tr><th>VIN</th><th>车牌</th><th>得分</th><th>等级</th><th>状态</th></tr></thead><tbody>${vehicleResults.slice(0,6).map(v=>`<tr><td style="font-family:monospace;">${v.vin}</td><td>${v.plate}</td><td>${v.score}</td><td>${levelTag(v.level)}</td><td>${Math.random()>0.3?'<span class="tag tag-green">正常</span>':'<span class="tag tag-orange">故障</span>'}</td></tr>`).join('')}</tbody></table></div>
+                <div class="chart-container" id="rankTrend" style="height:200px;margin-top:10px;"></div>
+                <div style="margin-top:12px;text-align:right;"><button class="btn btn-primary btn-sm" onclick="showToast('PDF报告已下载')">下载PDF报告</button></div>`;
+                openModal('企业评估详情 - ' + e.name, html, true);
+                setTimeout(() => {
+                    const pc = initChart('pieChart');
+                    if (pc) pc.setOption({
+                        tooltip: {},
+                        series: [{ type: 'pie', radius: ['45%', '68%'], center: ['50%', '48%'],
+                            data: [{ value: e.normalCnt, name: '正常', itemStyle: { color: '#52c41a' } },
+                                { value: e.faultCnt, name: '故障', itemStyle: { color: '#fa8c16' } },
+                                { value: e.offlineCnt, name: '离线', itemStyle: { color: '#f5222d' } }],
+                            label: { formatter: '{b}\n{d}%', fontSize: 10 } }],
+                    });
+                    const dc = initChart('distChart');
+                    if (dc) dc.setOption({
+                        tooltip: {},
+                        xAxis: { type: 'category', data: ['优秀', '良好', '合格', '不合格'] },
+                        yAxis: { name: '车辆数' },
+                        series: [{ type: 'bar', data: [Math.floor(e.normalCnt * 0.3), Math.floor(e.normalCnt *
+                                0.4), Math.floor(e.normalCnt * 0.2), Math.floor(e.normalCnt *
+                                0.1)], barWidth: '50%', itemStyle: { color: '#1890ff',
+                                borderRadius: [4, 4, 0, 0] } }],
+                    });
+                    const rc = initChart('rankTrend');
+                    if (rc) rc.setOption({
+                        tooltip: {},
+                        xAxis: { data: ['12月', '1月', '2月', '3月', '4月'] },
+                        yAxis: { name: '排名', inverse: true, min: 1 },
+                        series: [{ type: 'line', data: [5, 4, 3, 2, e.rank],
+                        lineStyle: { color: '#52c41a', width: 2 }, smooth: true }],
+                        grid: { left: 45, right: 20, top: 10, bottom: 30 }
+                    });
+                }, 200);
+            };
+            window.manualEvaluateEnterprise = function(id) {
+                const e = enterpriseResults.find(r => r.id === id);
+                if (e) {
+                    const newScore = Math.max(Math.round(40 + Math.random() * 55), 0);
+                    e.score = newScore;
+                    e.level = newScore >= 90 ? '优秀' : newScore >= 75 ? '良好' : newScore >= 60 ? '合格' : '不合格';
+                }
+                enterpriseResults.sort((a, b) => b.score - a.score);
+                enterpriseResults.forEach((ent, i) => ent.rank = i + 1);
+                renderPage('enterprise');
+                showToast(`企业 ${e?.name} 手动评估完成，新得分：${e?.score}`);
+            };
+
+            // 侧边导航
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', function() { renderPage(this.dataset.page); });
+            });
+            renderPage('vehicle');
+        })();
+    </script>
+</body>
+</html>

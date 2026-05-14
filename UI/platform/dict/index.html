@@ -1,0 +1,214 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据字典管理 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header">
+        <h2>数据字典管理</h2>
+        <div class="flex gap-2">
+          <button class="ant-btn" onclick="openExportModal()">导出数据</button>
+          <button class="ant-btn ant-btn-primary" onclick="openDictModal()">+ 新增字典项</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>时间范围</label><div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" value="2026-04-01" style="width:140px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:140px"></div></div>
+          <div class="filter-item"><label>字典编码</label><input class="ant-input" placeholder="请输入字典编码搜索"></div>
+          <div class="filter-item"><label>字典名称</label><input class="ant-input" placeholder="请输入字典名称搜索"></div>
+          <div class="filter-item"><label>所属应用</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>状态</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" class="ant-checkbox"></th>
+                <th>字典编码</th>
+                <th>字典名称</th>
+                <th>所属应用</th>
+                <th>字典键名</th>
+                <th>字典值数量</th>
+                <th>版本</th>
+                <th>状态</th>
+                <th>最后更新时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox" class="ant-checkbox"></td>
+                <td>VEHICLE_TYPE</td>
+                <td>车辆类型</td>
+                <td>测试车辆管理系统</td>
+                <td>vehicle_type</td>
+                <td>5</td>
+                <td>V3</td>
+                <td><span class="ant-tag ant-tag-success">已启用</span></td>
+                <td>2026-04-25 10:30</td>
+                <td class="flex gap-1">
+                  <button class="ant-btn-link" onclick="openDetailModal()">详情</button>
+                  <button class="ant-btn-link" onclick="openDictModal()">编辑</button>
+                  <button class="ant-btn-link danger" onclick="openStopModal()">停用</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="ant-checkbox"></td>
+                <td>AD_LEVEL</td>
+                <td>自动驾驶等级</td>
+                <td>测试车辆管理系统</td>
+                <td>ad_level</td>
+                <td>4</td>
+                <td>V2</td>
+                <td><span class="ant-tag ant-tag-success">已启用</span></td>
+                <td>2026-04-20 14:15</td>
+                <td class="flex gap-1">
+                  <button class="ant-btn-link" onclick="openDetailModal()">详情</button>
+                  <button class="ant-btn-link" onclick="openDictModal()">编辑</button>
+                  <button class="ant-btn-link danger" onclick="openStopModal()">停用</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="ant-checkbox"></td>
+                <td>ROAD_LEVEL</td>
+                <td>道路等级分类</td>
+                <td>道路信息管理系统</td>
+                <td>road_level</td>
+                <td>6</td>
+                <td>V1</td>
+                <td><span class="ant-tag ant-tag-success">已启用</span></td>
+                <td>2026-04-18 09:00</td>
+                <td class="flex gap-1">
+                  <button class="ant-btn-link" onclick="openDetailModal()">详情</button>
+                  <button class="ant-btn-link" onclick="openDictModal()">编辑</button>
+                  <button class="ant-btn-link danger" onclick="openStopModal()">停用</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="ant-checkbox"></td>
+                <td>APPLY_TYPE</td>
+                <td>申请类型</td>
+                <td>测试车辆管理系统</td>
+                <td>apply_type</td>
+                <td>4</td>
+                <td>V1</td>
+                <td><span class="ant-tag ant-tag-default">已停用</span></td>
+                <td>2026-04-10 16:45</td>
+                <td class="flex gap-1">
+                  <button class="ant-btn-link" onclick="openDetailModal()">详情</button>
+                  <button class="ant-btn-link" onclick="openDictModal()">编辑</button>
+                  <button class="ant-btn-link" style="color:#52c41a" onclick="openEnableModal()">启用</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="ant-checkbox"></td>
+                <td>TEST_SCENARIO</td>
+                <td>测试场景分类</td>
+                <td>道路信息管理系统</td>
+                <td>test_scenario</td>
+                <td>3</td>
+                <td>V2</td>
+                <td><span class="ant-tag ant-tag-success">已启用</span></td>
+                <td>2026-04-28 11:20</td>
+                <td class="flex gap-1">
+                  <button class="ant-btn-link" onclick="openDetailModal()">详情</button>
+                  <button class="ant-btn-link" onclick="openDictModal()">编辑</button>
+                  <button class="ant-btn-link danger" onclick="openStopModal()">停用</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 4 条</span>
+          <div class="ant-pagination">
+            <span class="page-item">‹</span>
+            <span class="page-item active">1</span>
+            <span class="page-item">2</span>
+            <span class="page-item">3</span>
+            <span class="page-item">›</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='dict-manage';
+function openDictModal(){
+  openModal('新增字典项',
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>字典编码</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入字典编码，如：VEHICLE_TYPE"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>字典名称</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入字典名称"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>所属应用</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>字典键名</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入字典键名，如：vehicle_type"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>字典值类型</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">排序序号</div><div class="ant-form-control"><input class="ant-input" type="number" placeholder="请输入排序序号"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">是否必填</div><div class="ant-form-control"><label class="inline-flex items-center gap-2"><input type="radio" name="required" checked> 是</label><label class="inline-flex items-center gap-2 ml-4"><input type="radio" name="required"> 否</label></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">备注说明</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入备注说明"></div></div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">字典值列表</h4>' +
+    '<div class="ant-table-wrapper mb-2"><table class="ant-table"><thead><tr><th>字典键</th><th>字典值</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
+    '<tr><td><input class="ant-input ant-input-sm" placeholder="请输入"></td><td><input class="ant-input ant-input-sm" placeholder="请输入"></td><td><input class="ant-input ant-input-sm" type="number" value="1" style="width:60px"></td><td><span class="ant-tag ant-tag-success">已启用</span></td><td><button class="ant-btn-link danger">删除</button></td></tr>' +
+    '<tr><td><input class="ant-input ant-input-sm" placeholder="请输入"></td><td><input class="ant-input ant-input-sm" placeholder="请输入"></td><td><input class="ant-input ant-input-sm" type="number" value="2" style="width:60px"></td><td><span class="ant-tag ant-tag-success">已启用</span></td><td><button class="ant-btn-link danger">删除</button></td></tr>' +
+    '</tbody></table></div>' +
+    '<button class="ant-btn ant-btn-sm">+ 添加字典值</button>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal();alert(\'字典项创建成功\')">确认提交</button>'});
+}
+function openDetailModal(){
+  openModal('字典详情 - VEHICLE_TYPE',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">字典编码</div><div class="ant-descriptions-value">VEHICLE_TYPE</div><div class="ant-descriptions-label">字典名称</div><div class="ant-descriptions-value">车辆类型</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">所属应用</div><div class="ant-descriptions-value">测试车辆管理系统</div><div class="ant-descriptions-label">字典键名</div><div class="ant-descriptions-value">vehicle_type</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">字典值类型</div><div class="ant-descriptions-value">枚举</div><div class="ant-descriptions-label">排序序号</div><div class="ant-descriptions-value">50</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">是否必填</div><div class="ant-descriptions-value">是</div><div class="ant-descriptions-label">备注说明</div><div class="ant-descriptions-value">车辆类型</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-success">已启用</span></div><div class="ant-descriptions-label">版本</div><div class="ant-descriptions-value">V3</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">创建时间</div><div class="ant-descriptions-value">2026-01-10 09:00</div><div class="ant-descriptions-label">最后更新时间</div><div class="ant-descriptions-value">2026-04-25 10:30</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">创建人</div><div class="ant-descriptions-value">系统管理员</div><div class="ant-descriptions-label">更新人</div><div class="ant-descriptions-value">系统管理员</div></div>' +
+    '</div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">字典值明细</h4>' +
+    '<table class="ant-table"><thead><tr><th>字典键</th><th>字典值</th><th>排序</th><th>状态</th></tr></thead><tbody>' +
+    '<tr><td>CAR</td><td>乘用车</td><td>1</td><td><span class="ant-tag ant-tag-success">已启用</span></td></tr>' +
+    '<tr><td>BUS</td><td>客车</td><td>2</td><td><span class="ant-tag ant-tag-success">已启用</span></td></tr>' +
+    '<tr><td>TRUCK</td><td>货车</td><td>3</td><td><span class="ant-tag ant-tag-success">已启用</span></td></tr>' +
+    '<tr><td>SANITATION</td><td>环卫车</td><td>4</td><td><span class="ant-tag ant-tag-success">已启用</span></td></tr>' +
+    '<tr><td>LOGISTICS</td><td>物流车</td><td>5</td><td><span class="ant-tag ant-tag-success">已启用</span></td></tr>' +
+    '</tbody></table>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">版本记录</h4>' +
+    '<table class="ant-table"><thead><tr><th>版本</th><th>更新时间</th><th>操作人</th><th>变更内容</th></tr></thead><tbody>' +
+    '<tr><td>V3</td><td>2026-04-25 10:30</td><td>系统管理员</td><td>新增物流车字典值</td></tr>' +
+    '<tr><td>V2</td><td>2026-03-15 14:00</td><td>系统管理员</td><td>新增环卫车字典值</td></tr>' +
+    '<tr><td>V1</td><td>2026-01-10 09:00</td><td>系统管理员</td><td>初始创建</td></tr>' +
+    '</tbody></table>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openStopModal(){
+  openModal('停用确认',
+    '<p class="text-sm text-[#000000d9]">确定要停用该字典项吗？停用后相关功能将无法使用此字典数据，且所有引用该字典的配置将失效。如需重新启用，请在列表中点击启用按钮。</p>',
+    {footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-danger" onclick="closeModal();alert(\'字典项已停用\')">确定停用</button>'});
+}
+function openEnableModal(){
+  openModal('启用确认',
+    '<p class="text-sm text-[#000000d9]">确定要启用该字典项吗？启用后相关功能将可以使用此字典数据。</p>',
+    {footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal();alert(\'字典项已启用\')">确定启用</button>'});
+}
+function openExportModal(){
+  openModal('导出数据',
+    '<div class="ant-form-item"><div class="ant-form-label">导出格式</div><div class="ant-form-control"><label class="inline-flex items-center gap-2"><input type="radio" name="format" checked> Excel</label><label class="inline-flex items-center gap-2 ml-4"><input type="radio" name="format"> CSV</label></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">导出范围</div><div class="ant-form-control"><label class="inline-flex items-center gap-2"><input type="radio" name="range" checked> 当前页数据</label><label class="inline-flex items-center gap-2 ml-4"><input type="radio" name="range"> 全部数据</label></div></div>',
+    {footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal();alert(\'数据导出成功\')">开始导出</button>'});
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

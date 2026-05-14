@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产业发展分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.03);
+            --shadow-card: 0 1px 2px -2px rgba(0,0,0,0.08),0 3px 6px 0 rgba(0,0,0,0.06);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;
+            --sider-width: 220px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:var(--font);background:var(--bg);color:var(--text-primary);line-height:1.5715;min-height:100vh;-webkit-font-smoothing:antialiased}
+        .app-header{background:#001529;color:#fff;padding:0 28px;height:56px;display:flex;align-items:center;position:sticky;top:0;z-index:110;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+        .app-header .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;letter-spacing:0.5px}
+        .app-header .logo .icon{width:34px;height:34px;border-radius:var(--radius);background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:20px}
+        .app-layout{display:flex;min-height:calc(100vh - 56px)}
+        .app-sider{width:var(--sider-width);background:#001529;color:#fff;padding-top:12px;flex-shrink:0;box-shadow:2px 0 8px rgba(0,0,0,0.06)}
+        .sider-menu{list-style:none;padding:0;margin:0}
+        .sider-menu li{padding:12px 24px;cursor:pointer;font-size:14px;color:rgba(255,255,255,0.65);transition:0.2s;display:flex;align-items:center;gap:10px;border-left:3px solid transparent;letter-spacing:0.3px}
+        .sider-menu li:hover{color:#fff;background:rgba(255,255,255,0.08)}
+        .sider-menu li.active{color:#fff;background:var(--primary);border-left-color:#fff;font-weight:500}
+        .app-main{flex:1;overflow-x:auto}
+        .app-body{max-width:1300px;margin:0 auto;padding:20px 24px 40px}
+        .page-title{font-size:20px;font-weight:600;margin-bottom:6px;letter-spacing:0.3px}
+        .page-subtitle{font-size:13px;color:var(--text-tertiary);margin-bottom:18px}
+        .query-bar{background:var(--bg-white);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light)}
+        .form-group{display:flex;flex-direction:column;gap:4px;min-width:120px}
+        .form-group label{font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px}
+        select,input{height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:var(--font);color:var(--text-primary);background:#fff;outline:none;min-width:100px}
+        select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(24,144,255,0.12)}
+        .btn{height:32px;padding:0 16px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:500;font-family:var(--font);transition:0.2s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover{background:var(--primary-hover)}
+        .btn-outline{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+        .btn-outline:hover{background:var(--primary-bg)}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-success:hover{background:#45b815}
+        .btn-sm{height:26px;padding:0 10px;font-size:11px}
+        .btn-link{background:transparent;color:var(--primary);border:none;padding:0 3px;height:auto;cursor:pointer;font-weight:500;font-size:11px}
+        .btn-link:hover{color:var(--primary-hover);text-decoration:underline}
+        .stat-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+        .stat-card{background:var(--bg-white);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);display:flex;flex-direction:column;gap:4px;transition:0.2s}
+        .stat-card:hover{box-shadow:var(--shadow-card);transform:translateY(-1px)}
+        .stat-card .stat-label{font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+        .stat-card .stat-value{font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px}
+        .stat-card .stat-sub{font-size:11px;color:var(--text-tertiary)}
+        .stat-card.accent-blue{border-left:3px solid var(--primary)}
+        .stat-card.accent-green{border-left:3px solid var(--success)}
+        .stat-card.accent-orange{border-left:3px solid var(--warning)}
+        .stat-card.accent-red{border-left:3px solid var(--error)}
+        .stat-card.accent-purple{border-left:3px solid #722ed1}
+        .card{background:var(--bg-white);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);margin-bottom:16px}
+        .card-header{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;letter-spacing:0.3px}
+        .chart-container{min-height:300px}
+        .row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .row-1{display:grid;grid-template-columns:1fr;gap:14px}
+        .table-wrap{overflow-x:auto;margin-top:6px}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th{background:#fafafa;padding:10px 12px;text-align:left;font-weight:600;color:var(--text-secondary);border-bottom:1px solid var(--border-light);white-space:nowrap;font-size:11px;text-transform:uppercase;letter-spacing:0.3px}
+        td{padding:9px 12px;border-bottom:1px solid #f5f5f5;color:var(--text-primary)}
+        tbody tr:hover{background:#fafafa}
+        .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;white-space:nowrap}
+        .tag-blue{background:#e6f7ff;color:#096dd9}
+        .tag-green{background:#f6ffed;color:#389e0d}
+        .tag-orange{background:#fff7e6;color:#d46b08}
+        .tag-red{background:#fff1f0;color:#cf1322}
+        .tag-purple{background:#f9f0ff;color:#722ed1}
+        .tag-cyan{background:#e6fffb;color:#08979c}
+        .collapse-toggle{cursor:pointer;color:var(--primary);font-size:12px;font-weight:500;user-select:none;display:inline-flex;align-items:center;gap:4px}
+        .collapse-toggle:hover{color:var(--primary-hover)}
+        .collapse-content{margin-top:10px}
+        @media(max-width:1200px){.stat-cards{grid-template-columns:repeat(3,1fr)}.row-2{grid-template-columns:1fr}.app-sider{width:60px}.sider-menu li span{display:none}}
+        @media(max-width:768px){.app-layout{flex-direction:column}.app-sider{width:100%;height:auto}.sider-menu{display:flex;overflow-x:auto}.sider-menu li{flex-shrink:0}.stat-cards{grid-template-columns:1fr 1fr}}
+    </style>
+</head>
+<body>
+    <header class="app-header"><div class="logo"><span class="icon">📊</span><span>测试数据分析与管理</span></div></header>
+    <div class="app-layout">
+        <aside class="app-sider">
+            <ul class="sider-menu" id="siderMenu">
+                <li data-page="overview"><span>📋</span> <span>测试数据总览</span></li>
+                <li data-page="alert"><span>⚠️</span> <span>异常告警情况统计</span></li>
+                <li data-page="accident"><span>🚨</span> <span>违法事故统计</span></li>
+                <li data-page="status"><span>📡</span> <span>运行状态分析</span></li>
+                <li data-page="event"><span>⚡</span> <span>预警事件分析</span></li>
+                <li data-page="mileage"><span>🛣️</span> <span>测试里程分析</span></li>
+                <li data-page="industry" class="active"><span>🏭</span> <span>产业发展分析</span></li>
+            </ul>
+        </aside>
+        <main class="app-main">
+            <div class="app-body">
+                <div class="page-title">产业发展分析</div>
+                <div class="page-subtitle">襄阳市智能网联汽车道路测试 · 企业规模增长、测试规模趋势、场景渗透率、企业贡献排名</div>
+                <div class="query-bar">
+                    <div class="form-group"><label>时间范围</label><div style="display:flex;gap:4px;align-items:center;"><input type="date" value="2026-01-01"> <span style="color:var(--text-tertiary);">—</span> <input type="date" value="2026-05-08"></div></div>
+                    <div class="form-group"><label>行政区域</label><select><option>全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option></select></div>
+                    <div class="form-group"><label>企业类型</label><select><option>全部</option><option>整车企业</option><option>科技公司</option><option>出行平台</option></select></div>
+                    <button class="btn btn-primary">🔍 查询</button>
+                    <button class="btn btn-success">📄 导出报告</button>
+                </div>
+
+                <div class="stat-cards">
+                    <div class="stat-card accent-blue"><span class="stat-label">累计接入企业数</span><span class="stat-value">48<span style="font-size:13px;font-weight:500;"> 家</span></span><span class="stat-sub">同比 ↑ 14.3%</span></div>
+                    <div class="stat-card accent-green"><span class="stat-label">累计测试车辆数</span><span class="stat-value">1,285<span style="font-size:13px;font-weight:500;"> 辆</span></span><span class="stat-sub">同比 ↑ 22.6%</span></div>
+                    <div class="stat-card accent-orange"><span class="stat-label">累计测试里程</span><span class="stat-value">186.5<span style="font-size:13px;font-weight:500;"> 万km</span></span><span class="stat-sub">同比 ↑ 31.2%</span></div>
+                    <div class="stat-card accent-purple"><span class="stat-label">场景覆盖率</span><span class="stat-value">83.3<span style="font-size:13px;font-weight:500;">%</span></span><span class="stat-sub">6大场景已覆盖5类</span></div>
+                    <div class="stat-card accent-red"><span class="stat-label">本月新增企业数</span><span class="stat-value" style="color:#f5222d;">3<span style="font-size:13px;font-weight:500;"> 家</span></span><span class="stat-sub">2026年5月新增</span></div>
+                </div>
+
+                <div class="row-2">
+                    <div class="card">
+                        <div class="card-header">企业规模增长趋势 <span class="collapse-toggle" id="collapseScaleToggle" onclick="toggleCollapse('collapseScale', this)">展开数据表 ▾</span></div>
+                        <div class="chart-container" id="chartScaleTrend" style="height:320px;"></div>
+                        <div class="collapse-content" id="collapseScale" style="display:none;"><div class="table-wrap"><table><thead><tr><th>月份</th><th>累计接入企业数</th><th>当年新增企业数</th></tr></thead><tbody id="scaleTableBody"></tbody></table></div></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">测试规模趋势 <span class="collapse-toggle" id="collapseTestToggle" onclick="toggleCollapse('collapseTestScale', this)">展开数据表 ▾</span></div>
+                        <div class="chart-container" id="chartTestScale" style="height:320px;"></div>
+                        <div class="collapse-content" id="collapseTestScale" style="display:none;"><div class="table-wrap"><table><thead><tr><th>月份</th><th>测试企业数</th><th>测试车辆数</th><th>测试里程(万km)</th></tr></thead><tbody id="testScaleTableBody"></tbody></table></div></div>
+                    </div>
+                </div>
+
+                <div class="row-2">
+                    <div class="card"><div class="card-header">场景渗透率分析（按自动驾驶等级堆叠）</div><div class="chart-container" id="chartSceneStack" style="height:340px;"></div></div>
+                    <div class="card"><div class="card-header">各场景车辆数占比</div><div class="chart-container" id="chartScenePie" style="height:340px;"></div></div>
+                </div>
+                <div class="card"><div class="card-header">场景渗透率明细表</div><div class="table-wrap"><table><thead><tr><th>场景类型</th><th>L2车辆数</th><th>L3车辆数</th><th>L4车辆数</th><th>总车辆数</th><th>占比</th></tr></thead><tbody id="sceneTableBody"></tbody></table></div></div>
+
+                <div class="row-2">
+                    <div class="card"><div class="card-header">测试主体贡献排名 Top10</div><div class="chart-container" id="chartContribution" style="height:380px;"></div></div>
+                    <div class="card"><div class="card-header">贡献排名明细表 <span style="font-weight:400;font-size:11px;color:var(--text-tertiary);">默认展示10条</span></div><div class="table-wrap"><table><thead><tr><th>排名</th><th>企业名称</th><th>测试里程(km)</th><th>里程占比</th><th>投入车辆数</th><th>主要测试场景</th></tr></thead><tbody id="contributionTableBody"></tbody></table></div></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        (function(){
+            document.querySelectorAll('#siderMenu li').forEach(li=>{li.addEventListener('click',function(){const p=this.dataset.page;if(p==='industry')return;alert('演示模式：跳转至"'+this.textContent.trim()+'"页面（功能待实现）');})});
+            window.toggleCollapse = function(id, btn) {
+                const el = document.getElementById(id);
+                if (el.style.display === 'none') {
+                    el.style.display = 'block';
+                    if (btn) btn.textContent = '收起数据表 ▴';
+                } else {
+                    el.style.display = 'none';
+                    if (btn) btn.textContent = '展开数据表 ▾';
+                }
+            };
+            const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+            const cumulativeCompanies = [26,28,30,32,35,37,40,42,44,46,47,48];
+            const newCompaniesMonthly = [2,2,2,2,3,2,3,2,2,2,1,1];
+            const testCompanies = [18,20,22,24,27,28,30,31,33,35,36,38];
+            const testVehicles = [380,420,480,550,620,680,750,820,900,980,1080,1285];
+            const testMileage = [32.5,38.2,45.8,55.1,65.3,76.8,89.5,103.2,118.6,135.0,155.5,186.5];
+            const sceneData = [
+                {scene:'城区道路',l2:180,l3:220,l4:150},{scene:'园区道路',l2:120,l3:160,l4:100},
+                {scene:'环卫作业',l2:45,l3:55,l4:30},{scene:'物流配送',l2:60,l3:80,l4:55},
+                {scene:'公交运营',l2:35,l3:50,l4:40},{scene:'出租运营',l2:0,l3:0,l4:0}
+            ];
+            const contributionData = [
+                {name:'襄阳智行科技',mileage:425000,ratio:'22.8%',vehicles:185,scene:'城区道路、园区道路'},
+                {name:'汉江出行',mileage:358000,ratio:'19.2%',vehicles:152,scene:'城区道路、物流配送'},
+                {name:'东风出行',mileage:282000,ratio:'15.1%',vehicles:128,scene:'城区道路、公交运营'},
+                {name:'百度Apollo',mileage:221000,ratio:'11.8%',vehicles:105,scene:'园区道路、城区道路'},
+                {name:'顺捷科技',mileage:186000,ratio:'10.0%',vehicles:92,scene:'环卫作业、城区道路'},
+                {name:'滴滴自动驾驶',mileage:153000,ratio:'8.2%',vehicles:78,scene:'出租运营、城区道路'},
+                {name:'小马智行',mileage:129000,ratio:'6.9%',vehicles:65,scene:'城区道路、物流配送'},
+                {name:'文远知行',mileage:98000,ratio:'5.3%',vehicles:48,scene:'园区道路、环卫作业'},
+                {name:'AutoX',mileage:85000,ratio:'4.6%',vehicles:42,scene:'城区道路'},
+                {name:'元戎启行',mileage:72000,ratio:'3.9%',vehicles:38,scene:'园区道路'}
+            ];
+            function fillScaleTable(){document.getElementById('scaleTableBody').innerHTML=months.map((m,i)=>`<tr><td>${m}</td><td>${cumulativeCompanies[i]} 家</td><td>${newCompaniesMonthly[i]} 家</td></tr>`).join('');}
+            function fillTestScaleTable(){document.getElementById('testScaleTableBody').innerHTML=months.map((m,i)=>`<tr><td>${m}</td><td>${testCompanies[i]} 家</td><td>${testVehicles[i]} 辆</td><td>${testMileage[i]} 万km</td></tr>`).join('');}
+            function fillSceneTable(){const total=sceneData.reduce((s,d)=>s+d.l2+d.l3+d.l4,0);document.getElementById('sceneTableBody').innerHTML=sceneData.map(d=>{const sub=d.l2+d.l3+d.l4;const pct=total>0?(sub/total*100).toFixed(1):'0.0';return `<tr><td><strong>${d.scene}</strong></td><td>${d.l2}</td><td>${d.l3}</td><td>${d.l4}</td><td>${sub}</td><td>${pct}%</td></tr>`;}).join('');}
+            function fillContributionTable(){document.getElementById('contributionTableBody').innerHTML=contributionData.map((d,i)=>`<tr><td><strong>${i+1}</strong></td><td>${d.name}</td><td>${d.mileage.toLocaleString()}</td><td>${d.ratio}</td><td>${d.vehicles} 辆</td><td>${d.scene}</td></tr>`).join('');}
+            const chartInstances = {};
+            function initChart(id){const dom=document.getElementById(id);if(!dom)return null;if(chartInstances[id])chartInstances[id].dispose();const chart=echarts.init(dom);chartInstances[id]=chart;return chart;}
+            function renderScaleTrend(){const chart=initChart('chartScaleTrend');chart.setOption({tooltip:{trigger:'axis'},legend:{data:['累计接入企业数','当年新增企业数'],bottom:0,textStyle:{fontSize:10}},grid:{left:50,right:50,top:15,bottom:40},xAxis:{type:'category',data:months},yAxis:[{type:'value',name:'累计企业数',axisLabel:{fontSize:10}},{type:'value',name:'新增企业数',axisLabel:{fontSize:10}}],series:[{name:'累计接入企业数',type:'bar',data:cumulativeCompanies,itemStyle:{color:'#1890ff',borderRadius:[4,4,0,0]},barWidth:'50%',yAxisIndex:0},{name:'当年新增企业数',type:'line',data:newCompaniesMonthly,lineStyle:{color:'#f5222d',width:2},itemStyle:{color:'#f5222d'},symbol:'circle',symbolSize:6,yAxisIndex:1}]});}
+            function renderTestScale(){const chart=initChart('chartTestScale');chart.setOption({tooltip:{trigger:'axis'},legend:{data:['测试企业数','测试车辆数','测试里程(万km)'],bottom:0,textStyle:{fontSize:10}},grid:{left:55,right:55,top:15,bottom:40},xAxis:{type:'category',data:months},yAxis:[{type:'value',name:'数量',axisLabel:{fontSize:10}},{type:'value',name:'万km',axisLabel:{fontSize:10}}],series:[{name:'测试企业数',type:'line',data:testCompanies,smooth:true,lineStyle:{color:'#1890ff',width:2},symbol:'circle',symbolSize:5,yAxisIndex:0},{name:'测试车辆数',type:'line',data:testVehicles,smooth:true,lineStyle:{color:'#52c41a',width:2},symbol:'diamond',symbolSize:5,yAxisIndex:0},{name:'测试里程(万km)',type:'line',data:testMileage,smooth:true,lineStyle:{color:'#f5222d',width:2.5,type:'dashed'},symbol:'triangle',symbolSize:6,yAxisIndex:1}]});}
+            function renderSceneStack(){const chart=initChart('chartSceneStack');const scenes=sceneData.map(d=>d.scene).reverse();const l2=sceneData.map(d=>d.l2).reverse();const l3=sceneData.map(d=>d.l3).reverse();const l4=sceneData.map(d=>d.l4).reverse();chart.setOption({tooltip:{trigger:'axis'},legend:{data:['L2','L3','L4'],bottom:0,textStyle:{fontSize:10}},grid:{left:90,right:40,top:10,bottom:35},yAxis:{type:'category',data:scenes,inverse:true,axisLabel:{fontSize:10}},xAxis:{type:'value',name:'车辆数'},series:[{name:'L2',type:'bar',data:l2,stack:'total',itemStyle:{color:'#1890ff'},barWidth:'45%'},{name:'L3',type:'bar',data:l3,stack:'total',itemStyle:{color:'#fa8c16'}},{name:'L4',type:'bar',data:l4,stack:'total',itemStyle:{color:'#52c41a',borderRadius:[0,4,4,0]}}]});}
+            function renderScenePie(){const chart=initChart('chartScenePie');const pieData=sceneData.filter(d=>d.l2+d.l3+d.l4>0).map(d=>({name:d.scene,value:d.l2+d.l3+d.l4}));const colors=['#1890ff','#52c41a','#fa8c16','#722ed1','#13c2c2','#eb2f96'];chart.setOption({tooltip:{trigger:'item'},legend:{bottom:0,textStyle:{fontSize:10}},series:[{type:'pie',radius:['50%','75%'],center:['50%','44%'],itemStyle:{borderRadius:5,borderColor:'#fff',borderWidth:2},label:{formatter:'{b}\n{d}%',fontSize:10},data:pieData.map((d,i)=>({...d,itemStyle:{color:colors[i]}}))}]});}
+            function renderContribution(){const chart=initChart('chartContribution');const names=contributionData.map(d=>d.name).reverse();const mileages=contributionData.map(d=>d.mileage).reverse();chart.setOption({tooltip:{trigger:'axis'},grid:{left:100,right:60,top:10,bottom:20},yAxis:{type:'category',data:names,inverse:true,axisLabel:{fontSize:10}},xAxis:{type:'value',name:'里程(km)',axisLabel:{formatter:v=>(v/10000).toFixed(1)+'万'}},series:[{type:'bar',data:mileages,barWidth:'55%',itemStyle:{color:function(p){const c=['#f5222d','#fa8c16','#faad14','#1890ff','#52c41a','#722ed1','#13c2c2','#eb2f96','#a0d911','#2f54eb'];return c[p.dataIndex]||'#1890ff'},borderRadius:[0,4,4,0]},label:{show:true,position:'right',fontSize:10,formatter:p=>(p.value/10000).toFixed(1)+'万km'}}]});}
+            function resizeAll(){Object.values(chartInstances).forEach(c=>{if(c&&!c.isDisposed())c.resize();})}
+            window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(resizeAll,200)});
+            function initAll(){fillScaleTable();fillTestScaleTable();fillSceneTable();fillContributionTable();renderScaleTrend();renderTestScale();renderSceneStack();renderScenePie();renderContribution();}
+            initAll();
+        })();
+    </script>
+</body>
+</html>

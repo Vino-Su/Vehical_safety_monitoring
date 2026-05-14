@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>车辆故障查询 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>车辆故障查询</h2></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>车牌号</label><input class="ant-input" placeholder="请输入车牌号搜索" style="width:180px"></div>
+          <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码搜索" style="width:180px"></div>
+          <div class="filter-item"><label>故障码</label><input class="ant-input" placeholder="请输入故障码搜索" style="width:160px"></div>
+          <div class="filter-item"><label>故障状态</label><select class="ant-select" style="min-width:120px"><option value="">全部</option><option>未处理</option><option>处理中</option><option>已消除</option></select></div>
+          <div class="filter-item"><label>发生时间起</label><input class="ant-input" type="date" value="2026-04-01" style="width:160px"></div>
+          <div class="filter-item"><label>发生时间止</label><input class="ant-input" type="date" value="2026-04-30" style="width:160px"></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          <button class="ant-btn ml-auto">导出</button>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th>车牌号</th><th>VIN码</th><th>故障码</th><th>故障描述</th><th>故障发生时间</th><th>故障更新时间</th><th>故障状态</th><th>车辆所属企业</th><th>备注</th></tr></thead>
+            <tbody>
+              <tr><td>鄂A·T0001</td><td>LSGBL5330KF000001</td><td>P0100</td><td>传感器信号丢失</td><td>2026-04-28 14:32</td><td>2026-04-28 15:10</td><td><span class="ant-tag ant-tag-success">已消除</span></td><td>襄阳智行科技有限公司</td><td>-</td></tr>
+              <tr><td>沪A·W0003</td><td>LSGBL5330KF000002</td><td>P0200</td><td>通信模块异常</td><td>2026-04-27 10:15</td><td>2026-04-29 09:30</td><td><span class="ant-tag ant-tag-processing">处理中</span></td><td>上海蔚来汽车有限公司</td><td>已联系供应商</td></tr>
+              <tr><td>京B·T0004</td><td>LSGBL5330KF000003</td><td>P0300</td><td>GPS信号丢失</td><td>2026-04-26 08:45</td><td>2026-04-26 09:30</td><td><span class="ant-tag ant-tag-success">已消除</span></td><td>百度Apollo</td><td>更换GPS模块</td></tr>
+              <tr><td>粤B·T0005</td><td>LSGBL5330KF000004</td><td>P0400</td><td>制动系统警告</td><td>2026-04-25 16:20</td><td>2026-04-30 11:00</td><td><span class="ant-tag ant-tag-processing">处理中</span></td><td>深圳AutoX</td><td>待更换制动液</td></tr>
+              <tr><td>京A·T0006</td><td>LSGBL5330KF000005</td><td>P0500</td><td>转向系统异常</td><td>2026-04-24 09:00</td><td>2026-04-24 16:30</td><td><span class="ant-tag ant-tag-success">已消除</span></td><td>北京百度网讯科技有限公司</td><td>校准转向传感器</td></tr>
+              <tr><td>粤A·T0007</td><td>LSGBL5330KF000006</td><td>P0600</td><td>电池温度过高</td><td>2026-04-23 14:00</td><td>2026-04-23 15:20</td><td><span class="ant-tag ant-tag-error">未处理</span></td><td>广州小马智行科技有限公司</td><td>需要关注</td></tr>
+              <tr><td>鄂C·T0008</td><td>LSGBL5330KF000007</td><td>P0700</td><td>雷达传感器故障</td><td>2026-04-22 11:30</td><td>2026-04-25 10:00</td><td><span class="ant-tag ant-tag-success">已消除</span></td><td>东风汽车集团有限公司</td><td>更换前向雷达</td></tr>
+              <tr><td>沪B·W0009</td><td>LSGBL5330KF000008</td><td>P0800</td><td>摄像头遮挡告警</td><td>2026-04-28 07:15</td><td>2026-04-28 07:45</td><td><span class="ant-tag ant-tag-success">已消除</span></td><td>上海滴滴沃芽科技有限公司</td><td>清洁摄像头</td></tr>
+              <tr><td>渝A·T0010</td><td>LSGBL5330KF000009</td><td>P0900</td><td>激光雷达点云稀疏</td><td>2026-04-28 18:00</td><td>2026-04-30 08:00</td><td><span class="ant-tag ant-tag-processing">处理中</span></td><td>重庆长安汽车股份有限公司</td><td>排查环境干扰</td></tr>
+              <tr><td>京C·T0011</td><td>LSGBL5330KF000010</td><td>P1000</td><td>域控制器重启</td><td>2026-04-29 03:00</td><td>2026-04-29 03:05</td><td><span class="ant-tag ant-tag-success">已消除</span></td><td>北京主线科技有限公司</td><td>自动恢复</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 45 条</span>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-sm text-[#00000073]">
+              <span>每页显示</span>
+              <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>条</span>
+            </div>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='fault-query';
+function changePageSize(val){console.log('Page size changed to:',val);}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

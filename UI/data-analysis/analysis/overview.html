@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试数据总览 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>测试数据总览</h2></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="flex gap-2 items-center">
+            <button class="ant-btn" onclick="setPeriod('today')">今日</button>
+            <button class="ant-btn" onclick="setPeriod('yesterday')">昨日</button>
+            <button class="ant-btn ant-btn-primary" id="defaultPeriodBtn" onclick="setPeriod('7d')">最近7天</button>
+            <button class="ant-btn" onclick="setPeriod('30d')">最近30天</button>
+            <button class="ant-btn" onclick="setPeriod('month')">本月</button>
+          </div>
+          <div class="filter-item"><label>开始时间</label><input class="ant-input" type="date" id="startDate"></div>
+          <div class="filter-item"><label>结束时间</label><input class="ant-input" type="date" id="endDate"></div>
+          <div class="flex gap-2 items-end">
+            <button class="ant-btn ant-btn-primary" onclick="queryData()">查询</button>
+            <button class="ant-btn" onclick="refreshUpperData()"><i class="fas fa-sync-alt"></i> 刷新</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#00000073;margin-top:8px;">以下累计数据和图表共用时间筛选</div>
+      </div>
+      <div class="grid grid-cols-4 gap-4 mb-6" id="cumulativeStats"></div>
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-base font-semibold text-[#000000d9]">测试主体累计测试里程</h4>
+            <span class="text-xs text-[#00000073]">所选周期内各企业累计里程</span>
+          </div>
+          <div id="mileageBarChart" style="width:100%;height:300px;"></div>
+        </div>
+        <div class="card">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-base font-semibold text-[#000000d9]">测试里程趋势分析</h4>
+            <span class="text-xs text-[#00000073]">所选周期内自动驾驶vs人工里程</span>
+          </div>
+          <div id="trendChart" style="width:100%;height:300px;"></div>
+        </div>
+      </div>
+      <div class="card mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-base font-semibold text-[#000000d9]">当日测试情况</h4>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-[#00000073]">今日实时数据</span>
+            <span class="ant-btn" style="height:24px;font-size:12px;cursor:pointer;" onclick="refreshRealtimeData()"><i class="fas fa-sync-alt"></i></span>
+          </div>
+        </div>
+        <div class="grid grid-cols-6 gap-4" id="dailyStats"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-base font-semibold text-[#000000d9]">当前测试企业车辆统计</h4>
+            <span class="text-xs text-[#00000073]">实时快照</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="ant-table" id="enterpriseVehicleTable">
+              <thead><tr><th>企业名称</th><th>当日测试车辆数</th><th>正在测试车辆数</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#00000073;">* 正在测试车辆指自动驾驶/人工驾驶且车速>0的车辆</div>
+        </div>
+        <div class="card">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-base font-semibold text-[#000000d9]">实时车辆动态</h4>
+            <span class="text-xs text-[#00000073]">最新上报数据（8秒轮换）</span>
+          </div>
+          <div id="vehicleDynamicList"></div>
+          <div id="vehiclePagination" class="ant-pagination" style="margin-top:12px;"></div>
+          <div style="margin-top:8px;font-size:12px;color:#00000073;text-align:right;">共 <span id="totalDynamicCount">0</span> 条记录</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='overview';
+
+let currentPeriod = '7d';
+let barChart = null;
+let trendChart = null;
+let dynamicInterval = null;
+
+const enterpriseNames = ["东风悦享", "达安检测", "百度智行", "襄阳公交", "酷哇机器人", "新石器", "文远知行", "智行未来"];
+
+function getCumulativeByPeriod(period) {
+  const base = { enterpriseCount: 24, licenseCount: 186, totalTestHours: 18920, totalRemindCount: 453 };
+  if (period === 'today') return { enterpriseCount: 8, licenseCount: 12, totalTestHours: 320, totalRemindCount: 8 };
+  if (period === 'yesterday') return { enterpriseCount: 10, licenseCount: 15, totalTestHours: 580, totalRemindCount: 12 };
+  if (period === '7d') return { enterpriseCount: 18, licenseCount: 56, totalTestHours: 3860, totalRemindCount: 89 };
+  if (period === '30d') return { enterpriseCount: 22, licenseCount: 142, totalTestHours: 11280, totalRemindCount: 276 };
+  return { enterpriseCount: 20, licenseCount: 98, totalTestHours: 8750, totalRemindCount: 214 };
+}
+
+function getEnterpriseMileageByPeriod(period) {
+  const factorMap = { today: 0.02, yesterday: 0.04, '7d': 0.12, '30d': 0.5, month: 0.4 };
+  const factor = factorMap[period] || 0.12;
+  const baseMileage = [12560, 9870, 7450, 5680, 4230, 3120, 2980, 870];
+  return baseMileage.map(function(m) { return Math.round(m * factor); });
+}
+
+function getTrendData(period) {
+  if (period === 'today' || period === 'yesterday') {
+    var hours = period === 'today' ? ['00-06', '06-09', '09-12', '12-14', '14-17', '17-20', '20-24'] : ['00-06', '06-09', '09-12', '12-14', '14-17', '17-20', '20-24'];
+    return {
+      dates: hours,
+      auto: [18, 45, 62, 55, 70, 48, 22],
+      manual: [12, 18, 15, 20, 18, 14, 8]
+    };
+  }
+  if (period === '7d') {
+    return {
+      dates: ['第1天', '第2天', '第3天', '第4天', '第5天', '第6天', '第7天'],
+      auto: [120, 145, 170, 190, 210, 245, 268],
+      manual: [85, 72, 68, 60, 55, 48, 42]
+    };
+  }
+  if (period === '30d') {
+    return {
+      dates: ['第1周', '第2周', '第3周', '第4周'],
+      auto: [980, 1150, 1320, 1480],
+      manual: [560, 490, 430, 380]
+    };
+  }
+  return {
+    dates: ['第1周', '第2周', '第3周', '第4周'],
+    auto: [780, 920, 1050, 1180],
+    manual: [420, 380, 340, 300]
+  };
+}
+
+let dailyData = {
+  currentEnterprises: 12,
+  currentVehicles: 48,
+  todayMileage: 3245,
+  todayDuration: 186,
+  passengerMileage: 1250,
+  passengerDuration: 78
+};
+
+let enterpriseVehicleStats = [
+  { name: "东风悦享科技有限公司", testVehicles: 12, activeVehicles: 8 },
+  { name: "襄阳达安汽车检测中心", testVehicles: 9, activeVehicles: 6 },
+  { name: "百度智行科技（襄阳）", testVehicles: 8, activeVehicles: 5 },
+  { name: "襄阳市公共交通集团", testVehicles: 6, activeVehicles: 4 },
+  { name: "酷哇机器人有限公司", testVehicles: 5, activeVehicles: 3 },
+  { name: "新石器慧通（北京）", testVehicles: 4, activeVehicles: 2 },
+  { name: "文远知行（襄阳）", testVehicles: 3, activeVehicles: 2 },
+  { name: "襄阳智行未来科技", testVehicles: 1, activeVehicles: 1 }
+];
+
+let dynamicVehicles = [
+  { plate: "鄂FD12345试", enterprise: "东风悦享科技有限公司", mode: "自动驾驶", speed: 45, time: "2025-05-09 14:32:18" },
+  { plate: "鄂F0998试", enterprise: "达安检测", mode: "人工驾驶", speed: 32, time: "2025-05-09 14:31:55" },
+  { plate: "鄂FD8876试", enterprise: "百度智行", mode: "自动驾驶", speed: 55, time: "2025-05-09 14:32:02" },
+  { plate: "鄂F05678试", enterprise: "襄阳公交", mode: "自动驾驶", speed: 28, time: "2025-05-09 14:30:44" },
+  { plate: "鄂FD2345试", enterprise: "酷哇机器人", mode: "远程驾驶", speed: 15, time: "2025-05-09 14:29:30" },
+  { plate: "鄂F临时789", enterprise: "新石器", mode: "自动驾驶", speed: 22, time: "2025-05-09 14:28:12" },
+  { plate: "鄂F临0012", enterprise: "文远知行", mode: "人工驾驶", speed: 38, time: "2025-05-09 14:27:50" },
+  { plate: "鄂FD9977试", enterprise: "智行未来", mode: "自动驾驶", speed: 48, time: "2025-05-09 14:26:33" },
+  { plate: "鄂FD5588试", enterprise: "东风悦享", mode: "自动驾驶", speed: 52, time: "2025-05-09 14:25:19" },
+  { plate: "鄂F临0234", enterprise: "达安检测", mode: "人工驾驶", speed: 20, time: "2025-05-09 14:24:05" }
+];
+
+let currentPage = 1;
+const pageSize = 5;
+
+function getModeBadge(mode) {
+  if (mode === '自动驾驶') return '<span class="ant-tag ant-tag-success">自动驾驶</span>';
+  if (mode === '人工驾驶') return '<span class="ant-tag ant-tag-warning">人工驾驶</span>';
+  return '<span class="ant-tag ant-tag-processing">远程驾驶</span>';
+}
+
+function renderCumulativeStats(period) {
+  var cum = getCumulativeByPeriod(period);
+  document.getElementById('cumulativeStats').innerHTML =
+    '<div class="stat-card"><div class="stat-icon bg-[#e6f4ff] text-[#1677ff]">企</div><div class="stat-info"><div class="stat-value">' + cum.enterpriseCount + '</div><div class="stat-label">测试企业数</div></div></div>' +
+    '<div class="stat-card"><div class="stat-icon bg-[#f6ffed] text-[#52c41a]">牌</div><div class="stat-info"><div class="stat-value">' + cum.licenseCount + '</div><div class="stat-label">临牌发放数</div></div></div>' +
+    '<div class="stat-card"><div class="stat-icon bg-[#fffbe6] text-[#faad14]">时</div><div class="stat-info"><div class="stat-value">' + cum.totalTestHours.toLocaleString() + '</div><div class="stat-label">测试时长(小时)</div></div></div>' +
+    '<div class="stat-card"><div class="stat-icon bg-[#fff2f0] text-[#ff4d4f]">醒</div><div class="stat-info"><div class="stat-value">' + cum.totalRemindCount + '</div><div class="stat-label">下发提醒(次)</div></div></div>';
+}
+
+function renderMileageBarChart(period) {
+  var mileages = getEnterpriseMileageByPeriod(period);
+  if (barChart) barChart.dispose();
+  barChart = echarts.init(document.getElementById('mileageBarChart'));
+  barChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function(params) { return params[0].name + '<br/>' + params[0].seriesName + ': ' + params[0].value + ' km'; } },
+    grid: { left: '8%', right: '8%', containLabel: true },
+    xAxis: { type: 'value', name: '里程 (km)', axisLabel: { fontSize: 11 } },
+    yAxis: { type: 'category', data: enterpriseNames, axisLabel: { fontSize: 11 } },
+    series: [{
+      type: 'bar', data: mileages, itemStyle: { color: '#1677ff', borderRadius: [0,4,4,0] },
+      label: { show: true, position: 'right', formatter: function(p) { return p.value + ' km'; }, fontSize: 10 }
+    }]
+  });
+}
+
+function renderTrendChart(period) {
+  var trend = getTrendData(period);
+  var autoPercent = trend.auto.map(function(v, i) { return ((v / (v + trend.manual[i])) * 100).toFixed(1); });
+  if (trendChart) trendChart.dispose();
+  trendChart = echarts.init(document.getElementById('trendChart'));
+  trendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['自动驾驶里程 (km)', '人工驾驶里程 (km)', '自动驾驶占比 (%)'], top: 0 },
+    grid: { left: '8%', right: '8%', top: '15%', containLabel: true },
+    xAxis: { type: 'category', data: trend.dates, axisLabel: { rotate: 15, fontSize: 10 } },
+    yAxis: [
+      { type: 'value', name: '里程 (km)', axisLabel: { fontSize: 10 } },
+      { type: 'value', name: '占比 (%)', min: 0, max: 100, axisLabel: { fontSize: 10, formatter: '{value}%' } }
+    ],
+    series: [
+      { name: '自动驾驶里程 (km)', type: 'line', data: trend.auto, lineStyle: { color: '#52c41a', width: 3 }, areaStyle: { color: '#52c41a', opacity: 0.1 }, smooth: true },
+      { name: '人工驾驶里程 (km)', type: 'line', data: trend.manual, lineStyle: { color: '#fa8c16', width: 2 }, smooth: true },
+      { name: '自动驾驶占比 (%)', type: 'line', yAxisIndex: 1, data: autoPercent, lineStyle: { color: '#1677ff', width: 2, type: 'dashed' }, smooth: true, tooltip: { valueFormatter: function(v) { return v + '%'; } } }
+    ]
+  });
+}
+
+function renderDailyStats() {
+  document.getElementById('dailyStats').innerHTML =
+    '<div class="stat-card" style="padding:12px 16px;"><div class="stat-info text-center w-full"><div class="stat-value" style="font-size:24px;">' + dailyData.currentEnterprises + '</div><div class="stat-label" style="font-size:12px;">当前测试企业数</div></div></div>' +
+    '<div class="stat-card" style="padding:12px 16px;"><div class="stat-info text-center w-full"><div class="stat-value" style="font-size:24px;">' + dailyData.currentVehicles + '</div><div class="stat-label" style="font-size:12px;">测试车辆数</div></div></div>' +
+    '<div class="stat-card" style="padding:12px 16px;"><div class="stat-info text-center w-full"><div class="stat-value" style="font-size:24px;">' + dailyData.todayMileage.toLocaleString() + ' km</div><div class="stat-label" style="font-size:12px;">当日测试里程</div></div></div>' +
+    '<div class="stat-card" style="padding:12px 16px;"><div class="stat-info text-center w-full"><div class="stat-value" style="font-size:24px;">' + dailyData.todayDuration + '</div><div class="stat-label" style="font-size:12px;">当日测试时长(小时)</div></div></div>' +
+    '<div class="stat-card" style="padding:12px 16px;"><div class="stat-info text-center w-full"><div class="stat-value" style="font-size:24px;">' + dailyData.passengerMileage.toLocaleString() + ' km</div><div class="stat-label" style="font-size:12px;">载人测试总里程</div></div></div>' +
+    '<div class="stat-card" style="padding:12px 16px;"><div class="stat-info text-center w-full"><div class="stat-value" style="font-size:24px;">' + dailyData.passengerDuration + '</div><div class="stat-label" style="font-size:12px;">载人测试总时长(小时)</div></div></div>';
+}
+
+function renderEnterpriseTable() {
+  var tbody = document.querySelector('#enterpriseVehicleTable tbody');
+  tbody.innerHTML = enterpriseVehicleStats.map(function(item) {
+    return '<tr><td>' + item.name + '</td><td>' + item.testVehicles + '</td><td><span class="ant-tag ant-tag-success">' + item.activeVehicles + '</span></td></tr>';
+  }).join('');
+}
+
+function renderVehicleDynamicList() {
+  var start = (currentPage - 1) * pageSize;
+  var end = Math.min(start + pageSize, dynamicVehicles.length);
+  var pageData = dynamicVehicles.slice(start, end);
+  var container = document.getElementById('vehicleDynamicList');
+  container.innerHTML = pageData.map(function(v) {
+    return '<div class="list-item" style="padding:10px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">' +
+      '<div><span style="font-weight:600;color:#1677ff;">' + v.plate + '</span> <span style="color:#595959;margin-left:8px;font-size:12px;">' + v.enterprise + '</span></div>' +
+      '<div>' + getModeBadge(v.mode) + ' <span style="color:#00000073;font-size:12px;">' + v.speed + ' km/h</span> <span style="margin-left:8px;color:#00000040;font-size:12px;">' + v.time + '</span></div>' +
+      '</div>';
+  }).join('');
+  renderPagination();
+  document.getElementById('totalDynamicCount').innerText = dynamicVehicles.length;
+}
+
+function renderPagination() {
+  var totalPages = Math.ceil(dynamicVehicles.length / pageSize);
+  var pagination = document.getElementById('vehiclePagination');
+  var html = '<span class="page-item" onclick="goPage(' + (currentPage - 1) + ')"><i class="fas fa-chevron-left"></i></span>';
+  for (var i = 1; i <= totalPages; i++) {
+    html += '<span class="page-item' + (i === currentPage ? ' active' : '') + '" onclick="goPage(' + i + ')">' + i + '</span>';
+  }
+  html += '<span class="page-item" onclick="goPage(' + (currentPage + 1) + ')"><i class="fas fa-chevron-right"></i></span>';
+  pagination.innerHTML = html;
+}
+
+function goPage(page) {
+  var totalPages = Math.ceil(dynamicVehicles.length / pageSize);
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  renderVehicleDynamicList();
+}
+
+function refreshRealtimeData() {
+  dailyData.currentVehicles = 45 + Math.floor(Math.random() * 15);
+  dailyData.todayMileage = 3000 + Math.floor(Math.random() * 800);
+  dailyData.passengerMileage = 1100 + Math.floor(Math.random() * 300);
+  enterpriseVehicleStats = enterpriseVehicleStats.map(function(item) {
+    return {
+      ...item,
+      activeVehicles: Math.min(item.testVehicles, Math.floor(Math.random() * (item.testVehicles + 1)))
+    };
+  });
+  renderDailyStats();
+  renderEnterpriseTable();
+  showToast('实时数据已刷新', '#52c41a');
+}
+
+function startDynamicRefresh() {
+  if (dynamicInterval) clearInterval(dynamicInterval);
+  dynamicInterval = setInterval(function() {
+    var now = new Date();
+    var timeStr = now.toLocaleString('zh-CN', { hour12: false });
+    dynamicVehicles = dynamicVehicles.map(function(v, idx) {
+      var t = timeStr.replace(/\//g, '-');
+      if (idx < 3) return { ...v, time: t };
+      var s = t.slice(0, 17) + Math.floor(Math.random() * 60).toString().padStart(2, '0');
+      return { ...v, time: s };
+    });
+    dynamicVehicles.forEach(function(v) { v.speed = Math.floor(Math.random() * 60) + 5; });
+    if (Math.random() > 0.7) dynamicVehicles.push(dynamicVehicles.shift());
+    renderVehicleDynamicList();
+  }, 8000);
+}
+
+function showToast(msg, bgColor) {
+  var toast = document.createElement('div');
+  toast.innerText = msg;
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:' + (bgColor || '#1677ff') + ';color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+  document.body.appendChild(toast);
+  setTimeout(function() { toast.remove(); }, 1500);
+}
+
+function renderUpperSection(period) {
+  renderCumulativeStats(period);
+  renderMileageBarChart(period);
+  renderTrendChart(period);
+}
+
+function setPeriod(type) {
+  currentPeriod = type;
+  var periodBtns = document.querySelectorAll('.filter-row .flex:first-child button');
+  periodBtns.forEach(function(btn) { btn.classList.remove('ant-btn-primary'); });
+  var periodMap = { today: '今日', yesterday: '昨日', '7d': '最近7天', '30d': '最近30天', month: '本月' };
+  var label = periodMap[type] || '最近7天';
+  periodBtns.forEach(function(btn) {
+    if (btn.textContent.trim() === label) {
+      btn.classList.add('ant-btn-primary');
+    }
+  });
+  var today = new Date();
+  var d = new Date(today);
+  if (type === 'yesterday') { d.setDate(d.getDate() - 1); }
+  else if (type === '7d') { d.setDate(d.getDate() - 7); }
+  else if (type === '30d') { d.setDate(d.getDate() - 30); }
+  else if (type === 'month') { d.setDate(1); }
+  document.getElementById('startDate').value = d.toISOString().split('T')[0];
+  document.getElementById('endDate').value = today.toISOString().split('T')[0];
+  renderUpperSection(type);
+}
+
+function queryData() {
+  renderUpperSection(currentPeriod);
+  showToast('数据已更新', '#1677ff');
+}
+
+function refreshUpperData() {
+  renderUpperSection(currentPeriod);
+  showToast('累计数据已刷新', '#1677ff');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setPeriod('7d');
+  renderDailyStats();
+  renderEnterpriseTable();
+  renderVehicleDynamicList();
+  startDynamicRefresh();
+});
+
+window.addEventListener('resize', function() {
+  if (barChart) barChart.resize();
+  if (trendChart) trendChart.resize();
+});
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

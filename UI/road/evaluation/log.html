@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>评估日志管理 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>评估日志管理</h2></div>
+      <p class="text-sm text-[#00000073] mb-4">记录每次评估的触发方式、操作人及结果快照</p>
+      
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>道路名称/编号</label><input class="ant-input" placeholder="模糊匹配" id="filterRoad"></div>
+          <div class="filter-item"><label>评估时间</label><input class="ant-input" type="date" id="filterDateFrom" style="width:130px"><span class="self-end mb-1">—</span><input class="ant-input" type="date" id="filterDateTo" style="width:130px"></div>
+          <div class="filter-item"><label>触发方式</label><div class="ant-select" id="filterTrigger">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="refreshList()">🔍 查询</button><button class="ant-btn" onclick="resetFilters()">重置</button></div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm border border-[#f0f0f0]">
+        <div class="px-4 py-3 border-b border-[#f0f0f0] flex justify-between items-center">
+          <span class="font-medium">日志列表 <span class="text-sm text-[#00000073] font-normal" id="totalCount">共 0 条</span></span>
+          <div class="flex items-center gap-2 text-sm">
+            <span>每页</span>
+            <select class="ant-select" id="pageSizeSelect" onchange="changePageSize()" style="width:70px;height:28px;font-size:12px">
+              <option value="10">10</option>
+              <option value="20">20</option>
+            </select>
+            <span>条</span>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th>日志ID</th><th>道路名称</th><th>评估时间</th><th>触发方式</th><th>操作人</th><th>综合得分</th><th>建议开放等级</th><th>操作</th></tr></thead>
+            <tbody id="listBody"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3 border-t border-[#f0f0f0]">
+          <span class="text-sm text-[#00000073]" id="pageInfo">第 1/1 页</span>
+          <div class="ant-pagination" id="pagination"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='eval-log';
+
+const roadNames = ['长虹路', '檀溪路', '航空路', '人民路', '建设路', '金源路', '中原路', '春园路', '前进路', '大庆东路', '汉江路', '襄阳大道', '环城南路', '邓城大道', '航天路'];
+
+const logData = [];
+for (var i = 1; i <= 25; i++) {
+  var month = 5 - Math.floor(Math.random() * 3);
+  var day = Math.floor(Math.random() * 28) + 1;
+  var isAuto = i <= 20;
+  logData.push({
+    id: 'LOG-' + String(i).padStart(5, '0'),
+    road: roadNames[i % roadNames.length],
+    time: '2026-0' + month + '-' + String(day).padStart(2, '0') + ' 02:00',
+    trigger: isAuto ? '自动' : '手动',
+    operator: isAuto ? '' : '管理员',
+    score: (70 + Math.random() * 25).toFixed(1),
+    level: ['完全开放', '条件开放', '限制开放'][Math.floor(Math.random() * 3)]
+  });
+}
+
+var currentPage = 1;
+var pageSize = 10;
+
+function levelTag(lv) {
+  var map = { '完全开放': 'ant-tag-success', '条件开放': 'ant-tag-warning', '限制开放': 'ant-tag-error', '禁止开放': 'ant-tag-default' };
+  return '<span class="ant-tag ' + (map[lv] || 'ant-tag-processing') + '">' + lv + '</span>';
+}
+
+function getFilteredData() {
+  var road = (document.getElementById('filterRoad').value || '').trim().toLowerCase();
+  var dateFrom = document.getElementById('filterDateFrom').value;
+  var dateTo = document.getElementById('filterDateTo').value;
+  var trigger = document.getElementById('filterTrigger').textContent.trim();
+  
+  return logData.filter(function(r) {
+    if (road && !r.road.toLowerCase().includes(road) && !r.id.toLowerCase().includes(road)) return false;
+    if (dateFrom && r.time.slice(0, 10) < dateFrom) return false;
+    if (dateTo && r.time.slice(0, 10) > dateTo) return false;
+    if (trigger !== '全部' && r.trigger !== trigger) return false;
+    return true;
+  });
+}
+
+function renderList() {
+  var filtered = getFilteredData();
+  var total = filtered.length;
+  var totalPages = Math.ceil(total / pageSize) || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  var start = (currentPage - 1) * pageSize;
+  var end = Math.min(start + pageSize, total);
+  var pageData = filtered.slice(start, end);
+
+  document.getElementById('totalCount').textContent = '共 ' + total + ' 条';
+  document.getElementById('pageInfo').textContent = '第 ' + currentPage + '/' + totalPages + ' 页';
+
+  var html = '';
+  if (pageData.length === 0) {
+    html = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#999;">暂无匹配日志</td></tr>';
+  }
+  pageData.forEach(function(r) {
+    html += '<tr>' +
+      '<td>' + r.id + '</td>' +
+      '<td><strong>' + r.road + '</strong></td>' +
+      '<td>' + r.time + '</td>' +
+      '<td>' + r.trigger + '</td>' +
+      '<td>' + (r.operator || '-') + '</td>' +
+      '<td><strong style="color:' + (r.score >= 85 ? '#52c41a' : r.score >= 70 ? '#fa8c16' : '#ff4d4f') + '">' + r.score + '</strong></td>' +
+      '<td>' + levelTag(r.level) + '</td>' +
+      '<td><button class="ant-btn-link" onclick="openLogDetail(\'' + r.id + '\')">查看详情</button></td>' +
+    '</tr>';
+  });
+  document.getElementById('listBody').innerHTML = html;
+
+  var phtml = '';
+  if (totalPages > 1) {
+    phtml += '<span class="page-item' + (currentPage === 1 ? ' disabled' : '') + '" onclick="goPage(' + (currentPage - 1) + ')">‹</span>';
+    for (var i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+        phtml += '<span class="page-item' + (i === currentPage ? ' active' : '') + '" onclick="goPage(' + i + ')">' + i + '</span>';
+      } else if (i === currentPage - 2 || i === currentPage + 2) {
+        phtml += '<span class="page-item disabled">...</span>';
+      }
+    }
+    phtml += '<span class="page-item' + (currentPage === totalPages ? ' disabled' : '') + '" onclick="goPage(' + (currentPage + 1) + ')">›</span>';
+  }
+  document.getElementById('pagination').innerHTML = phtml;
+}
+
+window.refreshList = function() { currentPage = 1; renderList(); showToast('列表已刷新'); };
+window.resetFilters = function() {
+  document.getElementById('filterRoad').value = '';
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  var el = document.getElementById('filterTrigger');
+  if (el) el.childNodes[0].textContent = '全部';
+  currentPage = 1;
+  renderList();
+};
+window.changePageSize = function() { pageSize = parseInt(document.getElementById('pageSizeSelect').value); currentPage = 1; renderList(); };
+window.goPage = function(p) { var total = Math.ceil(getFilteredData().length / pageSize) || 1; if (p >= 1 && p <= total) { currentPage = p; renderList(); } };
+
+window.openLogDetail = function(id) {
+  var l = logData.find(function(lo) { return lo.id === id; }) || logData[0];
+  openModal('日志详情 - ' + l.id,
+    '<div class="ant-descriptions">' +
+      '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 pb-2 border-b border-[#f0f0f0]">基本信息</h4>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">日志ID</div><div class="ant-descriptions-value">' + l.id + '</div><div class="ant-descriptions-label">道路</div><div class="ant-descriptions-value">' + l.road + '</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">评估时间</div><div class="ant-descriptions-value">' + l.time + '</div><div class="ant-descriptions-label">触发方式</div><div class="ant-descriptions-value">' + l.trigger + '</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">操作人</div><div class="ant-descriptions-value">' + (l.operator || '-') + '</div><div class="ant-descriptions-label"></div><div class="ant-descriptions-value"></div></div>' +
+      '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">评估结果</h4>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">综合得分</div><div class="ant-descriptions-value" style="color:' + (l.score >= 85 ? '#52c41a' : l.score >= 70 ? '#fa8c16' : '#ff4d4f') + ';font-size:18px;font-weight:700">' + l.score + '</div><div class="ant-descriptions-label">开放等级</div><div class="ant-descriptions-value">' + levelTag(l.level) + '</div></div>' +
+      '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">配置快照</h4>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">配置版本</div><div class="ant-descriptions-value">V3.2（只读快照）</div><div class="ant-descriptions-label"></div><div class="ant-descriptions-value"></div></div>' +
+      '<div class="mt-3 p-3 bg-[#fafafa] rounded-lg">' +
+        '<p class="text-sm text-[#00000073]"><strong>各子模型输入参数：</strong>已归档，只读不可修改</p>' +
+        '<div class="mt-2 grid grid-cols-3 gap-2 text-xs">' +
+          '<div class="bg-white p-2 rounded border border-[#e8e8e8]"><span class="text-[#00000073]">复杂度模型权重：</span><strong>0.33</strong></div>' +
+          '<div class="bg-white p-2 rounded border border-[#e8e8e8]"><span class="text-[#00000073]">风险模型权重：</span><strong>0.34</strong></div>' +
+          '<div class="bg-white p-2 rounded border border-[#e8e8e8]"><span class="text-[#00000073]">场景适配权重：</span><strong>0.33</strong></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>',
+    { wide: true, footer: '<button class="ant-btn" onclick="closeModal()">关闭</button>' });
+};
+
+function showToast(msg) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:13px;border-left:3px solid #1677ff;';
+  t.textContent = '✅ ' + msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.style.opacity = '0'; t.style.transition = '0.3s'; setTimeout(function() { t.remove(); }, 300); }, 2000);
+}
+
+renderList();
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

@@ -1,0 +1,757 @@
+﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事故成因分析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    .stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+    .stat-card-item{background:#fff;border-radius:8px;padding:18px 20px;box-shadow:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02);border:1px solid #f0f0f0;display:flex;flex-direction:column;gap:6px;transition:all .2s;cursor:default;position:relative;overflow:hidden}
+    .stat-card-item:hover{box-shadow:0 6px 16px -8px rgba(0,0,0,.08),0 9px 28px 0 rgba(0,0,0,.05);transform:translateY(-1px)}
+    .stat-card-item.accent-blue{border-left:3px solid #1677ff}
+    .stat-card-item.accent-red{border-left:3px solid #ff4d4f}
+    .stat-card-item.accent-orange{border-left:3px solid #faad14}
+    .stat-card-item.accent-green{border-left:3px solid #52c41a}
+    .stat-card-item .stat-label{font-size:12px;color:#8c8c8c;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+    .stat-card-item .stat-value{font-size:30px;font-weight:700;color:#262626;letter-spacing:-.5px}
+    .stat-card-item .stat-value.warn{color:#ff4d4f}
+    .stat-card-item .stat-sub{font-size:12px;color:#8c8c8c}
+    .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .chart-row.three-col{grid-template-columns:1fr 1fr 1fr}
+    .chart-row.single-col{grid-template-columns:1fr}
+    .chart-panel{background:#fff;border-radius:8px;padding:18px 20px;box-shadow:0 1px 2px 0 rgba(0,0,0,.03);border:1px solid #f0f0f0;min-height:360px;display:flex;flex-direction:column}
+    .chart-panel.full-width{min-height:400px}
+    .chart-panel .panel-title{font-size:14px;font-weight:600;color:#262626;margin-bottom:8px;letter-spacing:.3px;display:flex;align-items:center;justify-content:space-between}
+    .chart-panel .panel-title .badge{font-size:11px;font-weight:400;color:#8c8c8c;background:#f0f2f5;padding:2px 8px;border-radius:10px}
+    .chart-container{flex:1;min-height:280px}
+    .timeline{position:relative;padding-left:28px;list-style:none}
+    .timeline::before{content:'';position:absolute;left:8px;top:4px;bottom:4px;width:2px;background:#e8e8e8;border-radius:1px}
+    .timeline-item{position:relative;margin-bottom:16px;padding-left:12px}
+    .timeline-item::before{content:'';position:absolute;left:-24px;top:6px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #1677ff;z-index:2}
+    .timeline-item.critical::before{background:#ff4d4f;border-color:#ff4d4f;box-shadow:0 0 0 4px rgba(245,34,45,.2)}
+    .timeline-item .tl-time{font-size:11px;font-weight:600;color:#1677ff;letter-spacing:.5px;margin-bottom:2px}
+    .timeline-item.critical .tl-time{color:#ff4d4f}
+    .timeline-item .tl-desc{font-size:13px;color:#262626;background:#fafafa;padding:8px 12px;border-radius:4px;line-height:1.5}
+    .timeline-item .tl-source{font-size:10px;color:#8c8c8c;font-style:italic}
+    .detail-panel{background:#fff;border-radius:8px;padding:22px;box-shadow:0 6px 16px -8px rgba(0,0,0,.08);border:1px solid #f0f0f0;margin-bottom:16px}
+    .detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:14px}
+    .detail-grid .detail-item{display:flex;flex-direction:column;gap:2px}
+    .detail-grid .detail-item .dl{font-size:11px;color:#8c8c8c;text-transform:uppercase;letter-spacing:.4px}
+    .detail-grid .detail-item .dv{font-size:14px;font-weight:500;color:#262626}
+    .info-card-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+    .info-card-mini{background:#fff;border-radius:6px;padding:14px 16px;box-shadow:0 1px 2px 0 rgba(0,0,0,.03);border:1px solid #f0f0f0;text-align:center}
+    .info-card-mini .ic-val{font-size:20px;font-weight:700;color:#262626}
+    .info-card-mini .ic-label{font-size:11px;color:#8c8c8c;margin-top:2px}
+    .split-layout{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start}
+    .list-panel{background:#fff;border-radius:8px;box-shadow:0 1px 2px 0 rgba(0,0,0,.03);border:1px solid #f0f0f0;padding:16px}
+    .list-panel ul{list-style:none;max-height:600px;overflow-y:auto}
+    .list-panel ul li{padding:10px 12px;border-radius:4px;cursor:pointer;margin-bottom:4px;font-size:13px;transition:all .2s;border:1px solid transparent;color:#262626}
+    .list-panel ul li:hover{background:#f5f5f5}
+    .list-panel ul li.active{background:#e6f4ff;border-color:#1677ff;font-weight:500}
+    .list-panel .list-item-desc{font-size:11px;color:#8c8c8c;margin-top:2px}
+    .tag-acc{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:500;letter-spacing:.3px;white-space:nowrap}
+    .tag-acc.tag-red{background:#fff1f0;color:#cf1322}
+    .tag-acc.tag-orange{background:#fff7e6;color:#d46b08}
+    .tag-acc.tag-blue{background:#e6f7ff;color:#096dd9}
+    .tag-acc.tag-green{background:#f6ffed;color:#389e0d}
+    .tag-acc.tag-purple{background:#f9f0ff;color:#722ed1}
+    .toast-msg{position:fixed;top:20px;right:20px;z-index:999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,.08);font-size:13px;animation:slideInRight .3s ease;display:flex;align-items:center;gap:8px;border-left:3px solid #1677ff}
+    @keyframes slideInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+    @media(max-width:1200px){.stat-cards{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}.chart-row.three-col{grid-template-columns:1fr 1fr}.info-card-row{grid-template-columns:repeat(3,1fr)}.split-layout{grid-template-columns:1fr}}
+    @media(max-width:768px){.stat-cards{grid-template-columns:1fr}.chart-row.three-col{grid-template-columns:1fr}.info-card-row{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>事故成因分析</h2></div>
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-area')">片区事故成因分析</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-road')">路段事故成因分析</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-single')">单起事故成因分析</span>
+      </div>
+
+      <!-- ==================== TAB 1: 片区事故成因分析 ==================== -->
+      <div id="tab-area">
+        <div class="filter-bar" id="districtFilterBar"></div>
+        <div class="stat-cards">
+          <div class="stat-card-item accent-blue"><span class="stat-label">总事故数</span><span class="stat-value">1,247</span><span class="stat-sub">同比 ↓ 8.3%</span></div>
+          <div class="stat-card-item accent-red"><span class="stat-label">涉及车辆数</span><span class="stat-value warn">2,103</span><span class="stat-sub">平均每起 1.69 辆</span></div>
+          <div class="stat-card-item accent-orange"><span class="stat-label">主成因类型</span><span class="stat-value" style="font-size:22px">行为因素</span><span class="stat-sub">占比 48.6%</span></div>
+          <div class="stat-card-item accent-green"><span class="stat-label">高风险片区</span><span class="stat-value" style="font-size:22px">樊城区</span><span class="stat-sub">事故密度 3.8起/km²</span></div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-panel"><div class="panel-title">四大主成因占比 <span class="badge">行为·车辆·道路·环境</span></div><div class="chart-container" id="chartDistrictPie"></div></div>
+          <div class="chart-panel"><div class="panel-title">Top10 子因素事故数量与占比</div><div class="chart-container" id="chartDistrictBar"></div></div>
+        </div>
+        <div class="chart-row single-col">
+          <div class="chart-panel full-width"><div class="panel-title">事故点位热力分布图</div><div class="chart-container" id="chartDistrictHeatmap" style="min-height:380px"></div></div>
+        </div>
+        <div class="ant-table-wrapper mb-4">
+          <div class="px-6 py-3 font-semibold text-sm border-b border-[#f0f0f0] flex items-center justify-between">
+            <span>片区成因详情表</span>
+            <span class="font-normal text-xs text-[#8c8c8c]">点击查看明细展开区域事故列表</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ant-table" id="districtTable">
+              <thead><tr><th>片区</th><th>事故数</th><th>主成因类型</th><th>Top子因素</th><th>平均贡献权重</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr data-district="樊城区" class="district-row cursor-pointer"><td><strong>樊城区</strong></td><td><span class="tag-acc tag-red">386</span></td><td>行为因素</td><td>未按规定让行</td><td>47.2%</td><td><button class="ant-btn-link district-detail-btn">查看明细 →</button></td></tr>
+                <tr data-district="襄城区" class="district-row cursor-pointer"><td><strong>襄城区</strong></td><td><span class="tag-acc tag-orange">298</span></td><td>道路因素</td><td>视距不足</td><td>39.8%</td><td><button class="ant-btn-link district-detail-btn">查看明细 →</button></td></tr>
+                <tr data-district="襄州区" class="district-row cursor-pointer"><td><strong>襄州区</strong></td><td><span class="tag-acc tag-blue">215</span></td><td>环境因素</td><td>恶劣天气</td><td>35.1%</td><td><button class="ant-btn-link district-detail-btn">查看明细 →</button></td></tr>
+                <tr data-district="南漳县" class="district-row cursor-pointer"><td><strong>南漳县</strong></td><td>178</td><td>车辆因素</td><td>制动效能不足</td><td>31.5%</td><td><button class="ant-btn-link district-detail-btn">查看明细 →</button></td></tr>
+                <tr data-district="谷城县" class="district-row cursor-pointer"><td><strong>谷城县</strong></td><td>170</td><td>行为因素</td><td>超速行驶</td><td>42.0%</td><td><button class="ant-btn-link district-detail-btn">查看明细 →</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="districtAccidentListPanel" class="ant-table-wrapper mb-4" style="display:none">
+          <div class="px-6 py-3 font-semibold text-sm border-b border-[#f0f0f0] flex items-center justify-between">
+            <span id="districtAccidentListTitle">区域事故列表</span>
+            <button class="ant-btn" style="height:28px;padding:0 12px;font-size:12px" onclick="document.getElementById('districtAccidentListPanel').style.display='none'">关闭</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ant-table"><thead><tr><th>事故编号</th><th>时间</th><th>地点</th><th>类型</th><th>涉事车辆</th><th>操作</th></tr></thead><tbody id="districtAccidentListBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 2: 路段事故成因分析 ==================== -->
+      <div id="tab-road" style="display:none">
+        <div class="split-layout">
+          <div class="list-panel">
+            <div class="mb-3"><input class="ant-input" type="text" id="roadSearchInput" placeholder="搜索道路名称..." oninput="filterRoadList()"></div>
+            <ul id="roadList">
+              <li class="active" data-road="长虹路" onclick="selectRoad(this)">长虹路<div class="list-item-desc">主干路 · 4.8km · 6车道</div></li>
+              <li data-road="檀溪路" onclick="selectRoad(this)">檀溪路<div class="list-item-desc">主干路 · 3.2km · 4车道</div></li>
+              <li data-road="航空路" onclick="selectRoad(this)">航空路<div class="list-item-desc">主干路 · 5.1km · 6车道</div></li>
+              <li data-road="人民路" onclick="selectRoad(this)">人民路<div class="list-item-desc">次干路 · 2.8km · 4车道</div></li>
+              <li data-road="建设路" onclick="selectRoad(this)">建设路<div class="list-item-desc">次干路 · 1.9km · 2车道</div></li>
+              <li data-road="金源路" onclick="selectRoad(this)">金源路<div class="list-item-desc">支路 · 1.2km · 2车道</div></li>
+            </ul>
+          </div>
+          <div id="roadDetailContainer">
+            <div class="filter-bar mb-4">
+              <div class="filter-row">
+                <div class="filter-item"><label>开始日期</label><input class="ant-input" type="date" id="roadDateFrom" value="2026-04-01" style="width:150px"></div>
+                <div class="filter-item"><label>结束日期</label><input class="ant-input" type="date" id="roadDateTo" value="2026-05-08" style="width:150px"></div>
+                <button class="ant-btn ant-btn-primary" onclick="showToastMsg('路段分析数据已刷新')">查询分析</button>
+              </div>
+            </div>
+            <div class="info-card-row" id="roadInfoCards">
+              <div class="info-card-mini"><div class="ic-val">长虹路</div><div class="ic-label">道路名称</div></div>
+              <div class="info-card-mini"><div class="ic-val">主干路</div><div class="ic-label">等级</div></div>
+              <div class="info-card-mini"><div class="ic-val">双向6车道</div><div class="ic-label">车道数</div></div>
+              <div class="info-card-mini"><div class="ic-val">4.8 km</div><div class="ic-label">路段长度</div></div>
+              <div class="info-card-mini"><div class="ic-val">92%</div><div class="ic-label">RSU覆盖率</div></div>
+              <div class="info-card-mini"><div class="ic-val">3.2个/km</div><div class="ic-label">交叉口密度</div></div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-panel"><div class="panel-title">路段事故成因分布</div><div class="chart-container" id="chartRoadPie"></div></div>
+              <div class="chart-panel">
+                <div class="panel-title">
+                  道路参数与事故关联
+                  <div class="ant-select" id="roadParamSelect" onchange="updateRoadScatter()" style="height:28px;font-size:12px;min-width:80px;padding:0 8px">曲率</div>
+                </div>
+                <div class="chart-container" id="chartRoadScatter"></div>
+              </div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-panel"><div class="panel-title">交通流量与事故对比</div><div class="chart-container" id="chartRoadFlow"></div></div>
+              <div class="chart-panel"><div class="panel-title">事故时段分布热力表</div><div class="chart-container" id="chartRoadHeatmapTime"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: 单起事故成因分析 ==================== -->
+      <div id="tab-single" style="display:none">
+        <div class="split-layout">
+          <div class="list-panel">
+            <div class="mb-3"><input class="ant-input" type="text" id="accidentSearchInput" placeholder="搜索事故编号或地点..." oninput="filterAccidentList()"></div>
+            <ul id="accidentList">
+              <li class="active" data-accident="acc001" onclick="selectAccident(this)">ACC-2026-0508-001<div class="list-item-desc">樊城区·长虹路·追尾</div></li>
+              <li data-accident="acc002" onclick="selectAccident(this)">ACC-2026-0507-015<div class="list-item-desc">襄城区·檀溪路·碰撞</div></li>
+              <li data-accident="acc003" onclick="selectAccident(this)">ACC-2026-0506-022<div class="list-item-desc">襄州区·航空路·行人冲突</div></li>
+              <li data-accident="acc004" onclick="selectAccident(this)">ACC-2026-0505-008<div class="list-item-desc">樊城区·人民路·刮擦</div></li>
+              <li data-accident="acc005" onclick="selectAccident(this)">ACC-2026-0504-031<div class="list-item-desc">谷城县·建设路·追尾</div></li>
+              <li data-accident="acc006" onclick="selectAccident(this)">ACC-2026-0503-012<div class="list-item-desc">襄城区·檀溪路·追尾</div></li>
+              <li data-accident="acc007" onclick="selectAccident(this)">ACC-2026-0502-045<div class="list-item-desc">樊城区·长虹路·刮擦</div></li>
+            </ul>
+          </div>
+          <div id="singleDetailContainer">
+            <div class="detail-panel">
+              <div class="panel-title mb-3" style="font-size:14px">事故基本信息</div>
+              <div class="detail-grid">
+                <div class="detail-item"><span class="dl">事故编号</span><span class="dv" id="detailId">ACC-2026-0508-001</span></div>
+                <div class="detail-item"><span class="dl">发生时间</span><span class="dv" id="detailTime">2026-05-08 14:32:15</span></div>
+                <div class="detail-item"><span class="dl">地点</span><span class="dv" id="detailLoc">樊城区长虹路与建华路交叉口南200m</span></div>
+                <div class="detail-item"><span class="dl">事故类型</span><span class="dv"><span class="tag-acc tag-red" id="detailType">追尾</span></span></div>
+                <div class="detail-item"><span class="dl">涉事车辆</span><span class="dv" id="detailVehicles">鄂F·A1234（自动驾驶） / 鄂F·B5678</span></div>
+                <div class="detail-item"><span class="dl">伤亡情况</span><span class="dv" id="detailCasualty">轻伤1人 / 无死亡</span></div>
+              </div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-panel" style="min-height:420px"><div class="panel-title">事故还原时间轴</div><div style="overflow-y:auto;max-height:370px"><ul class="timeline" id="timelineList"></ul></div></div>
+              <div class="chart-panel" style="min-height:420px"><div class="panel-title">各维度贡献度</div><div class="chart-container" id="chartSinglePie"></div></div>
+            </div>
+            <div class="ant-table-wrapper mb-4">
+              <div class="px-6 py-3 font-semibold text-sm border-b border-[#f0f0f0]">成因详情</div>
+              <div style="overflow-x:auto">
+                <table class="ant-table"><thead><tr><th>维度</th><th>子因素标签</th><th>贡献度</th><th>关键证据</th><th>数据来源</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="tag-acc tag-red">行为因素</span></td><td>制动响应延迟</td><td><strong>38%</strong></td><td>AD系统检测到行人后2秒才开始减速</td><td>车端数据</td></tr>
+                  <tr><td><span class="tag-acc tag-orange">车辆因素</span></td><td>制动效能不足</td><td><strong>22%</strong></td><td>减速度峰值未达设计标准</td><td>车端数据</td></tr>
+                  <tr><td><span class="tag-acc tag-blue">道路因素</span></td><td>视距受限</td><td><strong>18%</strong></td><td>绿化带遮挡</td><td>道路静态数据</td></tr>
+                  <tr><td><span class="tag-acc tag-purple">环境因素</span></td><td>行人违规横穿</td><td><strong>22%</strong></td><td>未走斑马线</td><td>路侧数据</td></tr>
+                </tbody></table>
+              </div>
+            </div>
+            <div class="ant-table-wrapper mb-4">
+              <div class="px-6 py-3 font-semibold text-sm border-b border-[#f0f0f0]">关键数据对比表</div>
+              <div style="overflow-x:auto">
+                <table class="ant-table"><thead><tr><th>参数</th><th>事故值</th><th>标准值</th><th>偏差</th><th>判定</th></tr></thead><tbody id="keyDataTableBody"></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div id="toastContainer"></div>
+<script>
+  const PAGE_ID = 'accident-cause';
+
+  function switchTab(el, tabId) {
+    document.querySelectorAll('.ant-tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    ['tab-area', 'tab-road', 'tab-single'].forEach(function(id) {
+      document.getElementById(id).style.display = id === tabId ? '' : 'none';
+    });
+    setTimeout(resizeAllCharts, 100);
+  }
+
+  function switchToSingleTab(accidentId) {
+    document.querySelectorAll('.ant-tab').forEach(function(t) { t.classList.remove('active'); });
+    var singleTab = document.querySelector('.ant-tab[onclick*="tab-single"]');
+    if (singleTab) singleTab.classList.add('active');
+    ['tab-area', 'tab-road', 'tab-single'].forEach(function(id) {
+      document.getElementById(id).style.display = id === 'tab-single' ? '' : 'none';
+    });
+    if (accidentId) {
+      var li = document.querySelector('#accidentList li[data-accident="' + accidentId + '"]');
+      if (li) selectAccident(li);
+    }
+    setTimeout(resizeAllCharts, 150);
+  }
+
+  function showToastMsg(msg) {
+    var container = document.getElementById('toastContainer');
+    var toast = document.createElement('div');
+    toast.className = 'toast-msg';
+    toast.textContent = '✅ ' + msg;
+    container.appendChild(toast);
+    setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(function() { toast.remove(); }, 300); }, 2500);
+  }
+
+  function openSubCause(type) {
+    var titles = { 'behavior': '行为因素子因素分布', 'road': '道路因素子因素分布', 'env': '环境因素子因素分布', 'vehicle': '车辆因素子因素分布' };
+    var data = {
+      behavior: [{ name: '超速', count: 8 }, { name: '未保持安全距离', count: 6 }, { name: '违规变道', count: 5 }, { name: '闯红灯', count: 3 }],
+      road: [{ name: '路面湿滑', count: 5 }, { name: '视距不足', count: 4 }, { name: '路口设计缺陷', count: 3 }, { name: '标识不清', count: 3 }],
+      env: [{ name: '光照不足', count: 4 }, { name: '雨天', count: 3 }, { name: '雾天', count: 2 }, { name: '路面结冰', count: 1 }],
+      vehicle: [{ name: '传感器故障', count: 2 }, { name: '制动系统异常', count: 2 }, { name: '轮胎问题', count: 1 }, { name: '其他', count: 1 }]
+    };
+    var rows = '';
+    data[type].forEach(function(item) { rows += '<tr><td>' + item.name + '</td><td>' + item.count + '</td></tr>'; });
+    openModal(titles[type],
+      '<table class="ant-table"><thead><tr><th>子因素</th><th>事故数量</th></tr></thead><tbody>' + rows + '</tbody></table>',
+      { footer: '<button class="ant-btn" onclick="closeModal()">关闭</button>' });
+  }
+
+  // ==================== Data Store ====================
+  var roadDataMap = {
+    '长虹路': { name: '长虹路', grade: '主干路', lanes: '双向6车道', length: '4.8 km', rsu: '92%', density: '3.2个/km' },
+    '檀溪路': { name: '檀溪路', grade: '主干路', lanes: '双向4车道', length: '3.2 km', rsu: '88%', density: '2.8个/km' },
+    '航空路': { name: '航空路', grade: '主干路', lanes: '双向6车道', length: '5.1 km', rsu: '90%', density: '3.5个/km' },
+    '人民路': { name: '人民路', grade: '次干路', lanes: '双向4车道', length: '2.8 km', rsu: '85%', density: '2.2个/km' },
+    '建设路': { name: '建设路', grade: '次干路', lanes: '双向2车道', length: '1.9 km', rsu: '80%', density: '1.8个/km' },
+    '金源路': { name: '金源路', grade: '支路', lanes: '双向2车道', length: '1.2 km', rsu: '75%', density: '1.5个/km' }
+  };
+
+  var accidentDetailMap = {
+    'acc001': { id: 'ACC-2026-0508-001', time: '2026-05-08 14:32:15', loc: '樊城区长虹路与建华路交叉口南200m', type: '追尾', typeClass: 'tag-red', vehicles: '鄂F·A1234（自动驾驶） / 鄂F·B5678', casualty: '轻伤1人 / 无死亡',
+      timeline: [
+        { time: 'T-30s', desc: '车辆自动驾驶模式，速度 <strong>55 km/h</strong>', source: '车端数据', critical: false },
+        { time: 'T-20s', desc: '路侧激光雷达监测到前方 <strong>80m</strong> 有行人横穿意图', source: '路侧激光雷达', critical: false },
+        { time: 'T-15s', desc: '路侧RSU广播行人预警信息', source: '路侧RSU', critical: false },
+        { time: 'T-12s', desc: 'AD系统检测到行人，开始减速', source: '车端数据', critical: false },
+        { time: 'T-0s ⚠️ 碰撞', desc: '碰撞发生，车速 <strong>20 km/h</strong>', source: '车端数据', critical: true },
+        { time: 'T+5s', desc: '安全员接管', source: '车端模式', critical: false }
+      ],
+      keyData: [['制动响应时间', '2.0 s', '≤1.0 s', '+100%', '异常'], ['瞬时减速度峰值', '9.8 m/s²', '≥11.0 m/s²', '-10.9%', '偏低']]
+    },
+    'acc002': { id: 'ACC-2026-0507-015', time: '2026-05-07 08:15:42', loc: '襄城区檀溪路与铁佛寺路交叉口', type: '碰撞', typeClass: 'tag-orange', vehicles: '鄂F·C3456（手动） / 鄂F·D7890', casualty: '重伤1人 / 无死亡',
+      timeline: [
+        { time: 'T-30s', desc: '车辆手动驾驶，速度 <strong>62 km/h</strong>', source: '车端数据', critical: false },
+        { time: 'T-5s', desc: '驾驶员急刹', source: '车端数据', critical: false },
+        { time: 'T-0s ⚠️ 碰撞', desc: '侧面碰撞，车速 <strong>28 km/h</strong>', source: '车端数据', critical: true }
+      ],
+      keyData: [['制动响应时间', '1.2 s', '≤1.0 s', '+20%', '偏慢']]
+    },
+    'acc003': { id: 'ACC-2026-0506-022', time: '2026-05-06 19:48:03', loc: '襄州区航空路与金富士路交叉口', type: '行人冲突', typeClass: 'tag-purple', vehicles: '鄂F·E9012（自动驾驶）', casualty: '行人轻伤1人',
+      timeline: [
+        { time: 'T-10s', desc: '路侧检测到行人闯红灯', source: '路侧激光雷达', critical: false },
+        { time: 'T-3s', desc: 'AD系统紧急制动', source: '车端数据', critical: false },
+        { time: 'T-0s ⚠️ 碰撞', desc: '与行人发生冲突', source: '车端数据', critical: true }
+      ],
+      keyData: [['制动响应时间', '0.8 s', '≤1.0 s', '正常', '正常']]
+    },
+    'acc004': { id: 'ACC-2026-0505-008', time: '2026-05-05 11:22:30', loc: '樊城区人民路天元四季城前', type: '刮擦', typeClass: 'tag-blue', vehicles: '鄂F·F4567（自动驾驶） / 鄂F·G8901', casualty: '无伤亡',
+      timeline: [
+        { time: 'T-8s', desc: '路侧监测到右侧车辆变道', source: '路侧激光雷达', critical: false },
+        { time: 'T-0s ⚠️ 刮擦', desc: '右侧刮擦', source: '车端数据', critical: true }
+      ],
+      keyData: [['变道预警时间', '1.5 s', '≥2.0 s', '-25%', '偏低']]
+    },
+    'acc005': { id: 'ACC-2026-0504-031', time: '2026-05-04 17:05:18', loc: '谷城县建设路与银城大道交叉口', type: '追尾', typeClass: 'tag-red', vehicles: '鄂F·H2345（手动） / 鄂F·I6789', casualty: '轻伤2人',
+      timeline: [
+        { time: 'T-6s', desc: '前车突然减速', source: '路侧激光雷达', critical: false },
+        { time: 'T-0s ⚠️ 追尾', desc: '追尾碰撞', source: '车端数据', critical: true }
+      ],
+      keyData: [['安全距离', '15 m', '≥30 m', '-50%', '异常']]
+    },
+    'acc006': { id: 'ACC-2026-0503-012', time: '2026-05-03 09:12:05', loc: '襄城区檀溪路中段', type: '追尾', typeClass: 'tag-red', vehicles: '鄂F·J5678 / 鄂F·K8901', casualty: '轻伤1人',
+      timeline: [
+        { time: 'T-4s', desc: '前车急刹', source: '车端数据', critical: false },
+        { time: 'T-0s ⚠️ 追尾', desc: '追尾', source: '车端数据', critical: true }
+      ],
+      keyData: [['制动响应', '1.8 s', '≤1.0 s', '+80%', '异常']]
+    },
+    'acc007': { id: 'ACC-2026-0502-045', time: '2026-05-02 16:40:22', loc: '樊城区长虹路万达广场前', type: '刮擦', typeClass: 'tag-blue', vehicles: '鄂F·L1234 / 鄂F·M5678', casualty: '无伤亡',
+      timeline: [
+        { time: 'T-2s', desc: '变道未打灯', source: '路侧数据', critical: false },
+        { time: 'T-0s ⚠️ 刮擦', desc: '侧面刮擦', source: '车端数据', critical: true }
+      ],
+      keyData: [['变道预警', '无', '有', '缺失', '异常']]
+    }
+  };
+
+  var districtAccidents = {
+    '樊城区': [
+      { id: 'acc001', time: '2026-05-08 14:32', loc: '长虹路与建华路交叉口', type: '追尾', vehicles: '鄂F·A1234 / 鄂F·B5678' },
+      { id: 'acc007', time: '2026-05-02 16:40', loc: '长虹路万达广场前', type: '刮擦', vehicles: '鄂F·L1234 / 鄂F·M5678' },
+      { id: 'acc004', time: '2026-05-05 11:22', loc: '人民路天元四季城前', type: '刮擦', vehicles: '鄂F·F4567 / 鄂F·G8901' }
+    ],
+    '襄城区': [
+      { id: 'acc002', time: '2026-05-07 08:15', loc: '檀溪路与铁佛寺路交叉口', type: '碰撞', vehicles: '鄂F·C3456 / 鄂F·D7890' },
+      { id: 'acc006', time: '2026-05-03 09:12', loc: '檀溪路中段', type: '追尾', vehicles: '鄂F·J5678 / 鄂F·K8901' }
+    ],
+    '襄州区': [
+      { id: 'acc003', time: '2026-05-06 19:48', loc: '航空路与金富士路交叉口', type: '行人冲突', vehicles: '鄂F·E9012' }
+    ],
+    '南漳县': [],
+    '谷城县': [
+      { id: 'acc005', time: '2026-05-04 17:05', loc: '建设路与银城大道交叉口', type: '追尾', vehicles: '鄂F·H2345 / 鄂F·I6789' }
+    ]
+  };
+
+  // ==================== Chart Management ====================
+  var chartInstances = {};
+  function initChart(id) {
+    var dom = document.getElementById(id);
+    if (!dom) return null;
+    if (chartInstances[id]) chartInstances[id].dispose();
+    var chart = echarts.init(dom);
+    chartInstances[id] = chart;
+    return chart;
+  }
+  function resizeAllCharts() {
+    Object.values(chartInstances).forEach(function(c) { if (c && !c.isDisposed()) c.resize(); });
+  }
+
+  // District Charts
+  function renderDistrictPie() {
+    var chart = initChart('chartDistrictPie');
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      legend: { bottom: 0 },
+      series: [{ type: 'pie', radius: ['55%', '78%'], center: ['50%', '48%'], itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 3 },
+        data: [
+          { value: 606, name: '行为因素', itemStyle: { color: '#ff4d4f' } },
+          { value: 274, name: '车辆因素', itemStyle: { color: '#fa8c16' } },
+          { value: 212, name: '道路因素', itemStyle: { color: '#1677ff' } },
+          { value: 155, name: '环境因素', itemStyle: { color: '#722ed1' } }
+        ]
+      }]
+    });
+  }
+
+  function renderDistrictBar() {
+    var chart = initChart('chartDistrictBar');
+    if (!chart) return;
+    var cats = ['未按规定让行', '制动响应延迟', '超速行驶', '视距不足', '恶劣天气', '行人违规横穿', '制动效能不足', '信号违规', '车道偏离', '疲劳驾驶'];
+    var vals = [198, 156, 134, 118, 95, 82, 71, 58, 45, 39];
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      grid: { left: 140, right: 60, bottom: 40, top: 10 },
+      xAxis: { type: 'value' },
+      yAxis: { type: 'category', data: cats.reverse(), inverse: true, axisLabel: { fontSize: 12, width: 130, overflow: 'truncate' } },
+      series: [{ type: 'bar', data: vals.reverse().map(function(v) {
+        return { value: v, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#1677ff' }, { offset: 1, color: '#69c0ff' }]) } };
+      }), barWidth: 18, label: { show: true, position: 'right', formatter: '{c}起' } }]
+    });
+  }
+
+  function renderDistrictHeatmap() {
+    var chart = initChart('chartDistrictHeatmap');
+    if (!chart) return;
+    var areas = [
+      { name: '樊城区', cx: 112.14, cy: 32.04, r: 28, cnt: 386 },
+      { name: '襄城区', cx: 112.10, cy: 31.98, r: 22, cnt: 298 },
+      { name: '襄州区', cx: 112.20, cy: 32.08, r: 18, cnt: 215 },
+      { name: '南漳县', cx: 111.85, cy: 31.78, r: 14, cnt: 178 },
+      { name: '谷城县', cx: 111.65, cy: 32.10, r: 13, cnt: 170 }
+    ];
+    var data = [];
+    areas.forEach(function(a) {
+      for (var i = 0; i < Math.min(a.cnt, 200); i++) {
+        var ang = Math.random() * Math.PI * 2;
+        var dist = Math.random() * a.r * 0.018;
+        data.push([a.cx + Math.cos(ang) * dist, a.cy + Math.sin(ang) * dist, Math.random() * a.cnt / 10 + 2]);
+      }
+    });
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      xAxis: { type: 'value', name: '经度', min: 111.55, max: 112.35 },
+      yAxis: { type: 'value', name: '纬度', min: 31.68, max: 32.20 },
+      visualMap: { min: 0, max: 40, orient: 'horizontal', left: 'center', bottom: 0, inRange: { color: ['#bae7ff', '#1677ff', '#ff4d4f', '#8c0000'] } },
+      series: [{ type: 'scatter', data: data, symbolSize: function(val) { return Math.min(val[2] * 1.2, 18); } }],
+      graphic: areas.map(function(a) {
+        return { type: 'text', left: ((a.cx - 111.55) / 0.8 * 100) + '%', top: ((32.20 - a.cy) / 0.52 * 100) + '%',
+          style: { text: a.name, fill: '#262626', fontSize: 13, fontWeight: 'bold' } };
+      })
+    });
+  }
+
+  // Road Charts
+  function renderRoadPie() {
+    var chart = initChart('chartRoadPie');
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      legend: { bottom: 0 },
+      series: [{ type: 'pie', radius: ['50%', '75%'], center: ['50%', '46%'], itemStyle: { borderRadius: 5 },
+        data: [
+          { value: 38, name: '行为因素', itemStyle: { color: '#ff4d4f' } },
+          { value: 20, name: '车辆因素', itemStyle: { color: '#fa8c16' } },
+          { value: 25, name: '道路因素', itemStyle: { color: '#1677ff' } },
+          { value: 12, name: '环境因素', itemStyle: { color: '#722ed1' } }
+        ]
+      }]
+    });
+  }
+
+  function renderRoadScatter(param) {
+    param = param || 'curvature';
+    var chart = initChart('chartRoadScatter');
+    if (!chart) return;
+    var paramMap = {
+      curvature: { name: '曲率（°）', data: [0.8, 1.5, 2.1, 3.0, 3.8, 4.5, 5.2, 6.0, 7.1, 8.3, 9.5, 10.2, 11.0, 12.5, 14.0] },
+      slope: { name: '坡度（%）', data: [0.5, 1.0, 1.8, 2.5, 3.2, 4.0, 4.8, 5.5, 6.2, 7.0, 7.8, 8.5, 9.2, 10.0, 11.5] },
+      laneWidth: { name: '车道宽度（m）', data: [2.8, 3.0, 3.2, 3.3, 3.5, 3.6, 3.8, 4.0, 4.2, 4.5, 4.8, 5.0, 5.2, 5.5, 6.0] }
+    };
+    var p = paramMap[param] || paramMap.curvature;
+    var accidents = [1, 2, 3, 5, 7, 9, 12, 15, 18, 22, 25, 28, 30, 33, 35];
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      xAxis: { type: 'value', name: p.name },
+      yAxis: { type: 'value', name: '事故数（起）' },
+      series: [{ type: 'scatter', data: p.data.map(function(v, i) { return [v, accidents[i]]; }),
+        symbolSize: function(val) { return Math.sqrt(val[1]) * 6 + 8; }, itemStyle: { color: '#ff4d4f' } }]
+    });
+  }
+
+  function renderRoadFlow() {
+    var chart = initChart('chartRoadFlow');
+    if (!chart) return;
+    var hours = ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
+    var flow = [120, 80, 60, 350, 850, 720, 680, 780, 920, 1050, 650, 280];
+    var accidents = [2, 1, 0, 5, 18, 10, 8, 11, 14, 20, 9, 4];
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { bottom: 0, data: ['交通流量', '事故数'] },
+      grid: { left: 50, right: 50, bottom: 35 },
+      xAxis: { type: 'category', data: hours },
+      yAxis: [{ type: 'value', name: '流量(辆/h)' }, { type: 'value', name: '事故数(起)' }],
+      series: [
+        { name: '交通流量', type: 'bar', data: flow, itemStyle: { color: '#91caff' }, yAxisIndex: 0 },
+        { name: '事故数', type: 'line', data: accidents, yAxisIndex: 1, itemStyle: { color: '#ff4d4f' } }
+      ]
+    });
+  }
+
+  function renderRoadHeatmapTime() {
+    var chart = initChart('chartRoadHeatmapTime');
+    if (!chart) return;
+    var weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    var hours24 = Array.from({ length: 24 }, function(_, i) { return i + '时'; });
+    var data = [];
+    for (var d = 0; d < 7; d++) {
+      for (var h = 0; h < 24; h++) {
+        var val = 0;
+        if (h >= 7 && h <= 9) val = 8 + Math.random() * 10;
+        else if (h >= 16 && h <= 19) val = 10 + Math.random() * 14;
+        else if (h >= 22 || h <= 5) val = Math.random() * 2;
+        else val = 4 + Math.random() * 6;
+        if (d >= 5) val *= 0.8;
+        data.push([h, d, Math.round(val * 10) / 10]);
+      }
+    }
+    chart.setOption({
+      tooltip: { position: 'top' },
+      grid: { left: 60, right: 30, bottom: 25 },
+      xAxis: { type: 'category', data: hours24 },
+      yAxis: { type: 'category', data: weekdays },
+      visualMap: { min: 0, max: 18, orient: 'horizontal', left: 'center', bottom: 0,
+        inRange: { color: ['#e6f4ff', '#91caff', '#1677ff', '#0958d9', '#003a8c'] } },
+      series: [{ type: 'heatmap', data: data }]
+    });
+  }
+
+  // Single Accident Chart
+  function renderSinglePie() {
+    var chart = initChart('chartSinglePie');
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      legend: { bottom: 0 },
+      series: [{ type: 'pie', radius: ['50%', '76%'], center: ['50%', '46%'], itemStyle: { borderRadius: 6 },
+        data: [
+          { value: 38, name: '行为因素', itemStyle: { color: '#ff4d4f' } },
+          { value: 22, name: '车辆因素', itemStyle: { color: '#fa8c16' } },
+          { value: 18, name: '道路因素', itemStyle: { color: '#1677ff' } },
+          { value: 22, name: '环境因素', itemStyle: { color: '#722ed1' } }
+        ]
+      }]
+    });
+  }
+
+  // ==================== District Accident List ====================
+  function showDistrictAccidents(district) {
+    var list = districtAccidents[district] || [];
+    var tbody = document.getElementById('districtAccidentListBody');
+    tbody.innerHTML = list.map(function(a) {
+      return '<tr><td>' + a.id + '</td><td>' + a.time + '</td><td>' + a.loc + '</td><td>' + a.type + '</td><td>' + a.vehicles + '</td><td><button class="ant-btn-link" onclick="switchToSingleTab(\'' + a.id + '\')">单起分析</button></td></tr>';
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:#8c8c8c;">该区域暂无事故记录</td></tr>';
+    document.getElementById('districtAccidentListTitle').textContent = '📄 ' + district + ' - 事故列表';
+    document.getElementById('districtAccidentListPanel').style.display = 'block';
+  }
+
+  // Bind district detail buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('main').addEventListener('click', function(e) {
+      var detailBtn = e.target.closest('.district-detail-btn');
+      if (detailBtn) {
+        e.stopPropagation();
+        var row = detailBtn.closest('tr');
+        var district = row.getAttribute('data-district');
+        if (district) showDistrictAccidents(district);
+      }
+      var row = e.target.closest('.district-row');
+      if (row && !e.target.closest('button') && !e.target.closest('a')) {
+        var district = row.getAttribute('data-district');
+        if (district) showDistrictAccidents(district);
+      }
+    });
+  });
+
+  // ==================== Road List ====================
+  function selectRoad(li) {
+    document.querySelectorAll('#roadList li').forEach(function(l) { l.classList.remove('active'); });
+    li.classList.add('active');
+    var road = li.getAttribute('data-road');
+    var info = roadDataMap[road] || roadDataMap['长虹路'];
+    document.getElementById('roadInfoCards').innerHTML =
+      '<div class="info-card-mini"><div class="ic-val">' + info.name + '</div><div class="ic-label">道路名称</div></div>' +
+      '<div class="info-card-mini"><div class="ic-val">' + info.grade + '</div><div class="ic-label">等级</div></div>' +
+      '<div class="info-card-mini"><div class="ic-val">' + info.lanes + '</div><div class="ic-label">车道数</div></div>' +
+      '<div class="info-card-mini"><div class="ic-val">' + info.length + '</div><div class="ic-label">路段长度</div></div>' +
+      '<div class="info-card-mini"><div class="ic-val">' + info.rsu + '</div><div class="ic-label">RSU覆盖率</div></div>' +
+      '<div class="info-card-mini"><div class="ic-val">' + info.density + '</div><div class="ic-label">交叉口密度</div></div>';
+    showToastMsg('已切换至道路：' + road);
+  }
+  function filterRoadList() {
+    var keyword = document.getElementById('roadSearchInput').value.toLowerCase();
+    document.querySelectorAll('#roadList li').forEach(function(li) {
+      var text = li.textContent.toLowerCase();
+      li.style.display = text.includes(keyword) ? '' : 'none';
+    });
+  }
+
+  // ==================== Accident List (Single Tab) ====================
+  function selectAccident(li) {
+    document.querySelectorAll('#accidentList li').forEach(function(l) { l.classList.remove('active'); });
+    li.classList.add('active');
+    var id = li.getAttribute('data-accident');
+    var d = accidentDetailMap[id] || accidentDetailMap['acc001'];
+    document.getElementById('detailId').textContent = d.id;
+    document.getElementById('detailTime').textContent = d.time;
+    document.getElementById('detailLoc').textContent = d.loc;
+    document.getElementById('detailType').textContent = d.type;
+    document.getElementById('detailType').className = 'tag-acc ' + d.typeClass;
+    document.getElementById('detailVehicles').textContent = d.vehicles;
+    document.getElementById('detailCasualty').textContent = d.casualty;
+    document.getElementById('timelineList').innerHTML = d.timeline.map(function(t) {
+      return '<li class="timeline-item' + (t.critical ? ' critical' : '') + '"><div class="tl-time">' + t.time + '</div><div class="tl-desc">' + t.desc + '</div><div class="tl-source">来源：' + t.source + '</div></li>';
+    }).join('');
+    var keyTbody = document.getElementById('keyDataTableBody');
+    keyTbody.innerHTML = (d.keyData || []).map(function(k) {
+      return '<tr><td>' + k[0] + '</td><td>' + k[1] + '</td><td>' + k[2] + '</td><td style="color:' + (k[4] === '异常' ? '#ff4d4f' : '#595959') + '">' + k[3] + '</td><td><span class="tag-acc ' + (k[4] === '异常' ? 'tag-red' : 'tag-green') + '">' + k[4] + '</span></td></tr>';
+    }).join('');
+    renderSinglePie();
+    showToastMsg('已加载事故：' + d.id);
+  }
+  function filterAccidentList() {
+    var keyword = document.getElementById('accidentSearchInput').value.toLowerCase();
+    document.querySelectorAll('#accidentList li').forEach(function(li) {
+      var text = li.textContent.toLowerCase();
+      li.style.display = text.includes(keyword) ? '' : 'none';
+    });
+  }
+
+  // ==================== Road Scatter Update ====================
+  function updateRoadScatter() {
+    var sel = document.getElementById('roadParamSelect');
+    var text = sel.textContent.trim();
+    var paramMap = { '曲率': 'curvature', '坡度': 'slope', '车道宽度': 'laneWidth' };
+    var param = paramMap[text] || 'curvature';
+    renderRoadScatter(param);
+  }
+
+  // ==================== District Filter Bar Dropdowns ====================
+  function initDistrictFilterBar() {
+    var container = document.getElementById('districtFilterBar');
+    if (!container) return;
+    container.innerHTML =
+      '<div class="filter-row">' +
+        '<div class="filter-item"><label>区域选择</label><div class="ant-select" id="districtSelect" style="min-width:140px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部区域</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<div class="filter-item"><label>开始日期</label><input class="ant-input" type="date" id="districtDateFrom" value="2026-04-01" style="width:150px"></div>' +
+        '<div class="filter-item"><label>结束日期</label><input class="ant-input" type="date" id="districtDateTo" value="2026-05-08" style="width:150px"></div>' +
+        '<div class="filter-item"><label>事故类型</label><div class="ant-select" id="accidentTypeSel" style="min-width:140px;height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#000000d9;background:#fff"><span>全部</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>' +
+        '<div class="filter-item"><button class="ant-btn ant-btn-primary" onclick="showToastMsg(\'片区分析数据已刷新\')">查询分析</button></div>' +
+        '<div class="filter-item"><button class="ant-btn" onclick="showToastMsg(\'报表导出中...\')">导出报告</button></div>' +
+      '</div>';
+    initSelectDropdown('districtSelect', ['全部区域', '樊城区', '襄城区', '襄州区', '南漳县', '谷城县']);
+    initSelectDropdown('accidentTypeSel', ['全部', '碰撞', '刮擦', '追尾', '行人冲突']);
+  }
+
+  function initSelectDropdown(id, options) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var currentIdx = 0;
+    sel.style.position = 'relative';
+    function renderSelText() {
+      sel.innerHTML = '<span>' + options[currentIdx] + '</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+    }
+    sel.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var existing = document.getElementById(id + 'Dropdown');
+      if (existing) { existing.remove(); return; }
+      var dropdown = document.createElement('div');
+      dropdown.id = id + 'Dropdown';
+      dropdown.style.cssText = 'position:absolute;top:100%;left:0;background:#fff;border:1px solid #d9d9d9;border-radius:6px;box-shadow:0 3px 6px rgba(0,0,0,.12);z-index:200;min-width:160px;margin-top:4px';
+      var html = '';
+      options.forEach(function(opt, i) {
+        html += '<div data-idx="' + i + '" style="padding:8px 12px;cursor:pointer;font-size:14px;color:' + (i === currentIdx ? '#1677ff' : '#262626') + ';background:' + (i === currentIdx ? '#e6f4ff' : '') + '">' + opt + '</div>';
+      });
+      dropdown.innerHTML = html;
+      sel.appendChild(dropdown);
+      dropdown.querySelectorAll('[data-idx]').forEach(function(item) {
+        item.addEventListener('click', function(e2) {
+          e2.stopPropagation();
+          currentIdx = parseInt(item.getAttribute('data-idx'));
+          renderSelText();
+          dropdown.remove();
+        });
+      });
+    });
+    document.addEventListener('click', function() {
+      var d = document.getElementById(id + 'Dropdown');
+      if (d) d.remove();
+    });
+    renderSelText();
+  }
+
+  // ==================== Road Param Select Dropdown ====================
+  (function() {
+    var sel = document.getElementById('roadParamSelect');
+    if (!sel) return;
+    var options = ['曲率', '坡度', '车道宽度'];
+    var currentIndex = 0;
+    sel.style.cursor = 'pointer';
+    sel.innerHTML = '<span>' + options[currentIndex] + '</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+    sel.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var dropdown = document.getElementById('roadParamDropdown');
+      if (dropdown) { dropdown.remove(); return; }
+      dropdown = document.createElement('div');
+      dropdown.id = 'roadParamDropdown';
+      dropdown.style.cssText = 'position:absolute;top:100%;right:0;background:#fff;border:1px solid #d9d9d9;border-radius:6px;box-shadow:0 3px 6px rgba(0,0,0,.12);z-index:200;min-width:120px;margin-top:4px';
+      var html = '';
+      options.forEach(function(opt, i) {
+        html += '<div class="road-param-opt" data-idx="' + i + '" style="padding:8px 12px;cursor:pointer;font-size:13px;color:' + (i === currentIndex ? '#1677ff' : '#262626') + ';background:' + (i === currentIndex ? '#e6f4ff' : '') + '">' + opt + '</div>';
+      });
+      dropdown.innerHTML = html;
+      sel.style.position = 'relative';
+      sel.appendChild(dropdown);
+      dropdown.querySelectorAll('.road-param-opt').forEach(function(opt) {
+        opt.addEventListener('click', function(e2) {
+          e2.stopPropagation();
+          currentIndex = parseInt(opt.getAttribute('data-idx'));
+          sel.innerHTML = '<span>' + options[currentIndex] + '</span><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+          updateRoadScatter();
+          dropdown.remove();
+        });
+      });
+    });
+    document.addEventListener('click', function() {
+      var d = document.getElementById('roadParamDropdown');
+      if (d) d.remove();
+    });
+  })();
+
+  // ==================== Init ====================
+  function initAll() {
+    initDistrictFilterBar();
+    renderDistrictPie();
+    renderDistrictBar();
+    renderDistrictHeatmap();
+    renderRoadPie();
+    renderRoadScatter();
+    renderRoadFlow();
+    renderRoadHeatmapTime();
+    renderSinglePie();
+    var activeAcc = document.querySelector('#accidentList li.active');
+    if (activeAcc) selectAccident(activeAcc);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initAll();
+    window.addEventListener('resize', function() {
+      clearTimeout(window._resizeTimer);
+      window._resizeTimer = setTimeout(resizeAllCharts, 200);
+    });
+  });
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

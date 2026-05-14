@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>车辆运行监控 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>车辆运行监控</h2></div>
+      <div class="filter-bar"><div class="filter-row"><div class="filter-item"><label>车辆号牌/VIN</label><input class="ant-input" placeholder="请输入号牌或VIN搜索"></div><div class="filter-item"><label>企业</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div><div class="filter-item"><label>在线/离线状态</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div><div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div></div></div>
+
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-video')">视频监控</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-data')">运行数据</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-ad')">自动驾驶状态</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-sensor')">传感器数据上报</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-mileage')">里程统计</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-battery')">电池状态监测</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-fault')">车辆故障告警</span>
+      </div>
+
+      <div id="tab-video">
+        <div class="flex gap-4" style="height:calc(100vh - 320px)">
+          <div class="card flex flex-col" style="width:280px;min-width:280px">
+            <h4 class="text-sm font-semibold text-[#000000d9] mb-3">车辆列表</h4>
+            <div class="mb-3">
+              <input class="ant-input w-full" placeholder="输入车牌号快速筛选车辆" id="videoSearchInput" oninput="filterVehicleList()">
+            </div>
+            <div class="flex-1 overflow-y-auto" id="vehicleList">
+              <div class="vehicle-item cursor-pointer p-3 rounded-lg mb-2 flex items-center gap-3" style="background:#e6f4ff" onclick="selectVideoVehicle(this,'鄂F·A001')">
+                <div class="w-10 h-10 rounded-full bg-[#1677ff] text-white flex items-center justify-center text-xs font-medium">A</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-[#000000d9] truncate">鄂F·A001</div>
+                  <div class="text-xs text-[#00000073] truncate">襄阳智行科技 | 红旗E-HS3</div>
+                </div>
+                <span class="ant-tag ant-tag-success text-xs">在线</span>
+              </div>
+              <div class="vehicle-item cursor-pointer p-3 rounded-lg mb-2 flex items-center gap-3 hover:bg-[#f5f5f5]" onclick="selectVideoVehicle(this,'鄂F·B003')">
+                <div class="w-10 h-10 rounded-full bg-[#52c41a] text-white flex items-center justify-center text-xs font-medium">B</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-[#000000d9] truncate">鄂F·B003</div>
+                  <div class="text-xs text-[#00000073] truncate">东风汽车 | 东风E70</div>
+                </div>
+                <span class="ant-tag ant-tag-success text-xs">在线</span>
+              </div>
+              <div class="vehicle-item cursor-pointer p-3 rounded-lg mb-2 flex items-center gap-3 hover:bg-[#f5f5f5]" onclick="selectVideoVehicle(this,'鄂F·C007')">
+                <div class="w-10 h-10 rounded-full bg-[#722ed1] text-white flex items-center justify-center text-xs font-medium">C</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-[#000000d9] truncate">鄂F·C007</div>
+                  <div class="text-xs text-[#00000073] truncate">华为MDC | 极狐阿尔法T</div>
+                </div>
+                <span class="ant-tag ant-tag-success text-xs">在线</span>
+              </div>
+              <div class="vehicle-item cursor-pointer p-3 rounded-lg mb-2 flex items-center gap-3 hover:bg-[#f5f5f5]" onclick="selectVideoVehicle(this,'鄂F·D010')">
+                <div class="w-10 h-10 rounded-full bg-[#faad14] text-white flex items-center justify-center text-xs font-medium">D</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-[#000000d9] truncate">鄂F·D010</div>
+                  <div class="text-xs text-[#00000073] truncate">百度Apollo | 红旗E-HS9</div>
+                </div>
+                <span class="ant-tag ant-tag-success text-xs">在线</span>
+              </div>
+              <div class="vehicle-item cursor-pointer p-3 rounded-lg mb-2 flex items-center gap-3 hover:bg-[#f5f5f5]" onclick="selectVideoVehicle(this,'鄂F·E005')">
+                <div class="w-10 h-10 rounded-full bg-[#00000040] text-white flex items-center justify-center text-xs font-medium">E</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-[#000000d9] truncate">鄂F·E005</div>
+                  <div class="text-xs text-[#00000073] truncate">襄阳智行科技 | 红旗E-HS3</div>
+                </div>
+                <span class="ant-tag ant-tag-default text-xs">离线</span>
+              </div>
+              <div class="vehicle-item cursor-pointer p-3 rounded-lg mb-2 flex items-center gap-3 hover:bg-[#f5f5f5]" onclick="selectVideoVehicle(this,'鄂F·A002')">
+                <div class="w-10 h-10 rounded-full bg-[#1677ff] text-white flex items-center justify-center text-xs font-medium">A</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-[#000000d9] truncate">鄂F·A002</div>
+                  <div class="text-xs text-[#00000073] truncate">襄阳智行科技 | 红旗E-HS3</div>
+                </div>
+                <span class="ant-tag ant-tag-success text-xs">在线</span>
+              </div>
+              <div class="vehicle-item cursor-pointer p-3 rounded-lg mb-2 flex items-center gap-3 hover:bg-[#f5f5f5]" onclick="selectVideoVehicle(this,'鄂F·B002')">
+                <div class="w-10 h-10 rounded-full bg-[#52c41a] text-white flex items-center justify-center text-xs font-medium">B</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-[#000000d9] truncate">鄂F·B002</div>
+                  <div class="text-xs text-[#00000073] truncate">东风汽车 | 东风E70</div>
+                </div>
+                <span class="ant-tag ant-tag-success text-xs">在线</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 flex flex-col card">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-[#f0f0f0]">
+              <div class="flex items-center gap-3">
+                <h4 class="text-sm font-semibold text-[#000000d9]">实时视频监控画面</h4>
+                <span class="text-sm text-[#00000073]" id="currentVideoVehicle">鄂F·A001</span>
+                <span class="text-xs text-[#52c41a]">● 实时在线</span>
+              </div>
+              <div class="flex gap-2">
+                <button class="ant-btn ant-btn-sm">全屏显示</button>
+                <button class="ant-btn ant-btn-sm">抓拍截图</button>
+                <button class="ant-btn ant-btn-sm" onclick="openVideoHistory()">录像回放</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-4 gap-3 flex-1 overflow-auto">
+              <div class="relative bg-[#000] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#1677ff] text-white text-xs rounded z-10">前视摄像头(主驾驶位)</div>
+                <div class="w-full h-full min-h-[120px] flex items-center justify-center">
+                  <div class="text-center text-[#ffffff73]">
+                    <div class="text-xl mb-1">📹</div>
+                    <p class="text-xs">实时视频信号</p>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">放大</button>
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">录制</button>
+                </div>
+              </div>
+              <div class="relative bg-[#000] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#52c41a] text-white text-xs rounded z-10">后视摄像头(副驾驶位)</div>
+                <div class="w-full h-full min-h-[120px] flex items-center justify-center">
+                  <div class="text-center text-[#ffffff73]">
+                    <div class="text-xl mb-1">📹</div>
+                    <p class="text-xs">实时视频信号</p>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">放大</button>
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">录制</button>
+                </div>
+              </div>
+              <div class="relative bg-[#000] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#722ed1] text-white text-xs rounded z-10">左侧摄像头</div>
+                <div class="w-full h-full min-h-[120px] flex items-center justify-center">
+                  <div class="text-center text-[#ffffff73]">
+                    <div class="text-xl mb-1">📹</div>
+                    <p class="text-xs">实时视频信号</p>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">放大</button>
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">录制</button>
+                </div>
+              </div>
+              <div class="relative bg-[#000] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#faad14] text-white text-xs rounded z-10">右侧摄像头</div>
+                <div class="w-full h-full min-h-[120px] flex items-center justify-center">
+                  <div class="text-center text-[#ffffff73]">
+                    <div class="text-xl mb-1">📹</div>
+                    <p class="text-xs">实时视频信号</p>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">放大</button>
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">录制</button>
+                </div>
+              </div>
+              <div class="relative bg-[#000] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#ff4d4f] text-white text-xs rounded z-10">车内摄像头</div>
+                <div class="w-full h-full min-h-[120px] flex items-center justify-center">
+                  <div class="text-center text-[#ffffff73]">
+                    <div class="text-xl mb-1">📹</div>
+                    <p class="text-xs">实时视频信号</p>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">放大</button>
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">录制</button>
+                </div>
+              </div>
+              <div class="relative bg-[#000] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#13c2c2] text-white text-xs rounded z-10">环视摄像头</div>
+                <div class="w-full h-full min-h-[120px] flex items-center justify-center">
+                  <div class="text-center text-[#ffffff73]">
+                    <div class="text-xl mb-1">📹</div>
+                    <p class="text-xs">实时视频信号</p>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">放大</button>
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">录制</button>
+                </div>
+              </div>
+              <div class="relative bg-[#eb2f96] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#eb2f96] text-white text-xs rounded z-10">驾驶员行为检测</div>
+                <div class="w-full h-full min-h-[120px] flex items-center justify-center">
+                  <div class="text-center text-[#ffffff73]">
+                    <div class="text-xl mb-1">👁️</div>
+                    <p class="text-xs">驾驶员状态正常</p>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                  <button class="ant-btn ant-btn-xs text-white bg-[#00000080]" style="border-color:#fff">详情</button>
+                </div>
+              </div>
+              <div class="relative bg-[#1a1a2e] rounded-lg flex-1 min-h-0">
+                <div class="absolute top-2 left-2 px-2 py-0.5 bg-[#000000] border border-[#d9d9d9] text-white text-xs rounded z-10">车辆运行参数</div>
+                <div class="w-full h-full min-h-[120px] p-2 flex flex-col justify-center">
+                  <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-white">
+                    <div>当前车速: <span class="text-[#52c41a]">45</span> km/h</div>
+                    <div>挡位: <span class="text-[#1677ff]">D</span></div>
+                    <div>驾驶模式: <span class="text-[#52c41a]">自动驾驶</span></div>
+                    <div>在线状态: <span class="text-[#52c41a]">在线</span></div>
+                    <div>行驶方向: <span class="text-[#52c41a]">正向</span></div>
+                    <div>网络延迟: <span class="text-[#1677ff]">12ms</span></div>
+                    <div>SOC: <span class="text-[#52c41a]">78%</span></div>
+                    <div>环境温度: <span class="text-[#1677ff]">32℃</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-[#f0f0f0] flex items-center justify-between">
+              <span class="text-xs text-[#00000073]">提示：视频流通过TSP/RTMP协议接入，支持H.264/H.265编码格式</span>
+              <button class="ant-btn ant-btn-sm" onclick="openVideoHistory()">查看历史录像</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-data" style="display:none">
+        <div class="ant-table-wrapper">
+          <table class="ant-table"><thead><tr><th>车辆号牌/VIN</th><th>所属企业</th><th>当前驾驶模式</th><th>当前速度(km/h)</th><th>当前位置</th><th>最后数据上报时间</th><th>在线/离线状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>鄂F·A001</td><td>襄阳智行科技</td><td><span class="ant-tag ant-tag-processing">自动驾驶</span></td><td>45</td><td>襄阳市区K3+200</td><td>14:32:15</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><button class="ant-btn-link" onclick="openDetail_data()">详情</button></td></tr>
+            <tr><td>鄂F·B003</td><td>东风汽车</td><td><span class="ant-tag ant-tag-processing">自动驾驶</span></td><td>32</td><td>东津新区路段</td><td>14:32:10</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><button class="ant-btn-link" onclick="openDetail_data()">详情</button></td></tr>
+            <tr><td>鄂F·C007</td><td>华为MDC</td><td><span class="ant-tag ant-tag-success">人工驾驶</span></td><td>58</td><td>高新区发展大道</td><td>14:31:55</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><button class="ant-btn-link" onclick="openDetail_data()">详情</button></td></tr>
+            <tr><td>鄂F·E005</td><td>襄阳智行科技</td><td>-</td><td>0</td><td>-</td><td>13:45:20</td><td><span class="ant-tag ant-tag-default">离线</span></td><td><button class="ant-btn-link" onclick="openDetail_data()">详情</button></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div id="tab-ad" style="display:none">
+        <div class="ant-table-wrapper">
+          <table class="ant-table"><thead><tr><th>车辆号牌/VIN</th><th>AD系统使能状态</th><th>自动驾驶等级</th><th>当前速度</th><th>当前接管次数</th><th>当前模式</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>鄂F·A001</td><td><span class="ant-tag ant-tag-success">已启用(系统默认开启)</span></td><td>L3</td><td>45 km/h</td><td>0次</td><td>自动驾驶</td><td><button class="ant-btn-link" onclick="openDetail_ad()">详情</button></td></tr>
+            <tr><td>鄂F·B003</td><td><span class="ant-tag ant-tag-success">已启用(系统默认开启)</span></td><td>L4</td><td>32 km/h</td><td>0次</td><td>自动驾驶</td><td><button class="ant-btn-link" onclick="openDetail_ad()">详情</button></td></tr>
+            <tr><td>鄂F·D010</td><td><span class="ant-tag ant-tag-warning">未启用(需手动开启)</span></td><td>L4</td><td>0 km/h(静止)</td><td>1次(今日)</td><td>人工驾驶(已降级)</td><td><button class="ant-btn-link" onclick="openDetail_ad()">详情</button></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div id="tab-sensor" style="display:none">
+        <div class="ant-table-wrapper">
+          <table class="ant-table"><thead><tr><th>车辆号牌/VIN</th><th>传感器数据上报状态</th><th>定位精度</th><th>数据完整性</th><th>传感器类型</th><th>最后上报时间</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>鄂F·A001</td><td><span class="text-[#52c41a]">正常上报(10Hz)</span></td><td><span class="text-[#52c41a]">正常</span></td><td><span class="text-[#52c41a]">8项指标全正常</span></td><td>激光雷达、毫米波雷达、视觉相机等</td><td>14:32:15</td><td><button class="ant-btn-link" onclick="openDetail_sensor()">详情</button></td></tr>
+            <tr><td>鄂F·B003</td><td><span class="text-[#52c41a]">正常上报(10Hz)</span></td><td><span class="text-[#52c41a]">正常</span></td><td><span class="text-[#52c41a]">6项指标正常</span></td><td>激光雷达、毫米波雷达、视觉相机等</td><td>14:32:10</td><td><button class="ant-btn-link" onclick="openDetail_sensor()">详情</button></td></tr>
+            <tr><td>鄂F·D010</td><td><span class="text-[#ff4d4f]">异常(部分传感器离线)</span></td><td><span class="text-[#52c41a]">正常</span></td><td><span class="text-[#faad14]">4项正常/2项异常</span></td><td>激光雷达离线</td><td>14:28:30</td><td><button class="ant-btn-link" onclick="openDetail_sensor()">详情</button></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div id="tab-mileage" style="display:none">
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="stat-card"><div class="stat-icon bg-[#e6f4ff] text-[#1677ff]">📊</div><div class="stat-info"><div class="stat-value">12,856</div><div class="stat-label">当日累计测试里程(km)(所有测试车辆)</div></div></div>
+          <div class="stat-card"><div class="stat-icon bg-[#f6ffed] text-[#52c41a]">🚗</div><div class="stat-info"><div class="stat-value">8,432</div><div class="stat-label">自动驾驶里程(km)</div></div></div>
+          <div class="stat-card"><div class="stat-icon bg-[#fffbe6] text-[#faad14]">👨‍✈️</div><div class="stat-info"><div class="stat-value">4,424</div><div class="stat-label">人工驾驶里程(km)</div></div></div>
+        </div>
+        <div class="ant-table-wrapper"><table class="ant-table"><thead><tr><th>车辆号牌/VIN</th><th>当日累计里程(km)</th><th>自动驾驶里程(km)</th><th>人工驾驶里程(km)</th><th>历史总里程(km)</th><th>操作</th></tr></thead><tbody><tr><td>鄂F·A001</td><td>86.5</td><td>72.3</td><td>14.2</td><td>15,230</td><td><button class="ant-btn-link" onclick="openDetail_mileage()">详情</button></td></tr><tr><td>鄂F·B003</td><td>45.2</td><td>45.2</td><td>0</td><td>8,650</td><td><button class="ant-btn-link" onclick="openDetail_mileage()">详情</button></td></tr></tbody></table></div>
+      </div>
+
+      <div id="tab-battery" style="display:none">
+        <div class="ant-table-wrapper"><table class="ant-table"><thead><tr><th>车辆号牌/VIN</th><th>SOC(%)</th><th>SOH(%)</th><th>电池温度(最高值,单位:℃)</th><th>总电压(V)</th><th>电流(A)</th><th>充电状态</th><th>剩余续航(km)</th><th>操作</th></tr></thead><tbody><tr><td>鄂F·A001</td><td><span class="text-[#52c41a]">78</span></td><td>96</td><td>32</td><td>385</td><td>-15.2</td><td>放电中</td><td>328</td><td><button class="ant-btn-link" onclick="openDetail_battery()">详情</button></td></tr><tr><td>鄂F·B003</td><td><span class="text-[#faad14]">35</span></td><td>94</td><td>35</td><td>372</td><td>-22.8</td><td>放电中</td><td>256</td><td><button class="ant-btn-link" onclick="openDetail_battery()">详情</button></td></tr><tr><td>鄂F·D010</td><td><span class="text-[#ff4d4f]">12</span></td><td>88</td><td>38</td><td>358</td><td>-28.5</td><td>低电量报警</td><td>452</td><td><button class="ant-btn-link" onclick="openDetail_battery()">详情</button></td></tr></tbody></table></div>
+      </div>
+
+      <div id="tab-fault" style="display:none">
+        <div class="ant-table-wrapper"><table class="ant-table"><thead><tr><th>车辆号牌/VIN</th><th>故障码</th><th>故障描述</th><th>故障来源</th><th>故障发生时间</th><th>故障处理状态</th><th>操作</th></tr></thead><tbody><tr><td>鄂F·D010</td><td>P0700</td><td>控制器局域网通信丢失(可能涉及CAN总线断连或网关故障)</td><td>2026-04-27 13:45</td><td><span class="ant-tag ant-tag-warning">待处理</span></td><td><button class="ant-btn-link" onclick="openDetail_fault()">详情</button></td></tr><tr><td>鄂F·A002</td><td>C0035</td><td>自动驾驶系统路径规划模块异常(可能与高精地图数据不一致有关)</td><td>2026-04-26 16:20</td><td><span class="ant-tag ant-tag-success">已修复</span></td><td><button class="ant-btn-link" onclick="openDetail_fault()">详情</button></td></tr></tbody></table></div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='running';
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  ['tab-video','tab-data','tab-ad','tab-sensor','tab-mileage','tab-battery','tab-fault'].forEach(function(id){document.getElementById(id).style.display=id===tabId?'':'none'});
+}
+function selectVideoVehicle(el,plate){
+  document.querySelectorAll('.vehicle-item').forEach(function(v){v.style.background=''});
+  el.style.background='#e6f4ff';
+  document.getElementById('currentVideoVehicle').textContent=plate;
+}
+function filterVehicleList(){
+  var keyword=document.getElementById('videoSearchInput').value.toLowerCase();
+  document.querySelectorAll('.vehicle-item').forEach(function(item){
+    var text=item.textContent.toLowerCase();
+    item.style.display=text.indexOf(keyword)>-1?'':'none';
+  });
+}
+function openVideoHistory(){
+  openModal('录像回放与查询',
+    '<div class="ant-descriptions mb-4"><div class="ant-descriptions-row"><div class="ant-descriptions-label">选择车辆</div><div class="ant-descriptions-value" id="historyVehicle">鄂F·A001</div></div></div>' +
+    '<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label">查询日期</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-04-27"></div></div><div class="ant-form-item"><div class="ant-form-label">时间段选择</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择时段 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">自定义时间段</div><div class="ant-form-control"><div class="flex gap-2"><input class="ant-input" type="time" value="08:00"><span>-</span><input class="ant-input" type="time" value="14:32"></div></div></div>' +
+    '<div class="mt-4 border-t border-[#f0f0f0] pt-4">' +
+      '<div class="text-sm text-[#00000073] mb-2">查询结果：共找到 <span id="recordCount">5</span> 条录像记录</div>' +
+      '<div class="space-y-2 max-h-56 overflow-y-auto">' +
+        '<div class="flex items-center gap-3 p-3 bg-[#f5f5f5] rounded-lg cursor-pointer hover:bg-[#e6f4ff]" onclick="playRecord(this)"><div class="w-16 h-10 bg-[#000] rounded flex items-center justify-center text-[#ffffff73] text-lg">▶</div><div class="flex-1"><div class="text-sm font-medium">前视摄像头_主驾驶位_20260427_140000.mp4</div><div class="text-xs text-[#00000073]">2026-04-27 14:00:00 - 14:05:00 | 256.3 MB</div></div><div class="flex gap-2"><button class="ant-btn ant-btn-sm">播放</button><button class="ant-btn ant-btn-sm">下载</button></div></div>' +
+        '<div class="flex items-center gap-3 p-3 bg-[#f5f5f5] rounded-lg cursor-pointer hover:bg-[#e6f4ff]" onclick="playRecord(this)"><div class="w-16 h-10 bg-[#000] rounded flex items-center justify-center text-[#ffffff73] text-lg">▶</div><div class="flex-1"><div class="text-sm font-medium">前视摄像头_主驾驶位_20260427_134500.mp4</div><div class="text-xs text-[#00000073]">2026-04-27 13:45:00 - 13:50:00 | 248.7 MB</div></div><div class="flex gap-2"><button class="ant-btn ant-btn-sm">播放</button><button class="ant-btn ant-btn-sm">下载</button></div></div>' +
+        '<div class="flex items-center gap-3 p-3 bg-[#f5f5f5] rounded-lg cursor-pointer hover:bg-[#e6f4ff]" onclick="playRecord(this)"><div class="w-16 h-10 bg-[#000] rounded flex items-center justify-center text-[#ffffff73] text-lg">▶</div><div class="flex-1"><div class="text-sm font-medium">车内摄像头_主驾驶位_20260427_134500.mp4</div><div class="text-xs text-[#00000073]">2026-04-27 13:45:00 - 13:50:00 | 198.2 MB</div></div><div class="flex gap-2"><button class="ant-btn ant-btn-sm">播放</button><button class="ant-btn ant-btn-sm">下载</button></div></div>' +
+        '<div class="flex items-center gap-3 p-3 bg-[#f5f5f5] rounded-lg cursor-pointer hover:bg-[#e6f4ff]" onclick="playRecord(this)"><div class="w-16 h-10 bg-[#000] rounded flex items-center justify-center text-[#ffffff73] text-lg">▶</div><div class="flex-1"><div class="text-sm font-medium">左侧摄像头_主驾驶位_20260427_100000.mp4</div><div class="text-xs text-[#00000073]">2026-04-27 10:00:00 - 10:30:00 | 512.5 MB</div></div><div class="flex gap-2"><button class="ant-btn ant-btn-sm">播放</button><button class="ant-btn ant-btn-sm">下载</button></div></div>' +
+        '<div class="flex items-center gap-3 p-3 bg-[#f5f5f5] rounded-lg cursor-pointer hover:bg-[#e6f4ff]" onclick="playRecord(this)"><div class="w-16 h-10 bg-[#000] rounded flex items-center justify-center text-[#ffffff73] text-lg">▶</div><div class="flex-1"><div class="text-sm font-medium">驾驶员行为检测_主驾驶位_20260427_080000.mp4</div><div class="text-xs text-[#00000073]">2026-04-27 08:00:00 - 08:30:00 | 156.8 MB</div></div><div class="flex gap-2"><button class="ant-btn ant-btn-sm">播放</button><button class="ant-btn ant-btn-sm">下载</button></div></div>' +
+      '</div>' +
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function playRecord(el){
+  document.querySelectorAll('[onclick^="playRecord"]').forEach(function(r){r.style.border='none'});
+  el.style.border='2px solid #1677ff';
+}
+function openDetail_data(){
+  openModal('运行数据详情 - 鄂F·A001',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆号牌/VIN</div><div class="ant-descriptions-value">鄂F·A001</div><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">襄阳智行科技</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">当前驾驶模式</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-processing">自动驾驶</span></div><div class="ant-descriptions-label">当前速度</div><div class="ant-descriptions-value">45 km/h</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">当前位置</div><div class="ant-descriptions-value">襄阳市区K3+200</div><div class="ant-descriptions-label">航向角</div><div class="ant-descriptions-value">128°</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">在线/离线状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-success">在线</span></div><div class="ant-descriptions-label">最后数据上报时间</div><div class="ant-descriptions-value">2026-04-27 14:32:15</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">数据上报频率</div><div class="ant-descriptions-value">10Hz</div><div class="ant-descriptions-label">通信协议</div><div class="ant-descriptions-value">MQTT/TLS</div></div>' +
+    '</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openDetail_ad(){
+  openModal('自动驾驶状态详情 - 鄂F·A001',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆号牌/VIN</div><div class="ant-descriptions-value">鄂F·A001</div><div class="ant-descriptions-label">AD系统使能状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-success">已启用(系统默认开启)</span></div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">自动驾驶等级</div><div class="ant-descriptions-value">L3</div><div class="ant-descriptions-label">当前速度</div><div class="ant-descriptions-value">0 km/h</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">当前接管次数</div><div class="ant-descriptions-value">0次</div><div class="ant-descriptions-label">当前运行模式</div><div class="ant-descriptions-value">自动驾驶</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">AD软件版本</div><div class="ant-descriptions-value">V3.2.1-RC4</div><div class="ant-descriptions-label">最近更新时间</div><div class="ant-descriptions-value">2026-04-25 10:15</div></div>' +
+    '</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openDetail_sensor(){
+  openModal('传感器数据上报详情 - 鄂F·A001',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆号牌/VIN</div><div class="ant-descriptions-value">鄂F·A001</div><div class="ant-descriptions-label">最后上报时间</div><div class="ant-descriptions-value">2026-04-27 14:32:15</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">传感器数据上报状态</div><div class="ant-descriptions-value">正常上报(10Hz)</div><div class="ant-descriptions-label">定位精度</div><div class="ant-descriptions-value">正常</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">数据完整性</div><div class="ant-descriptions-value">8项指标全正常</div><div class="ant-descriptions-label">定位精度</div><div class="ant-descriptions-value">12项指标全正常</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">传感器类型</div><div class="ant-descriptions-value">激光雷达、毫米波雷达、视觉相机等(共12类)</div><div class="ant-descriptions-label">定位方式</div><div class="ant-descriptions-value">组合导航</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">数据传输方式</div><div class="ant-descriptions-value">加密传输</div><div class="ant-descriptions-label">数据完整性校验</div><div class="ant-descriptions-value">100%</div></div>' +
+    '</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openDetail_mileage(){
+  openModal('里程统计详情 - 鄂F·A001',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆号牌/VIN</div><div class="ant-descriptions-value">鄂F·A001</div><div class="ant-descriptions-label">历史总里程</div><div class="ant-descriptions-value">2,350 km</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">当日累计里程</div><div class="ant-descriptions-value">86.5 km</div><div class="ant-descriptions-label">自动驾驶里程</div><div class="ant-descriptions-value">72.3 km (83.6%)</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">人工驾驶里程</div><div class="ant-descriptions-value">14.2 km (16.4%)</div><div class="ant-descriptions-label">历史总测试里程</div><div class="ant-descriptions-value">15,230 km</div></div>' +
+    '</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openDetail_battery(){
+  openModal('电池状态监测详情 - 鄂F·A001',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆号牌/VIN</div><div class="ant-descriptions-value">鄂F·A001</div><div class="ant-descriptions-label">SOC</div><div class="ant-descriptions-value">78%</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">SOH</div><div class="ant-descriptions-value">96%</div><div class="ant-descriptions-label">电池温度(最高值)</div><div class="ant-descriptions-value">32℃</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">总电压</div><div class="ant-descriptions-value">385 V</div><div class="ant-descriptions-label">电流</div><div class="ant-descriptions-value">-15.2 A (放电中)</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">充电状态</div><div class="ant-descriptions-value">放电中</div><div class="ant-descriptions-label">剩余续航</div><div class="ant-descriptions-value">328km</div></div>' +
+    '</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openDetail_fault(){
+  openModal('车辆故障告警详情 - 鄂F·D010',
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆号牌/VIN</div><div class="ant-descriptions-value">鄂F·D010</div><div class="ant-descriptions-label">故障码</div><div class="ant-descriptions-value">P0700</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">故障描述</div><div class="ant-descriptions-value">控制器局域网通信丢失(可能涉及CAN总线断连或网关故障)</div><div class="ant-descriptions-label">故障来源</div><div class="ant-descriptions-value">2026-04-27 13:45</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">故障处理状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-warning">待处理</span></div><div class="ant-descriptions-label">故障级别</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-error">严重故障</span></div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">建议处理方案</div><div class="ant-descriptions-value">立即检查CAN总线连接及网关模块</div></div>' +
+    '</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

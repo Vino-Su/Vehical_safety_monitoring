@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试里程分析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    .stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+    .stat-card{background:#fff;border-radius:8px;padding:16px 18px;border:1px solid #f0f0f0;display:flex;flex-direction:column;gap:4px;}
+    .stat-card .stat-label{font-size:11px;color:#00000073;letter-spacing:0.5px;font-weight:500;}
+    .stat-card .stat-value{font-size:26px;font-weight:700;color:#000000d9;letter-spacing:-0.5px;}
+    .stat-card .stat-sub{font-size:11px;color:#00000073;}
+    .dimension-tabs{display:flex;gap:0;background:#fff;border-radius:8px;padding:4px;margin-bottom:16px;border:1px solid #f0f0f0;width:fit-content;}
+    .dimension-tab{padding:8px 22px;border:none;background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:#00000073;border-radius:6px;transition:0.2s;white-space:nowrap;}
+    .dimension-tab:hover{color:#1677ff;background:#e6f4ff;}
+    .dimension-tab.active{color:#fff;background:#1677ff;box-shadow:0 2px 6px rgba(22,119,255,0.35);font-weight:600;}
+    .table-wrap{overflow-x:auto;}
+    .table-wrap table{width:100%;border-collapse:collapse;}
+    .table-wrap th{background:#fafafa;padding:10px 12px;text-align:left;font-weight:600;color:#00000073;border-bottom:1px solid #f0f0f0;white-space:nowrap;cursor:pointer;user-select:none;}
+    .table-wrap th:hover{background:#f0f0f0;}
+    .table-wrap td{padding:9px 12px;border-bottom:1px solid #f5f5f5;color:#000000d9;font-size:13px;}
+    .table-wrap tbody tr:hover{background:#fafafa;}
+    .sort-icon{font-size:10px;color:#00000040;margin-left:3px;cursor:pointer;display:inline-block;line-height:1;}
+    .sort-icon.active{color:#1677ff;}
+    .chart-container{min-height:300px;}
+    @media (max-width:1200px){.stat-cards{grid-template-columns:repeat(2,1fr);}}
+    @media (max-width:768px){.stat-cards{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+
+      <div class="page-header"><h2>测试里程分析</h2></div>
+
+      <div class="query-row" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:12px 16px;background:#fafafa;border-radius:6px;margin-bottom:16px;border:1px solid #f0f0f0;">
+        <div>
+          <label style="font-size:11px;color:#00000073;display:block;margin-bottom:4px;">时间范围</label>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <input class="ant-input" type="date" value="2026-01-01" style="width:130px;font-size:12px;">
+            <span style="color:#00000073;">—</span>
+            <input class="ant-input" type="date" value="2026-05-08" style="width:130px;font-size:12px;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#00000073;display:block;margin-bottom:4px;">运行模式</label>
+          <select class="ant-select" style="min-width:110px;"><option>全部</option><option>自动驾驶</option><option>人工驾驶</option></select>
+        </div>
+        <button class="ant-btn ant-btn-primary" onclick="showToast('查询完成','#1677ff')">查询</button>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card" style="border-left:3px solid #1677ff;">
+          <span class="stat-label">总测试里程</span>
+          <span class="stat-value" id="statTotalMileage">186.5<span style="font-size:13px;font-weight:500;"> 万km</span></span>
+          <span class="stat-sub">统计周期内累计</span>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #52c41a;">
+          <span class="stat-label">总测试时长</span>
+          <span class="stat-value" id="statTotalDuration">4.8<span style="font-size:13px;font-weight:500;"> 万小时</span></span>
+          <span class="stat-sub">自动驾驶占比 72%</span>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #faad14;">
+          <span class="stat-label">测试车辆数</span>
+          <span class="stat-value" id="statVehicles">328<span style="font-size:13px;font-weight:500;"> 辆</span></span>
+          <span class="stat-sub">当前活跃测试</span>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #ff4d4f;">
+          <span class="stat-label">自动驾驶里程占比</span>
+          <span class="stat-value" style="color:#ff4d4f;" id="statAutoRatio">72.3<span style="font-size:13px;font-weight:500;">%</span></span>
+          <span class="stat-sub" style="color:#52c41a;">同比 ↑ 5.8%</span>
+        </div>
+      </div>
+
+      <div class="dimension-tabs" id="dimensionTabs">
+        <button class="dimension-tab active" data-dim="vehicle">单车</button>
+        <button class="dimension-tab" data-dim="company">企业</button>
+        <button class="dimension-tab" data-dim="district">区域</button>
+      </div>
+
+      <div id="panel-vehicle">
+        <div class="card" style="padding:18px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:14px;font-weight:600;color:#000000d9;">车辆里程列表</span>
+            <span style="font-weight:400;font-size:11px;color:#00000073;">点击表头可排序</span>
+          </div>
+          <div class="table-wrap">
+            <table id="vehicleTable">
+              <thead><tr>
+                <th data-sort="plate" onclick="handleSort('plate')">车牌号 <i class="fas fa-sort sort-icon" id="s-plate"></i></th>
+                <th data-sort="vin" onclick="handleSort('vin')">VIN码 <i class="fas fa-sort sort-icon" id="s-vin"></i></th>
+                <th data-sort="company" onclick="handleSort('company')">所属企业 <i class="fas fa-sort sort-icon" id="s-company"></i></th>
+                <th data-sort="mileage" onclick="handleSort('mileage')">测试里程(km) <i class="fas fa-sort sort-icon" id="s-mileage"></i></th>
+                <th data-sort="duration" onclick="handleSort('duration')">测试时长(h) <i class="fas fa-sort sort-icon" id="s-duration"></i></th>
+                <th data-sort="avgSpeed" onclick="handleSort('avgSpeed')">平均速度(km/h) <i class="fas fa-sort sort-icon" id="s-avgSpeed"></i></th>
+                <th data-sort="autoRatio" onclick="handleSort('autoRatio')">自动驾驶占比 <i class="fas fa-sort sort-icon" id="s-autoRatio"></i></th>
+                <th>操作</th>
+              </tr></thead>
+              <tbody id="vehicleTbody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px;font-size:12px;">
+            <span>共 <b id="vTotal">0</b> 条</span>
+            <select class="ant-select" id="vPageSize" style="width:64px;height:28px;font-size:12px;" onchange="changePageSize(this.value)">
+              <option value="10" selected>10</option><option value="20">20</option><option value="50">50</option>
+            </select>
+            <span style="color:#00000073;font-size:12px;">条/页</span>
+            <button class="ant-btn" style="padding:0 10px;font-size:11px;" id="vPrevBtn" onclick="goPage(-1)">上一页</button>
+            <span style="color:#00000073;">第 <b id="vCurr">1</b> / <b id="vTotalPage">1</b> 页</span>
+            <button class="ant-btn" style="padding:0 10px;font-size:11px;" id="vNextBtn" onclick="goPage(1)">下一页</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-company" style="display:none;">
+        <div class="card" style="padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:10px;">企业总里程对比</div>
+          <div class="chart-container" id="chartCompanyBar"></div>
+        </div>
+      </div>
+
+      <div id="panel-district" style="display:none;">
+        <div class="card" style="padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:12px;">区域里程统计</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>行政区域</th><th>测试里程(万km)</th><th>占比</th><th>车辆数</th><th>里程密度</th></tr></thead>
+              <tbody>
+                <tr><td><strong>樊城区</strong></td><td><strong>68.5</strong></td><td>36.7%</td><td>118</td><td><span class="ant-tag ant-tag-error">高</span></td></tr>
+                <tr><td><strong>襄城区</strong></td><td><strong>52.3</strong></td><td>28.0%</td><td>92</td><td><span class="ant-tag ant-tag-warning">中高</span></td></tr>
+                <tr><td><strong>襄州区</strong></td><td><strong>35.6</strong></td><td>19.1%</td><td>65</td><td><span class="ant-tag ant-tag-warning">中</span></td></tr>
+                <tr><td><strong>南漳县</strong></td><td><strong>20.2</strong></td><td>10.8%</td><td>35</td><td><span class="ant-tag ant-tag-processing">中低</span></td></tr>
+                <tr><td><strong>谷城县</strong></td><td><strong>9.9</strong></td><td>5.3%</td><td>18</td><td><span class="ant-tag ant-tag-success">低</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:18px;margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:10px;">里程增长趋势</div>
+        <div class="chart-container" id="chartTrend" style="height:340px;"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="ant-modal-mask" id="drillModalMask" style="display:none!important;">
+  <div class="ant-modal wide">
+    <div class="ant-modal-header"><h3 id="drillModalTitle">企业车辆列表</h3><span class="ant-modal-close" onclick="closeDrillModal()">✕</span></div>
+    <div class="ant-modal-body" id="drillModalBody"></div>
+    <div class="ant-modal-footer"><button class="ant-btn" onclick="closeDrillModal()">关闭</button></div>
+  </div>
+</div>
+
+<script>
+const PAGE_ID='mileage-analysis';
+
+const companies=['襄阳智行科技','汉江出行','顺捷科技','东风出行','百度Apollo','滴滴自动驾驶','小马智行','文远知行','AutoX','元戎启行'];
+const plates=['鄂F·A1234','鄂F·B5678','鄂F·C3456','鄂F·D7890','鄂F·E9012','鄂F·F4567','鄂F·G8901','鄂F·H2345','鄂F·I6789','鄂F·J0123','鄂F·K3456','鄂F·L7890','鄂F·M1234','鄂F·N5678','鄂F·O9012'];
+const vins=['LSVAA4189N2000001','LSVAA4189N2000002','LSVAA4189N2000003','LSVAA4189N2000004','LSVAA4189N2000005','LSVAA4189N2000006','LSVAA4189N2000007','LSVAA4189N2000008','LSVAA4189N2000009','LSVAA4189N2000010','LSVAA4189N2000011','LSVAA4189N2000012','LSVAA4189N2000013','LSVAA4189N2000014','LSVAA4189N2000015'];
+
+function randomEl(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+var allVehicleData=[];
+for(var i=0;i<328;i++){
+  var idx=Math.floor(Math.random()*plates.length);
+  var m=Math.floor(800+Math.random()*15000);
+  var dur=Math.floor(m/(25+Math.random()*30));
+  var sp=+(m/dur).toFixed(1);
+  var auto=m*(0.5+Math.random()*0.45);
+  allVehicleData.push({plate:plates[idx],vin:vins[idx],company:randomEl(companies),mileage:m,duration:dur,avgSpeed:sp,autoRatio:+(auto/m*100).toFixed(1)});
+}
+
+var vCurrentPage=1,vPageSize=10,vSortField='mileage',vSortOrder='desc';
+var currentDim='vehicle';
+var chartInst={};
+
+function sortData(data,field,order){
+  return data.slice().sort(function(a,b){
+    var va=a[field], vb=b[field];
+    if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}
+    if(va<vb)return order==='asc'?-1:1;
+    if(va>vb)return order==='asc'?1:-1;
+    return 0;
+  });
+}
+
+function updateSortIcons(){
+  var icons=document.querySelectorAll('#vehicleTable .sort-icon');
+  icons.forEach(function(ic){ic.className='fas fa-sort sort-icon';});
+  if(vSortField){
+    var el=document.getElementById('s-'+vSortField);
+    if(el)el.className='fas fa-sort-'+(vSortOrder==='asc'?'up':'down')+' sort-icon active';
+  }
+}
+
+function handleSort(field){
+  if(vSortField===field){vSortOrder=vSortOrder==='asc'?'desc':'asc';}
+  else{vSortField=field;vSortOrder='desc';}
+  updateSortIcons();
+  vCurrentPage=1;
+  renderVehicleTable();
+}
+
+function changePageSize(val){
+  vPageSize=parseInt(val);vCurrentPage=1;renderVehicleTable();
+}
+
+function goPage(dir){
+  var total=Math.ceil(allVehicleData.length/vPageSize);
+  var np=vCurrentPage+dir;
+  if(np<1||np>total)return;
+  vCurrentPage=np;renderVehicleTable();
+}
+
+function renderVehicleTable(){
+  var sorted=sortData(allVehicleData,vSortField,vSortOrder);
+  var start=(vCurrentPage-1)*vPageSize;
+  var end=Math.min(start+vPageSize,sorted.length);
+  var pageData=sorted.slice(start,end);
+  var html=pageData.map(function(d){
+    var ratioTag=d.autoRatio>=80?'<span class="ant-tag ant-tag-success">'+d.autoRatio+'%</span>':d.autoRatio>=60?'<span class="ant-tag ant-tag-processing">'+d.autoRatio+'%</span>':'<span class="ant-tag ant-tag-warning">'+d.autoRatio+'%</span>';
+    return '<tr><td><strong>'+d.plate+'</strong></td><td style="font-size:11px;">'+d.vin+'</td><td>'+d.company+'</td><td>'+d.mileage.toLocaleString()+' km</td><td>'+d.duration.toLocaleString()+' h</td><td>'+d.avgSpeed+' km/h</td><td>'+ratioTag+'</td><td><button class="ant-btn-link" onclick="showDetail(\''+d.plate+'\',\''+d.vin+'\',\''+d.company+'\','+d.mileage+','+d.duration+','+d.avgSpeed+','+d.autoRatio+')">详情</button></td></tr>';
+  }).join('');
+  document.getElementById('vehicleTbody').innerHTML=html;
+  document.getElementById('vTotal').innerText=sorted.length;
+  document.getElementById('vCurr').innerText=vCurrentPage;
+  document.getElementById('vTotalPage').innerText=Math.ceil(sorted.length/vPageSize);
+}
+
+function showDetail(plate,vin,company,mileage,duration,avgSpeed,autoRatio){
+  document.getElementById('drillModalTitle').innerText='车辆详情 - '+plate;
+  document.getElementById('drillModalBody').innerHTML=
+    '<div class="ant-descriptions">'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车牌号</div><div class="ant-descriptions-value"><strong>'+plate+'</strong></div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">VIN码</div><div class="ant-descriptions-value">'+vin+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+company+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">测试里程</div><div class="ant-descriptions-value">'+mileage.toLocaleString()+' km</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">测试时长</div><div class="ant-descriptions-value">'+duration.toLocaleString()+' h</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">平均速度</div><div class="ant-descriptions-value">'+avgSpeed+' km/h</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">自动驾驶占比</div><div class="ant-descriptions-value">'+autoRatio+'%</div></div>'+
+    '</div>';
+  document.getElementById('drillModalMask').style.setProperty('display','flex','important');
+}
+
+function closeDrillModal(){
+  document.getElementById('drillModalMask').style.setProperty('display','none','important');
+}
+
+function initChart(id){
+  var dom=document.getElementById(id);
+  if(!dom)return null;
+  if(chartInst[id])chartInst[id].dispose();
+  var chart=echarts.init(dom);
+  chartInst[id]=chart;
+  return chart;
+}
+
+function renderCompanyBar(){
+  var chart=initChart('chartCompanyBar');
+  var data=companies.map(function(c){return{name:c,value:Math.floor(15000+Math.random()*60000)};}).sort(function(a,b){return b.value-a.value;});
+  chart.setOption({
+    tooltip:{trigger:'axis',formatter:function(p){return'<b>'+p[0].name+'</b><br/>总里程：'+p[0].value.toLocaleString()+' km';}},
+    grid:{left:110,right:60,top:10,bottom:20},
+    yAxis:{type:'category',data:data.map(function(d){return d.name;}).reverse(),inverse:true,axisLabel:{fontSize:11}},
+    xAxis:{type:'value',name:'里程(km)',axisLabel:{formatter:function(v){return(v/10000).toFixed(1)+'万';}}},
+    series:[{type:'bar',data:data.map(function(d){return d.value;}).reverse(),barWidth:'55%',itemStyle:{color:'#1677ff',borderRadius:[0,4,4,0]},label:{show:true,position:'right',fontSize:10,formatter:function(p){return(p.value/10000).toFixed(1)+'万km'}}}]
+  });
+  chart.off('click');
+  chart.on('click',function(params){
+    if(params.componentType==='series')openDrillModal(params.name);
+  });
+}
+
+function openDrillModal(companyName){
+  var vehicles=allVehicleData.filter(function(v){return v.company===companyName;});
+  var totalMileage=vehicles.reduce(function(s,v){return s+v.mileage;},0);
+  var html='<p style="margin-bottom:8px;">企业：<b>'+companyName+'</b> | 车辆数：<b>'+vehicles.length+'</b> 辆 | 总里程：<b>'+totalMileage.toLocaleString()+' km</b></p>'+
+    '<div class="table-wrap"><table><thead><tr><th>车牌号</th><th>VIN码</th><th>所属企业</th><th>测试里程(km)</th><th>测试时长(h)</th><th>自动驾驶占比</th></tr></thead>'+
+    '<tbody>'+vehicles.slice(0,10).map(function(v){
+      return '<tr><td><strong>'+v.plate+'</strong></td><td style="font-size:11px;">'+v.vin+'</td><td>'+v.company+'</td><td>'+v.mileage.toLocaleString()+'</td><td>'+v.duration.toLocaleString()+'</td><td>'+v.autoRatio+'%</td></tr>';
+    }).join('')+'</tbody></table></div>'+
+    (vehicles.length>10?'<p style="margin-top:8px;color:#00000073;font-size:11px;">仅展示前10条，共'+vehicles.length+'条记录</p>':'');
+  document.getElementById('drillModalTitle').innerText=companyName+' - 车辆列表';
+  document.getElementById('drillModalBody').innerHTML=html;
+  document.getElementById('drillModalMask').style.setProperty('display','flex','important');
+}
+
+function renderTrendChart(){
+  var chart=initChart('chartTrend');
+  var months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var seriesData;
+  if(currentDim==='company'){
+    seriesData=companies.slice(0,5).map(function(c){
+      return{name:c,type:'line',data:Array.from({length:12},function(){return Math.floor(8000+Math.random()*25000)}),smooth:true};
+    });
+  }else if(currentDim==='district'){
+    var districts=['樊城区','襄城区','襄州区','南漳县','谷城县'];
+    seriesData=districts.map(function(d){
+      return{name:d,type:'line',data:Array.from({length:12},function(){return Math.floor(5000+Math.random()*30000)}),smooth:true};
+    });
+  }else{
+    seriesData=[{name:'总里程增量',type:'line',data:[12800,13500,14200,15500,16800,17200,18000,18500,17800,17000,16500,16000],smooth:true,lineStyle:{width:2.5,color:'#1677ff'},areaStyle:{color:'rgba(22,119,255,0.12)'}}];
+  }
+  chart.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{bottom:0,textStyle:{fontSize:10}},
+    grid:{left:55,right:25,top:15,bottom:40},
+    xAxis:{type:'category',data:months},
+    yAxis:{type:'value',name:'里程增量(km)',axisLabel:{formatter:function(v){return(v/10000).toFixed(1)+'万';}}},
+    series:seriesData
+  });
+}
+
+function showToast(msg,bg){
+  var t=document.createElement('div');
+  t.innerText=msg;
+  t.style.cssText='position:fixed;bottom:20px;right:20px;background:'+(bg||'#1677ff')+';color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+  document.body.appendChild(t);
+  setTimeout(function(){t.remove();},1500);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  renderVehicleTable();
+  updateSortIcons();
+  // switch tabs
+  var dimTabs=document.querySelectorAll('.dimension-tab');
+  dimTabs.forEach(function(tab){
+    tab.addEventListener('click',function(){
+      dimTabs.forEach(function(t){t.classList.remove('active');});
+      this.classList.add('active');
+      currentDim=this.dataset.dim;
+      document.getElementById('panel-vehicle').style.display=currentDim==='vehicle'?'':'none';
+      document.getElementById('panel-company').style.display=currentDim==='company'?'':'none';
+      document.getElementById('panel-district').style.display=currentDim==='district'?'':'none';
+      if(currentDim==='company'){renderCompanyBar();setTimeout(function(){if(chartInst['chartCompanyBar'])chartInst['chartCompanyBar'].resize();},150);}
+      renderTrendChart();
+    });
+  });
+  renderCompanyBar();
+  renderTrendChart();
+});
+
+window.addEventListener('resize',function(){
+  Object.values(chartInst).forEach(function(c){if(c&&!c.isDisposed())c.resize();});
+});
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

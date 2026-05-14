@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>违法事故统计 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-[#f0f2f5]" style="padding:24px">
+      <div class="page-header"><h2>违法事故统计</h2></div>
+
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>开始日期</label><input class="ant-input" type="date" id="startDate" value="2026-04-01" style="width:150px"></div>
+          <div class="filter-item"><label>结束日期</label><input class="ant-input" type="date" id="endDate" value="2026-05-08" style="width:150px"></div>
+          <div class="filter-item"><label>行政区域</label><select id="filterDistrict" class="ant-input" style="width:120px"><option value="all">全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option></select></div>
+          <div class="filter-item"><label>事故类型</label><select id="filterAccidentType" class="ant-input" style="width:120px"><option value="all">全部</option><option>碰撞</option><option>刮擦</option><option>追尾</option><option>行人冲突</option></select></div>
+          <div class="filter-item"><label>严重程度</label><select id="filterSeverity" class="ant-input" style="width:120px"><option value="all">全部</option><option>死亡</option><option>重伤</option><option>轻伤</option><option>无伤亡</option></select></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="applyFilters()">查询</button><button class="ant-btn" onclick="exportExcel()">导出Excel</button></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-4 mb-4">
+        <div class="stat-card"><div class="stat-icon" style="background:#fff2f0;color:#f5222d">⚠</div><div class="stat-info"><div class="stat-value" id="totalAccidents">247</div><div class="stat-label">事故总数</div><div class="text-xs text-[#00000040]">统计周期内累计</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fff7e6;color:#fa8c16">📋</div><div class="stat-info"><div class="stat-value" id="reportedCount">86</div><div class="stat-label">已上报</div><div class="text-xs text-[#00000040]" id="reportedPct">占比 34.8%</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#e6f4ff;color:#1677ff">📄</div><div class="stat-info"><div class="stat-value" id="trafficReportCount">112</div><div class="stat-label">已提交交通事故报告</div><div class="text-xs text-[#00000040]" id="trafficReportPct">占比 45.3%</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#f6ffed;color:#52c41a">✓</div><div class="stat-info"><div class="stat-value" id="analysisReportCount">49</div><div class="stat-label">已提交分析报告</div><div class="text-xs text-[#00000040]" id="analysisReportPct">占比 19.9%</div></div></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="card p-4">
+          <div class="text-sm font-semibold text-[#000000d9] mb-3">事故类型分布</div>
+          <div id="chartAccidentTypePie" style="height:320px;width:100%"></div>
+        </div>
+        <div class="card p-4">
+          <div class="text-sm font-semibold text-[#000000d9] mb-3">行政区域事故分布</div>
+          <div id="chartRegionBar" style="height:320px;width:100%"></div>
+        </div>
+      </div>
+
+      <div class="card p-4 mb-4">
+        <div class="text-sm font-semibold text-[#000000d9] mb-3">事故趋势</div>
+        <div id="chartTrend" style="height:360px;width:100%"></div>
+      </div>
+
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-[#000000d9] mb-3">事故列表</div>
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th>事故编号</th><th>时间</th><th>地点</th><th>事故类型</th><th>严重程度</th><th>车牌号</th><th>VIN码</th><th>所属企业</th><th>事故分类</th><th>操作</th></tr></thead>
+            <tbody id="accidentTableBody"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-1 py-3">
+          <span class="text-sm text-[#00000073]">共 <b id="totalCount">247</b> 条</span>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-sm text-[#00000073]">
+              <span>每页显示</span>
+              <select id="pageSizeSelect" class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px">
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+              <span>条</span>
+            </div>
+            <div class="ant-pagination">
+              <span class="page-item" id="prevBtn">&lt;</span>
+              <span class="page-item active" id="currPageDisplay">1</span>
+              <span class="page-item" id="nextBtn">&gt;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="ant-modal-mask" id="modalMask" style="display:none!important">
+  <div class="ant-modal wide">
+    <div class="ant-modal-header">
+      <h3 id="modalTitle">事故详情</h3>
+      <span class="ant-modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="ant-modal-body" id="modalBody"></div>
+    <div class="ant-modal-footer">
+      <button class="ant-btn" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../common.js"></script>
+<script>
+const PAGE_ID = 'violation-stats';
+
+(function() {
+  const accidentTypes = ['碰撞', '刮擦', '追尾', '行人冲突', '侧翻'];
+  const severityLevels = ['死亡', '重伤', '轻伤', '无伤亡'];
+  const categories = ['已上报', '已提交交通事故报告', '已提交分析报告'];
+  const companies = ['襄阳智行科技有限公司', '汉江出行', '顺捷科技', '东风汽车股份有限公司', '百度Apollo', '滴滴自动驾驶', '小马智行'];
+  const plates = ['鄂F·A1234', '鄂F·B5678', '鄂F·C3456', '鄂F·D7890', '鄂F·E9012', '鄂F·F4567', '鄂F·G8901', '鄂F·H2345', '鄂F·I6789', '鄂F·J0123'];
+  const vins = ['LSVAA4189N2000001','LSVAA4189N2000002','LSVAA4189N2000003','LSVAA4189N2000004','LSVAA4189N2000005','LSVAA4189N2000006','LSVAA4189N2000007','LSVAA4189N2000008','LSVAA4189N2000009','LSVAA4189N2000010'];
+  const locations = ['长虹路与建华路交叉口','檀溪路与铁佛寺路交叉口','航空路与金富士路交叉口','人民路天元四季城前','建设路与银城大道交叉口','金源路中段','卧龙大道与中原路交叉口','大庆路与人民路交叉口','环城南路与檀溪路交叉口','前进路与长征路交叉口'];
+  const districts = ['樊城区', '襄城区', '襄州区', '南漳县', '谷城县'];
+
+  function randomEl(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function generateAccidents(count) {
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+      const date = new Date(2026, 3, 1);
+      date.setDate(date.getDate() + Math.floor(Math.random() * 38));
+      date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), Math.floor(Math.random() * 60));
+      const accidentType = randomEl(accidentTypes);
+      const severity = randomEl(severityLevels);
+      const company = randomEl(companies);
+      const plateIdx = Math.floor(Math.random() * plates.length);
+      const category = randomEl(categories);
+      arr.push({
+        id: 'ACC-2026-' + String(i + 1).padStart(4, '0'),
+        time: date.toISOString().replace('T', ' ').substring(0, 19),
+        location: randomEl(locations),
+        accidentType: accidentType,
+        severity: severity,
+        plate: plates[plateIdx],
+        vin: vins[plateIdx],
+        company: company,
+        category: category,
+        district: randomEl(districts),
+        casualties: severity === '死亡' ? '死亡1人' : severity === '重伤' ? '重伤1人' : severity === '轻伤' ? '轻伤1-2人' : '无伤亡',
+        description: '车辆在' + randomEl(locations) + '发生' + accidentType + '事故。'
+      });
+    }
+    arr.sort((a, b) => b.time.localeCompare(a.time));
+    return arr;
+  }
+
+  const allAccidents = generateAccidents(247);
+  let currentPage = 1;
+  let pageSize = 10;
+  let filteredAccidents = [...allAccidents];
+
+  window.applyFilters = function() {
+    const district = document.getElementById('filterDistrict').value;
+    const accidentType = document.getElementById('filterAccidentType').value;
+    const severity = document.getElementById('filterSeverity').value;
+    filteredAccidents = allAccidents.filter(a => {
+      if (district !== 'all' && a.district !== district) return false;
+      if (accidentType !== 'all' && a.accidentType !== accidentType) return false;
+      if (severity !== 'all' && a.severity !== severity) return false;
+      return true;
+    });
+    updateStats();
+    currentPage = 1;
+    renderTable(1);
+    updateCharts();
+  };
+
+  function updateStats() {
+    const total = filteredAccidents.length;
+    const reported = filteredAccidents.filter(a => a.category === '已上报').length;
+    const trafficReport = filteredAccidents.filter(a => a.category === '已提交交通事故报告').length;
+    const analysisReport = filteredAccidents.filter(a => a.category === '已提交分析报告').length;
+    document.getElementById('totalAccidents').textContent = total;
+    document.getElementById('reportedCount').textContent = reported;
+    document.getElementById('trafficReportCount').textContent = trafficReport;
+    document.getElementById('analysisReportCount').textContent = analysisReport;
+    document.getElementById('reportedPct').textContent = total ? '占比 ' + (reported / total * 100).toFixed(1) + '%' : '占比 0%';
+    document.getElementById('trafficReportPct').textContent = total ? '占比 ' + (trafficReport / total * 100).toFixed(1) + '%' : '占比 0%';
+    document.getElementById('analysisReportPct').textContent = total ? '占比 ' + (analysisReport / total * 100).toFixed(1) + '%' : '占比 0%';
+  }
+
+  window.exportExcel = function() { showToast('导出成功'); };
+
+  function showToast(msg) {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:14px;border-left:3px solid #1677ff;';
+    t.textContent = msg; document.body.appendChild(t);
+    setTimeout(function(){t.style.opacity='0';t.style.transition='0.3s';setTimeout(function(){t.remove()},300)},2000);
+  }
+
+  function severityTag(s) {
+    if(s==='死亡')return 'ant-tag ant-tag-error';
+    if(s==='重伤')return 'ant-tag ant-tag-warning';
+    if(s==='轻伤')return 'ant-tag ant-tag-processing';
+    return 'ant-tag ant-tag-success';
+  }
+
+  function typeTag(t) {
+    if(t==='追尾'||t==='碰撞')return 'ant-tag ant-tag-error';
+    if(t==='行人冲突')return 'ant-tag ant-tag-warning';
+    return 'ant-tag ant-tag-processing';
+  }
+
+  function categoryTag(c) {
+    if(c==='已上报')return 'ant-tag ant-tag-warning';
+    if(c==='已提交交通事故报告')return 'ant-tag ant-tag-processing';
+    return 'ant-tag ant-tag-success';
+  }
+
+  function renderTable(page) {
+    const tbody = document.getElementById('accidentTableBody');
+    const start = (page - 1) * pageSize;
+    const end = Math.min(start + pageSize, filteredAccidents.length);
+    const pageData = filteredAccidents.slice(start, end);
+    tbody.innerHTML = pageData.map(a => {
+      return '<tr onclick="openDetail(\'' + a.id + '\')" style="cursor:pointer">' +
+        '<td><b>' + a.id + '</b></td>' +
+        '<td>' + a.time + '</td>' +
+        '<td>' + a.location + '</td>' +
+        '<td><span class="' + typeTag(a.accidentType) + '">' + a.accidentType + '</span></td>' +
+        '<td><span class="' + severityTag(a.severity) + '">' + a.severity + '</span></td>' +
+        '<td>' + a.plate + '</td>' +
+        '<td style="font-family:monospace;font-size:11px">' + a.vin + '</td>' +
+        '<td>' + a.company + '</td>' +
+        '<td><span class="' + categoryTag(a.category) + '">' + a.category + '</span></td>' +
+        '<td><button class="ant-btn-link" onclick="event.stopPropagation();openDetail(\'' + a.id + '\')">详情</button></td>' +
+        '</tr>';
+    }).join('');
+    document.getElementById('totalCount').textContent = filteredAccidents.length;
+    updatePagination(page);
+  }
+
+  function updatePagination(page) {
+    const totalPages = Math.ceil(filteredAccidents.length / pageSize) || 1;
+    document.getElementById('currPageDisplay').textContent = page;
+    document.getElementById('currPageDisplay').className = 'page-item active';
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', function() {
+    if (currentPage > 1) { currentPage--; renderTable(currentPage); }
+  });
+  document.getElementById('nextBtn').addEventListener('click', function() {
+    const totalPages = Math.ceil(filteredAccidents.length / pageSize);
+    if (currentPage < totalPages) { currentPage++; renderTable(currentPage); }
+  });
+  document.getElementById('pageSizeSelect').addEventListener('change', function() {
+    pageSize = parseInt(this.value);
+    currentPage = 1;
+    renderTable(currentPage);
+  });
+
+  window.openDetail = function(id) {
+    const a = filteredAccidents.find(function(item) { return item.id === id; }) || filteredAccidents[0];
+    var html = '<div class="grid grid-cols-2 gap-2">' +
+      '<div><div class="text-xs text-[#00000073]">事故编号</div><div class="text-sm font-semibold text-[#000000d9]">' + a.id + '</div></div>' +
+      '<div><div class="text-xs text-[#00000073]">发生时间</div><div class="text-sm font-semibold text-[#000000d9]">' + a.time + '</div></div>' +
+      '<div><div class="text-xs text-[#00000073]">地点</div><div class="text-sm font-semibold text-[#000000d9]">' + a.location + '</div></div>' +
+      '<div><div class="text-xs text-[#00000073]">事故类型</div><div class="text-sm"><span class="' + typeTag(a.accidentType) + '">' + a.accidentType + '</span></div></div>' +
+      '<div><div class="text-xs text-[#00000073]">严重程度</div><div class="text-sm"><span class="' + severityTag(a.severity) + '">' + a.severity + '</span></div></div>' +
+      '<div><div class="text-xs text-[#00000073]">车牌号</div><div class="text-sm font-semibold text-[#000000d9]">' + a.plate + '</div></div>' +
+      '<div><div class="text-xs text-[#00000073]">VIN码</div><div class="text-sm font-semibold text-[#000000d9]" style="font-family:monospace">' + a.vin + '</div></div>' +
+      '<div><div class="text-xs text-[#00000073]">所属企业</div><div class="text-sm font-semibold text-[#000000d9]">' + a.company + '</div></div>' +
+      '<div><div class="text-xs text-[#00000073]">事故分类</div><div class="text-sm"><span class="' + categoryTag(a.category) + '">' + a.category + '</span></div></div>' +
+      '<div><div class="text-xs text-[#00000073]">伤亡情况</div><div class="text-sm font-semibold text-[#000000d9]">' + a.casualties + '</div></div>' +
+      '<div class="col-span-2"><div class="text-xs text-[#00000073]">事故描述</div><div class="text-sm text-[#000000d9]">' + a.description + '</div></div>' +
+      '</div>' +
+      '<hr style="margin:14px 0;border-color:#f0f0f0">' +
+      '<div class="text-xs text-[#00000073]">关联信息：同车辆历史事故 <b>' + (Math.floor(Math.random()*5+1)) + '</b> 起 | 同路段历史事故 <b>' + (Math.floor(Math.random()*10+3)) + '</b> 起 | 同企业事故 <b>' + (Math.floor(Math.random()*30+10)) + '</b> 起</div>';
+    document.getElementById('modalTitle').textContent = '事故详情 - ' + a.id;
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalMask').style.setProperty('display', 'flex', 'important');
+  };
+
+  window.closeModal = function() { document.getElementById('modalMask').style.setProperty('display', 'none', 'important'); };
+  document.getElementById('modalMask').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+  // ========== ECharts ==========
+  var chartInstances = {};
+
+  function initChart(id) {
+    var dom = document.getElementById(id);
+    if (!dom) return null;
+    if (chartInstances[id]) chartInstances[id].dispose();
+    var chart = echarts.init(dom);
+    chartInstances[id] = chart;
+    return chart;
+  }
+
+  function updateCharts() {
+    var typeData = {};
+    filteredAccidents.forEach(function(a) { typeData[a.accidentType] = (typeData[a.accidentType] || 0) + 1; });
+    var typeColors = {'碰撞':'#f5222d','追尾':'#fa8c16','刮擦':'#1677ff','行人冲突':'#722ed1','侧翻':'#eb2f96'};
+    var pieData = Object.entries(typeData).map(function(e) { return { value: e[1], name: e[0], itemStyle: { color: typeColors[e[0]] || '#666' } }; });
+
+    var c1 = initChart('chartAccidentTypePie');
+    if (c1) {
+      c1.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}: {c} 起 ({d}%)' },
+        legend: { bottom: 0, textStyle: { fontSize: 11 } },
+        series: [{ type: 'pie', radius: ['50%', '75%'], center: ['50%', '46%'], itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 }, label: { formatter: '{b}\n{d}%', fontSize: 11 }, data: pieData }]
+      });
+    }
+
+    var c2 = initChart('chartTrend');
+    if (c2) {
+      var days = [], trendData = [];
+      for (var i = 29; i >= 0; i--) {
+        var d = new Date(2026, 4, 8);
+        d.setDate(d.getDate() - i);
+        days.push((d.getMonth() + 1) + '/' + d.getDate());
+        var dayStr = d.toISOString().substring(0, 10);
+        var count = filteredAccidents.filter(function(a) { return a.time.substring(0, 10) === dayStr; }).length;
+        trendData.push(count);
+      }
+      c2.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: 50, right: 20, top: 10, bottom: 35 },
+        xAxis: { type: 'category', data: days, axisLabel: { rotate: 0, fontSize: 9, interval: Math.floor(days.length / 12) } },
+        yAxis: { type: 'value', name: '事故数(起)' },
+        series: [{ type: 'line', data: trendData, lineStyle: { color: '#f5222d', width: 2 }, itemStyle: { color: '#f5222d' }, smooth: true, areaStyle: { color: 'rgba(245,34,45,0.1)' } }]
+      });
+    }
+
+    var c3 = initChart('chartRegionBar');
+    if (c3) {
+      var districtData = {};
+      filteredAccidents.forEach(function(a) { districtData[a.district] = (districtData[a.district] || 0) + 1; });
+      var districtOrder = ['樊城区', '襄城区', '襄州区', '南漳县', '谷城县'];
+      var barData = districtOrder.map(function(d) { return districtData[d] || 0; });
+      var colors = ['#f5222d', '#fa8c16', '#1677ff', '#52c41a', '#722ed1'];
+      c3.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: 50, right: 20, top: 10, bottom: 30 },
+        xAxis: { type: 'category', data: districtOrder, axisLabel: { fontSize: 11 } },
+        yAxis: { type: 'value', name: '事故数(起)' },
+        series: [{ type: 'bar', data: barData.map(function(v,i) { return { value: v, itemStyle: { color: colors[i], borderRadius: [4,4,0,0] } }; }), barWidth: '50%', label: { show: true, position: 'top', fontSize: 12, fontWeight: 600 } }]
+      });
+    }
+  }
+
+  function resizeAllCharts() {
+    Object.values(chartInstances).forEach(function(c) { if (c && !c.isDisposed()) c.resize(); });
+  }
+
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeAllCharts, 200);
+  });
+
+  renderTable(1);
+  updateStats();
+  updateCharts();
+})();
+</script>
+</body>
+</html>

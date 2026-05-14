@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>评估指标配置 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    .config-tab-content{display:none}
+    .config-tab-content.active{display:block}
+    .config-input{width:70px;height:28px;padding:0 8px;border:1px solid #d9d9d9;border-radius:4px;font-size:12px;text-align:center}
+    .config-input:focus{border-color:#1677ff;outline:none;box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+    .weight-row:hover{background:#fafafa}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>评估指标配置</h2></div>
+        
+      <div class="bg-white rounded-lg p-5 shadow-sm border border-[#f0f0f0]">
+        <div class="ant-tabs" id="configTabs">
+          <span class="ant-tab active" onclick="switchTab(this,'cfg0')">复杂度模型</span>
+          <span class="ant-tab" onclick="switchTab(this,'cfg1')">风险模型</span>
+          <span class="ant-tab" onclick="switchTab(this,'cfg2')">场景适配模型</span>
+          <span class="ant-tab" onclick="switchTab(this,'cfg3')">融合模型</span>
+          <span class="ant-tab" onclick="switchTab(this,'cfg4')">映射关系表</span>
+        </div>
+
+        <!-- Tab0: 复杂度模型 -->
+        <div class="config-tab-content active" id="cfg0">
+          <table class="ant-table">
+            <thead><tr><th style="width:200px">指标名称</th><th style="width:150px">权重(0-1)</th><th style="width:120px">当前值</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr class="weight-row"><td><strong>车道数</strong></td><td><input type="number" class="config-input" value="0.25" step="0.01" min="0" max="1" onchange="updateWeight('cl1',this.value)"></td><td id="cl1-val">0.25</td><td class="text-[#00000073]">道路车道数量对复杂度的影响权重</td></tr>
+              <tr class="weight-row"><td><strong>交叉口密度</strong></td><td><input type="number" class="config-input" value="0.25" step="0.01" min="0" max="1" onchange="updateWeight('cl2',this.value)"></td><td id="cl2-val">0.25</td><td class="text-[#00000073]">单位长度内交叉口数量权重</td></tr>
+              <tr class="weight-row"><td><strong>混合交通比例</strong></td><td><input type="number" class="config-input" value="0.20" step="0.01" min="0" max="1" onchange="updateWeight('cl3',this.value)"></td><td id="cl3-val">0.20</td><td class="text-[#00000073]">机非混行、人车混行比例权重</td></tr>
+              <tr class="weight-row"><td><strong>坡度/曲率</strong></td><td><input type="number" class="config-input" value="0.15" step="0.01" min="0" max="1" onchange="updateWeight('cl4',this.value)"></td><td id="cl4-val">0.15</td><td class="text-[#00000073]">道路纵坡与平面线形复杂度权重</td></tr>
+              <tr class="weight-row"><td><strong>信号灯完整度</strong></td><td><input type="number" class="config-input" value="0.15" step="0.01" min="0" max="1" onchange="updateWeight('cl5',this.value)"></td><td id="cl5-val">0.15</td><td class="text-[#00000073]">交通信号设施完善程度权重</td></tr>
+            </tbody>
+          </table>
+          <div class="mt-4 p-3 bg-[#fafafa] rounded-lg">
+            <p class="text-sm"><strong>分级阈值配置：</strong></p>
+            <p class="text-sm text-[#00000073] mt-2">
+              低复杂度 &lt; <input type="number" class="config-input" value="40"> 分，
+              中复杂度 <input type="number" class="config-input" value="40"> - <input type="number" class="config-input" value="69"> 分，
+              高复杂度 ≥ <input type="number" class="config-input" value="70"> 分
+            </p>
+          </div>
+        </div>
+
+        <!-- Tab1: 风险模型 -->
+        <div class="config-tab-content" id="cfg1">
+          <table class="ant-table">
+            <thead><tr><th style="width:200px">指标名称</th><th style="width:150px">权重(0-1)</th><th style="width:120px">当前值</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr class="weight-row"><td><strong>事故频率</strong></td><td><input type="number" class="config-input" value="0.35" step="0.01" min="0" max="1"></td><td>0.35</td><td class="text-[#00000073]">历史交通事故发生频率权重</td></tr>
+              <tr class="weight-row"><td><strong>事故严重度</strong></td><td><input type="number" class="config-input" value="0.35" step="0.01" min="0" max="1"></td><td>0.35</td><td class="text-[#00000073]">事故伤亡与财产损失程度权重</td></tr>
+              <tr class="weight-row"><td><strong>交通事件频率</strong></td><td><input type="number" class="config-input" value="0.20" step="0.01" min="0" max="1"></td><td>0.20</td><td class="text-[#00000073]">违章、拥堵等事件发生频率权重</td></tr>
+              <tr class="weight-row"><td><strong>流量修正系数</strong></td><td><input type="number" class="config-input" value="0.10" step="0.01" min="0" max="1"></td><td>0.10</td><td class="text-[#00000073]">交通流量对风险的影响修正</td></tr>
+            </tbody>
+          </table>
+          <div class="mt-4 p-3 bg-[#fafafa] rounded-lg">
+            <p class="text-sm"><strong>时间窗配置：</strong></p>
+            <p class="text-sm text-[#00000073] mt-2">使用近 <input type="number" class="config-input" value="6"> 个月内的历史数据进行风险评估</p>
+          </div>
+        </div>
+
+        <!-- Tab2: 场景适配模型 -->
+        <div class="config-tab-content" id="cfg2">
+          <table class="ant-table">
+            <thead><tr><th>场景名称</th><th>最低车道数</th><th>允许机非混行</th><th>最低照明等级</th><th>允许最大坡度</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td><strong>城区道路</strong></td><td><input type="number" class="config-input" value="4"></td><td><span class="ant-tag ant-tag-error">否</span></td><td><input type="number" class="config-input" value="2"></td><td><input type="text" class="config-input" value="8%" style="width:60px"></td><td><button class="ant-btn-link">编辑</button></td></tr>
+              <tr><td><strong>园区道路</strong></td><td><input type="number" class="config-input" value="2"></td><td><span class="ant-tag ant-tag-success">是</span></td><td><input type="number" class="config-input" value="1"></td><td><input type="text" class="config-input" value="12%" style="width:60px"></td><td><button class="ant-btn-link">编辑</button></td></tr>
+              <tr><td><strong>环卫作业</strong></td><td><input type="number" class="config-input" value="2"></td><td><span class="ant-tag ant-tag-success">是</span></td><td><input type="number" class="config-input" value="1"></td><td><input type="text" class="config-input" value="10%" style="width:60px"></td><td><button class="ant-btn-link">编辑</button></td></tr>
+              <tr><td><strong>物流配送</strong></td><td><input type="number" class="config-input" value="2"></td><td><span class="ant-tag ant-tag-error">否</span></td><td><input type="number" class="config-input" value="2"></td><td><input type="text" class="config-input" value="8%" style="width:60px"></td><td><button class="ant-btn-link">编辑</button></td></tr>
+              <tr><td><strong>公交运营</strong></td><td><input type="number" class="config-input" value="4"></td><td><span class="ant-tag ant-tag-error">否</span></td><td><input type="number" class="config-input" value="3"></td><td><input type="text" class="config-input" value="6%" style="width:60px"></td><td><button class="ant-btn-link">编辑</button></td></tr>
+            </tbody>
+          </table>
+          <div class="mt-4 p-3 bg-[#fafafa] rounded-lg">
+            <p class="text-sm"><strong>适配阈值：</strong><input type="number" class="config-input" value="60"> 分以上判定为 <span class="ant-tag ant-tag-success">适用</span></p>
+          </div>
+        </div>
+
+        <!-- Tab3: 融合模型 -->
+        <div class="config-tab-content" id="cfg3">
+          <div class="p-3 bg-[#fafafa] rounded-lg mb-4">
+            <p class="text-sm"><strong>子模型权重配置：</strong></p>
+            <p class="text-sm text-[#00000073] mt-2">
+              复杂度模型 <input type="number" class="config-input" value="0.33" step="0.01"> |
+              风险模型 <input type="number" class="config-input" value="0.34" step="0.01"> |
+              场景适配模型 <input type="number" class="config-input" value="0.33" step="0.01">
+            </p>
+          </div>
+          <table class="ant-table">
+            <thead><tr><th style="width:80px">优先级</th><th>条件描述</th><th>动作</th><th style="width:80px">状态</th><th style="width:80px">操作</th></tr></thead>
+            <tbody>
+              <tr><td><span class="ant-tag">1</span></td><td>风险等级 = 高</td><td><span class="ant-tag ant-tag-error">禁止开放</span></td><td><span class="ant-tag ant-tag-success">启用</span></td><td><button class="ant-btn-link">禁用</button></td></tr>
+              <tr><td><span class="ant-tag">2</span></td><td>复杂度 = 高 AND 风险 = 高</td><td><span class="ant-tag ant-tag-warning">限制开放</span></td><td><span class="ant-tag ant-tag-success">启用</span></td><td><button class="ant-btn-link">禁用</button></td></tr>
+              <tr><td><span class="ant-tag">3</span></td><td>复杂度 = 中</td><td><span class="ant-tag ant-tag-processing">条件开放</span></td><td><span class="ant-tag ant-tag-success">启用</span></td><td><button class="ant-btn-link">禁用</button></td></tr>
+              <tr><td><span class="ant-tag">4</span></td><td>风险 = 中 AND 场景适配 &lt; 60</td><td><span class="ant-tag ant-tag-warning">限制开放</span></td><td><span class="ant-tag ant-tag-default">禁用</span></td><td><button class="ant-btn-link">启用</button></td></tr>
+            </tbody>
+          </table>
+          <div class="mt-4 p-3 bg-[#fafafa] rounded-lg">
+            <p class="text-sm">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked class="ant-checkbox">
+                <strong>全局禁止条件：</strong>风险等级 = 高时直接判定为"禁止开放"
+              </label>
+            </p>
+          </div>
+          <button class="ant-btn mt-3" onclick="openAddRuleModal()">+ 添加规则</button>
+        </div>
+
+        <!-- Tab4: 映射关系表 -->
+        <div class="config-tab-content" id="cfg4">
+          <table class="ant-table">
+            <thead><tr><th style="width:120px">开放等级</th><th>适用自动驾驶等级</th><th>允许测试类型</th><th>限制时段</th><th>管控要求</th><th style="width:80px">操作</th></tr></thead>
+            <tbody>
+              <tr><td><span class="ant-tag ant-tag-success">完全开放</span></td><td>L2 / L3 / L4</td><td>载人、载货、环卫、物流</td><td>无限制</td><td>无特殊要求</td><td><button class="ant-btn-link" onclick="openMappingModal('完全开放')">编辑</button></td></tr>
+              <tr><td><span class="ant-tag ant-tag-processing">条件开放</span></td><td>L3 / L4</td><td>载货、环卫、物流</td><td>06:00-22:00</td><td>需额外提交安全评估</td><td><button class="ant-btn-link" onclick="openMappingModal('条件开放')">编辑</button></td></tr>
+              <tr><td><span class="ant-tag ant-tag-warning">限制开放</span></td><td>L4</td><td>环卫、物流</td><td>09:00-17:00</td><td>需安全员全程监控</td><td><button class="ant-btn-link" onclick="openMappingModal('限制开放')">编辑</button></td></tr>
+              <tr><td><span class="ant-tag ant-tag-error">禁止开放</span></td><td>---</td><td>---</td><td>---</td><td>禁止任何测试活动</td><td><button class="ant-btn-link" onclick="openMappingModal('禁止开放')">编辑</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-[#f0f0f0] flex justify-between items-center">
+          <p class="text-sm text-[#00000073]">当前配置版本：<strong>V3.2</strong> | 最后修改：2026-05-08 14:30</p>
+          <div class="flex gap-2">
+            <button class="ant-btn" onclick="resetConfig()">重置为默认</button>
+            <button class="ant-btn ant-btn-primary" onclick="saveConfig()">💾 保存配置</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='eval-config';
+
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  document.querySelectorAll('.config-tab-content').forEach(function(c){c.classList.remove('active')});
+  document.getElementById(tabId).classList.add('active');
+}
+
+function updateWeight(id, val) {
+  var el = document.getElementById(id + '-val');
+  if (el) el.textContent = parseFloat(val).toFixed(2);
+}
+
+function openMappingModal(level) {
+  openModal('编辑映射规则 - ' + level,
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>开放等级</div><div class="ant-form-control"><input class="ant-input" value="' + level + '" disabled></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>适用自动驾驶等级</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择(多选) <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>允许测试类型</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择(多选) <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">限制时段</div><div class="ant-form-control"><input class="ant-input" placeholder="如：06:00-22:00"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">管控要求</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="请输入管控要求"></textarea></div></div>',
+    { footer: '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">保存</button>' });
+}
+
+function openAddRuleModal() {
+  openModal('添加融合规则',
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>规则名称</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入规则名称"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>条件描述</div><div class="ant-form-control"><input class="ant-input" placeholder="如：风险等级=高 AND 复杂度=高"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>执行动作</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">优先级</div><div class="ant-form-control"><input class="ant-input" type="number" value="5" style="width:100px"></div></div>',
+    { footer: '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">添加</button>' });
+}
+
+function saveConfig() {
+  showToast('配置已保存，新版本号：V3.3');
+}
+
+function resetConfig() {
+  showToast('已重置为默认配置');
+}
+
+function showToast(msg) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:13px;border-left:3px solid #1677ff;';
+  t.textContent = '✅ ' + msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.style.opacity='0'; t.style.transition='0.3s'; setTimeout(function(){t.remove();},300); }, 2000);
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

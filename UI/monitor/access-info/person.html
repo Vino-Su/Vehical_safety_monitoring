@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人员信息查询 - 襄阳智行科技智能网联汽车监管平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>人员信息查询</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openAddModal()">+ 新增人员备案</button><button class="ant-btn">导出表格</button></div></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>姓名</label><input class="ant-input" placeholder="请输入驾驶员姓名"></div>
+          <div class="filter-item"><label>身份证号</label><input class="ant-input" placeholder="请输入身份证后几位"></div>
+          <div class="filter-item"><label>所属企业</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>驾照类型</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th><input type="checkbox" class="ant-checkbox"></th><th>姓名</th><th>性别</th><th>身份证号</th><th>所属企业</th><th>驾照类型</th><th>初次领证日期</th><th>有无严重交通违法行为</th><th>交通事故记录</th><th>登记时间</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>张伟</td><td>男</td><td>4206**********12</td><td>襄阳智行科技有限公司</td><td>A1</td><td>2009-05-20</td><td>无</td><td>无</td><td>2026-03-15</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal(0)">详情</button><button class="ant-btn-link" onclick="openAddModal(0)">编辑</button><button class="ant-btn-link danger">删除</button></td></tr>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>韩梅梅</td><td>女</td><td>4206**********34</td><td>上海蔚来汽车有限公司</td><td>A2</td><td>2014-08-12</td><td>无</td><td>无</td><td>2026-03-18</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal(1)">详情</button><button class="ant-btn-link" onclick="openAddModal(1)">编辑</button><button class="ant-btn-link danger">删除</button></td></tr>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>王小明</td><td>男</td><td>4206**********56</td><td>百度Apollo</td><td>B1</td><td>2017-03-25</td><td>无</td><td>无</td><td>2026-04-20</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal(2)">详情</button><button class="ant-btn-link" onclick="openAddModal(2)">编辑</button><button class="ant-btn-link danger">删除</button></td></tr>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>刘勇辉</td><td>男</td><td>4206**********78</td><td>襄阳智行科技示范应用服务运营分公司</td><td>C1</td><td>2005-11-03</td><td>无</td><td>无</td><td>2026-03-22</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal(3)">详情</button><button class="ant-btn-link" onclick="openAddModal(3)">编辑</button><button class="ant-btn-link danger">删除</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 2 条</span>
+          <div class="ant-pagination"><span class="page-item active">1</span><span class="page-item">2</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='person';
+const personData = [
+  {name:'张伟',gender:'男',idNumber:'4206**********12',company:'襄阳智行科技有限公司',licenseType:'A1',firstLicenseDate:'2009-05-20',illegalRecord:'无',accidentRecord:'无',familiarTest:true,masterMethod:true,emergencyCapability:true,contractFile:'劳动合同扫描件-张伟.pdf',trainingRecord:'培训记录-张伟.pdf',idCardFile:'身份证-张伟.pdf',driverLicenseFile:'驾驶证-张伟.pdf',regTime:'2026-03-15 10:30'},
+  {name:'韩梅梅',gender:'女',idNumber:'4206**********34',company:'上海蔚来汽车有限公司',licenseType:'A2',firstLicenseDate:'2014-08-12',illegalRecord:'无',accidentRecord:'无',familiarTest:true,masterMethod:true,emergencyCapability:true,contractFile:'劳动合同扫描件-韩梅梅.pdf',trainingRecord:'培训记录-韩梅梅.pdf',idCardFile:'身份证-韩梅梅.pdf',driverLicenseFile:'驾驶证-韩梅梅.pdf',regTime:'2026-03-18 14:20'},
+  {name:'王小明',gender:'男',idNumber:'4206**********56',company:'百度Apollo',licenseType:'B1',firstLicenseDate:'2017-03-25',illegalRecord:'无',accidentRecord:'无',familiarTest:true,masterMethod:true,emergencyCapability:true,contractFile:'劳动合同扫描件-王小明.pdf',trainingRecord:'培训记录-王小明.pdf',idCardFile:'身份证-王小明.pdf',driverLicenseFile:'驾驶证-王小明.pdf',regTime:'2026-04-20 09:15'},
+  {name:'刘勇辉',gender:'男',idNumber:'4206**********78',company:'襄阳智行科技示范应用服务运营分公司',licenseType:'C1',firstLicenseDate:'2005-11-03',illegalRecord:'无',accidentRecord:'无',familiarTest:true,masterMethod:true,emergencyCapability:true,contractFile:'劳动合同扫描件-刘勇辉.pdf',trainingRecord:'培训记录-刘勇辉.pdf',idCardFile:'身份证-刘勇辉.pdf',driverLicenseFile:'驾驶证-刘勇辉.pdf',regTime:'2026-03-22 16:45'}
+];
+function openAddModal(index){
+  const d = index!==undefined ? personData[index] : null;
+  openModal((d?'编辑':'新增')+'人员备案登记',
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>姓名</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入完整姓名" value="'+(d?d.name:'')+'"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>性别</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?d.gender:'请选择性别')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>身份证号</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入18位完整身份证号" value="'+(d?d.idNumber:'')+'"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>身份证附件</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">点击或拖拽文件上传</button><div class="text-xs text-[#00000040] mt-1">支持PDF/JPG/PNG格式，正反面扫描件</div>'+(d&&d.idCardFile?'<div class="text-xs text-[#1677ff] mt-1">已上传：'+d.idCardFile+'</div>':'')+'</div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>所属企业</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?d.company:'请选择所属企业')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>驾照类型</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?d.licenseType:'请选择驾照类型')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>机动车驾驶证附件</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">点击或拖拽文件上传</button><div class="text-xs text-[#00000040] mt-1">支持PDF/JPG/PNG格式</div>'+(d&&d.driverLicenseFile?'<div class="text-xs text-[#1677ff] mt-1">已上传：'+d.driverLicenseFile+'</div>':'')+'</div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">初次领证日期</div><div class="ant-form-control"><input class="ant-input" type="date" value="'+(d?d.firstLicenseDate:'')+'"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>有无严重交通违法行为</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?d.illegalRecord:'请选择是否有相关记录')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>有无交通事故记录</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?d.accidentRecord:'请选择是否有交通事故记录')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>是否熟悉自动驾驶功能测试评价规程</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?('是'):'请选择是否熟悉')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>是否掌握车辆道路测试操作方法</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?('是'):'请选择是否掌握')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>是否具备紧急状态下应急处置能力</div><div class="ant-form-control"><div class="ant-select" style="width:100%">'+(d?('是'):'请选择是否具备')+'<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>劳动合同或劳务合同信息</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">点击或拖拽文件上传</button><div class="text-xs text-[#00000040] mt-1">支持PDF/JPG/PNG格式</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">培训记录</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">点击或拖拽文件上传</button><div class="text-xs text-[#00000040] mt-1">支持PDF/JPG/PNG格式</div></div></div>',
+    {wide:true});
+}
+function openDetailModal(index){
+  const d = personData[index] || personData[0];
+  openModal('人员详情 - '+d.name,
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">姓名</div><div class="ant-descriptions-value">'+d.name+'</div><div class="ant-descriptions-label">性别</div><div class="ant-descriptions-value">'+d.gender+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">身份证号</div><div class="ant-descriptions-value">'+d.idNumber+'</div><div class="ant-descriptions-label">身份证附件</div><div class="ant-descriptions-value"><a href="#" class="text-[#1677ff]">'+d.idCardFile+'</a></div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+d.company+'</div><div class="ant-descriptions-label">驾照类型</div><div class="ant-descriptions-value">'+d.licenseType+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">机动车驾驶证附件</div><div class="ant-descriptions-value"><a href="#" class="text-[#1677ff]">'+d.driverLicenseFile+'</a></div><div class="ant-descriptions-label">初次领证日期</div><div class="ant-descriptions-value">'+d.firstLicenseDate+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">有无严重交通违法行为</div><div class="ant-descriptions-value">'+d.illegalRecord+'</div><div class="ant-descriptions-label">有无交通事故记录</div><div class="ant-descriptions-value">'+d.accidentRecord+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">是否熟悉自动驾驶功能测试评价规程</div><div class="ant-descriptions-value">'+(d.familiarTest?'是':'否')+'</div><div class="ant-descriptions-label">是否掌握车辆道路测试操作方法</div><div class="ant-descriptions-value">'+(d.masterMethod?'是':'否')+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">是否具备紧急状态下应急处置能力</div><div class="ant-descriptions-value">'+(d.emergencyCapability?'是':'否')+'</div><div class="ant-descriptions-label">劳动合同或劳务合同信息</div><div class="ant-descriptions-value"><a href="#" class="text-[#1677ff]">'+d.contractFile+'</a></div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">培训记录</div><div class="ant-descriptions-value"><a href="#" class="text-[#1677ff]">'+d.trainingRecord+'</a></div><div class="ant-descriptions-label">登记时间</div><div class="ant-descriptions-value">'+d.regTime+'</div></div>' +
+    '</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭详情</button>'});
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

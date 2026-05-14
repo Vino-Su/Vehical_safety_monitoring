@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信息发布管理 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    .rte-toolbar{display:flex;gap:2px;padding:6px 8px;background:#fafafa;border:1px solid #d9d9d9;border-bottom:none;border-radius:6px 6px 0 0;flex-wrap:wrap}
+    .rte-toolbar button{width:28px;height:28px;border:1px solid transparent;background:transparent;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#666;transition:all .15s}
+    .rte-toolbar button:hover{background:#e6f4ff;color:#1677ff;border-color:#bae0ff}
+    .rte-toolbar button.rte-active{background:#e6f4ff;color:#1677ff;border-color:#1677ff}
+    .rte-toolbar .rte-sep{width:1px;background:#d9d9d9;margin:0 4px}
+    .rte-editor{min-height:180px;max-height:400px;padding:10px 12px;border:1px solid #d9d9d9;border-radius:0 0 6px 6px;outline:none;overflow-y:auto;font-size:14px;line-height:1.7;color:#1f1f1f;background:#fff}
+    .rte-editor:focus{border-color:#1677ff;box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+    .rte-editor:empty:before{content:attr(data-placeholder);color:#bfbfbf;pointer-events:none}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>信息发布管理</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openCreateModal()">+ 新建信息发布</button></div></div>
+
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>标题关键词</label><input class="ant-input" placeholder="请输入标题关键词搜索"></div>
+          <div class="filter-item"><label>信息类型</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>发布状态</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+        </div>
+      </div>
+
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-all')">全部</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-draft')">草稿</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-pending')">待审核</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-published')">已发布</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-withdrawn')">已撤回</span>
+      </div>
+
+      <div id="tab-all">
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>编号</th><th>标题</th><th>信息类型</th><th>创建人</th><th>发布状态</th><th>创建时间</th><th>操作</th></tr></thead>
+              <tbody id="tbody-all"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]" id="count-all"></span>
+            <div class="ant-pagination"><span class="page-item">‹</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-draft" style="display:none">
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>编号</th><th>标题</th><th>信息类型</th><th>创建人</th><th>保存时间</th><th>操作</th></tr></thead>
+              <tbody id="tbody-draft"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3"><span class="text-sm text-[#00000073]" id="count-draft"></span><div class="ant-pagination"><span class="page-item active">1</span></div></div>
+        </div>
+      </div>
+
+      <div id="tab-pending" style="display:none">
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>编号</th><th>标题</th><th>信息类型</th><th>提交人</th><th>提交时间</th><th>操作</th></tr></thead>
+              <tbody id="tbody-pending"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3"><span class="text-sm text-[#00000073]" id="count-pending"></span><div class="ant-pagination"><span class="page-item active">1</span></div></div>
+        </div>
+      </div>
+
+      <div id="tab-published" style="display:none">
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>编号</th><th>标题</th><th>信息类型</th><th>发布人</th><th>发布时间</th><th>操作</th></tr></thead>
+              <tbody id="tbody-published"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3"><span class="text-sm text-[#00000073]" id="count-published"></span><div class="ant-pagination"><span class="page-item active">1</span></div></div>
+        </div>
+      </div>
+
+      <div id="tab-withdrawn" style="display:none">
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>编号</th><th>标题</th><th>信息类型</th><th>撤回人</th><th>撤回时间</th><th>操作</th></tr></thead>
+              <tbody id="tbody-withdrawn"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3"><span class="text-sm text-[#00000073]" id="count-withdrawn"></span><div class="ant-pagination"><span class="page-item active">1</span></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<script>
+var RTE_TPL='<div class="rte-toolbar"><button type="button" onclick="rteExec(\'bold\')" title="加粗"><b>B</b></button><button type="button" onclick="rteExec(\'italic\')" title="斜体"><i>I</i></button><button type="button" onclick="rteExec(\'underline\')" title="下划线"><u>U</u></button><span class="rte-sep"></span><button type="button" onclick="rteExec(\'formatBlock\',\'h3\')" title="标题">H</button><button type="button" onclick="rteExec(\'formatBlock\',\'p\')" title="正文">P</button><span class="rte-sep"></span><button type="button" onclick="rteExec(\'insertUnorderedList\')" title="无序列表">•</button><button type="button" onclick="rteExec(\'insertOrderedList\')" title="有序列表">1.</button></div><div class="rte-editor" contenteditable="true" data-placeholder="请输入正文内容..."></div>';
+function rteExec(cmd,val){document.execCommand(cmd,false,val||null);var sel=window.getSelection();if(sel.rangeCount>0){var ed=sel.anchorNode;while(ed&&!ed.classList.contains('rte-editor'))ed=ed.parentNode;if(ed)ed.focus();}}
+
+const PAGE_ID='notice';
+
+var publishData=[
+  {id:'INF20260427001',title:'关于开展2026年度智能网联汽车道路测试安全专项检查工作的通知',type:'公告公示',subType:'政策通知',scope:'全部企业',dept:'联席小组办公室',creator:'平台运营管理员',status:'已发布',createTime:'2026-04-26 14:00',publishTime:'2026-04-27 09:00',publisher:'平台运营管理员',content:'为加强智能网联汽车道路测试安全管理，保障公共交通安全，根据《智能网联汽车道路测试与示范应用管理规范》要求，决定开展2026年度安全专项检查工作。检查范围包括：测试车辆安全性能、自动驾驶系统运行状态、测试驾驶员资质、安全管理制度执行情况等。请各相关企业于2026年5月15日前完成自查并提交自查报告。'},
+  {id:'INF20260425001',title:'关于近期恶劣天气下自动驾驶测试注意事项的通知',type:'公告公示',subType:'安全预警',scope:'全部企业',dept:'安全管理办公室',creator:'安全管理员',status:'已发布',createTime:'2026-04-24 16:00',publishTime:'2026-04-25 16:00',publisher:'安全管理员',content:'根据气象部门预报，近期我市将出现持续强降雨天气，路面湿滑、能见度低，对自动驾驶系统传感器感知和决策能力构成较大挑战。请各测试企业注意：1.恶劣天气期间减少或暂停自动驾驶测试；2.必须测试时需配备安全员全程监控；3.加强传感器清洁维护；4.遇到异常情况立即切换人工驾驶模式。'},
+  {id:'INF20260420001',title:'襄阳市智能网联汽车道路测试与示范应用管理办法（修订版）',type:'公告公示',subType:'法规文件',scope:'全部企业',dept:'市交通运输局',creator:'平台运营管理员',status:'已发布',createTime:'2026-04-18 10:00',publishTime:'2026-04-20 09:00',publisher:'平台运营管理员',content:'为进一步规范智能网联汽车道路测试与示范应用活动，促进智能网联汽车产业健康发展，根据国家相关法律法规，结合本市实际，对原管理办法进行修订。主要修订内容包括：扩大测试道路范围、简化准入审批流程、强化安全监管措施、新增示范运营管理章节等。'},
+  {id:'INF20260415001',title:'2026年第一季度智能网联汽车测试示范工作通报',type:'公告公示',subType:'工作通报',scope:'已准入企业',dept:'联席小组办公室',creator:'平台运营管理员',status:'已发布',createTime:'2026-04-14 09:00',publishTime:'2026-04-15 10:00',publisher:'平台运营管理员',content:'2026年第一季度，我市智能网联汽车测试示范工作总体运行平稳。道路测试方面，累计测试里程12.8万公里，无安全事故发生；示范应用方面，累计载客5.6万人次，乘客满意度达96.5%。新增准入企业2家，新增测试车辆8台。'},
+  {id:'INF20260410001',title:'关于调整测试车辆数据上报频率的通知',type:'公告公示',subType:'政策通知',scope:'已准入企业',dept:'平台技术支持组',creator:'技术支持组',status:'已发布',createTime:'2026-04-09 11:00',publishTime:'2026-04-10 09:00',publisher:'技术支持组',content:'为提升监管效率和数据时效性，自2026年5月1日起，测试车辆运行数据上报频率由每5分钟一次调整为每1分钟一次。请各企业于4月25日前完成车载终端和平台接口的升级适配工作。'},
+  {id:'INF20260422001',title:'智能网联汽车道路测试准入申请指南',type:'办事指南',object:'整车制造企业、自动驾驶解决方案提供商',dept:'联席小组办公室',creator:'平台运营管理员',status:'已发布',createTime:'2026-04-21 10:00',publishTime:'2026-04-22 09:00',publisher:'平台运营管理员',content:'一、申请条件\n1.具有独立法人资格\n2.具备相应车辆生产或研发能力\n3.建立安全管理制度\n\n二、申请材料\n1.道路测试准入申请书\n2.安全评估报告\n3.安全性自我声明\n4.车辆出厂合格证\n5.驾驶员资质证明\n6.自动驾驶功能测试报告\n7.测试路线方案\n8.保险凭证\n9.企业营业执照\n10.车辆技术参数说明\n11.传感器配置信息\n\n三、审批流程\n提交申请→第三方初审→联席小组审批→临牌回传'},
+  {id:'INF20260418001',title:'示范应用准入申请操作手册',type:'办事指南',object:'整车制造企业、运营服务商',dept:'联席小组办公室',creator:'平台运营管理员',status:'已发布',createTime:'2026-04-17 14:00',publishTime:'2026-04-18 10:00',publisher:'平台运营管理员',content:'一、申请条件\n1.已取得道路测试许可\n2.测试里程达到规定要求\n3.无严重安全事故记录\n\n二、申请材料\n1.示范应用准入申请书\n2.安全评估报告\n3.示范应用计划书\n4.安全性自我声明\n5.车辆出厂合格证\n6.驾驶员资质证明\n7.保险凭证\n8.企业营业执照\n9.平台对接证明\n\n三、审批流程\n提交申请→第三方初审→联席小组审批→临牌回传'},
+  {id:'INF20260412001',title:'测试车辆临时号牌办理流程说明',type:'办事指南',object:'已准入企业',dept:'市交管部门',creator:'技术支持组',status:'已发布',createTime:'2026-04-11 09:00',publishTime:'2026-04-12 09:00',publisher:'技术支持组',content:'一、办理条件\n已通过道路测试或示范应用准入审批的企业\n\n二、所需材料\n1.准入审批通过通知书\n2.车辆信息登记表\n3.保险凭证\n\n三、办理流程\n1.线上提交申请\n2.交管部门审核\n3.领取临时号牌\n\n四、注意事项\n临时号牌有效期最长6个月，到期前15日须申请续期'},
+  {id:'INF20260420002',title:'2026年第一季度道路测试情况报告',type:'测试示范报告',period:'2026年Q1',overview:'测试车辆32台，测试里程12.8万公里，事故率0',dept:'联席小组办公室',creator:'示范运营管理员',status:'已发布',createTime:'2026-04-19 10:00',publishTime:'2026-04-20 10:00',publisher:'平台运营管理员',content:'一、总体情况\n2026年第一季度，我市智能网联汽车道路测试工作稳步推进。\n\n二、关键数据\n- 测试车辆总数：32台\n- 累计测试里程：12.8万公里\n- 累计测试时长：3,200小时\n- 事故率：0\n- 活跃企业数：5家\n\n三、分月统计\n1月：测试里程3.8万公里\n2月：测试里程4.2万公里\n3月：测试里程4.8万公里'},
+  {id:'INF20260418002',title:'2026年第一季度示范应用运营报告',type:'测试示范报告',period:'2026年Q1',overview:'运营车辆18台，载客5.6万人次，运营里程8.3万公里',dept:'联席小组办公室',creator:'示范运营管理员',status:'已发布',createTime:'2026-04-17 10:00',publishTime:'2026-04-18 10:00',publisher:'平台运营管理员',content:'一、总体情况\n2026年第一季度，我市智能网联汽车示范应用运营工作有序开展。\n\n二、关键数据\n- 运营车辆总数：18台\n- 累计载客人次：5.6万人次\n- 累计运营里程：8.3万公里\n- 乘客满意度：96.5%\n- 活跃企业数：3家'},
+  {id:'INF20260428001',title:'襄阳市高新区智能网联汽车测试道路扩展公告',type:'公告公示',subType:'法规文件',scope:'全部企业',dept:'市交管部门',creator:'安全管理员',status:'待审核',createTime:'2026-04-27 16:00',content:'经研究决定，自2026年5月15日起，襄阳市高新区智能网联汽车测试道路范围扩展至以下路段：东风大道全段、奔驰大道东段、科技城环路等，新增测试道路总长约28公里。'},
+  {id:'INF20260428002',title:'自动驾驶系统安全评估报告编制规范',type:'办事指南',object:'第三方服务机构',dept:'联席小组办公室',creator:'技术支持组',status:'待审核',createTime:'2026-04-28 09:00',content:'一、报告结构\n1.评估概述\n2.系统功能描述\n3.测试方法与结果\n4.安全风险分析\n5.评估结论与建议\n\n二、评估要求\n1.功能安全评估\n2.预期功能安全评估\n3.网络安全评估\n4.数据安全评估'},
+  {id:'INF20260428003',title:'2025年度智能网联汽车测试示范年度报告',type:'测试示范报告',period:'2025年度',overview:'测试车辆85台，测试里程58.6万公里，示范运营12万次',dept:'联席小组办公室',creator:'示范运营管理员',status:'待审核',createTime:'2026-04-28 11:00',content:'2025年度，我市智能网联汽车测试示范工作取得显著成效。测试车辆85台，测试里程58.6万公里，示范运营12万次，事故率0。'},
+  {id:'INF20260429001',title:'关于规范自动驾驶车辆临时号牌使用的通知',type:'公告公示',subType:'政策通知',scope:'已准入企业',dept:'市交管部门',creator:'安全管理员',status:'草稿',createTime:'2026-04-29 09:00',content:'近期发现部分测试车辆存在临时号牌超期使用、未按规定悬挂等问题。现就规范临时号牌使用通知如下：1.临时号牌须在有效期内使用；2.号牌须按规定位置悬挂；3.号牌到期前15日须申请续期；4.严禁将号牌转借其他车辆使用。'},
+  {id:'INF20260429002',title:'智能网联汽车数据上报操作指引',type:'办事指南',object:'已准入企业',dept:'平台技术支持组',creator:'技术支持组',status:'草稿',createTime:'2026-04-29 14:00',content:'一、数据上报内容\n1.车辆位置信息\n2.车辆运行状态\n3.自动驾驶系统状态\n4.传感器数据摘要\n5.事件记录数据\n\n二、上报方式\n通过平台API接口实时上报，频率为每1分钟一次'},
+  {id:'INF20260320001',title:'2026年春节假期测试安排及安全提示',type:'公告公示',subType:'安全预警',scope:'全部企业',dept:'安全管理办公室',creator:'安全管理员',status:'已撤回',createTime:'2026-03-18 10:00',publishTime:'2026-03-20 09:00',publisher:'安全管理员',withdrawTime:'2026-04-01 10:00',withdrawBy:'安全管理员',content:'2026年春节假期期间，市区道路交通流量增大，请各测试企业注意安全。该通知已过期撤回。'}
+];
+
+function getStatusTag(status){
+  var map={'草稿':'ant-tag-default','待审核':'ant-tag-processing','已发布':'ant-tag-success','已撤回':'ant-tag-warning'};
+  return '<span class="ant-tag '+(map[status]||'ant-tag-default')+'">'+status+'</span>';
+}
+function getTypeTag(type){
+  var map={'公告公示':'ant-tag-processing','办事指南':'ant-tag-default','测试示范报告':'ant-tag-warning'};
+  return '<span class="ant-tag '+(map[type]||'ant-tag-default')+'">'+type+'</span>';
+}
+
+function renderTable(tbodyId,items,cols){
+  var tbody=document.getElementById(tbodyId);
+  if(!tbody)return;
+  var html='';
+  items.forEach(function(d){
+    html+='<tr>';
+    cols.forEach(function(c){
+      if(c==='type')html+='<td>'+getTypeTag(d.type)+'</td>';
+      else if(c==='status')html+='<td>'+getStatusTag(d.status)+'</td>';
+      else if(c==='actions')html+='<td class="flex gap-1">'+getActions(d)+'</td>';
+      else html+='<td>'+(d[c]||'—')+'</td>';
+    });
+    html+='</tr>';
+  });
+  tbody.innerHTML=html;
+}
+
+function getActions(d){
+  var btns='';
+  btns+='<button class="ant-btn-link" onclick="openViewModal(\''+d.id+'\')">查看</button>';
+  if(d.status==='草稿'){
+    btns+='<button class="ant-btn-link" onclick="openEditModal(\''+d.id+'\')">编辑</button>';
+    btns+='<button class="ant-btn-link" onclick="submitReview(\''+d.id+'\')">提交审核</button>';
+    btns+='<button class="ant-btn-link danger" onclick="deleteItem(\''+d.id+'\')">删除</button>';
+  }else if(d.status==='待审核'){
+    btns+='<button class="ant-btn-link" onclick="approveItem(\''+d.id+'\')">审核通过</button>';
+    btns+='<button class="ant-btn-link danger" onclick="rejectItem(\''+d.id+'\')">退回</button>';
+  }else if(d.status==='已发布'){
+    btns+='<button class="ant-btn-link" style="color:#faad14" onclick="withdrawItem(\''+d.id+'\')">撤回</button>';
+  }else if(d.status==='已撤回'){
+    btns+='<button class="ant-btn-link" onclick="openEditModal(\''+d.id+'\')">重新编辑</button>';
+  }
+  return btns;
+}
+
+function refreshTables(){
+  var all=publishData;
+  var draft=all.filter(function(d){return d.status==='草稿'});
+  var pending=all.filter(function(d){return d.status==='待审核'});
+  var published=all.filter(function(d){return d.status==='已发布'});
+  var withdrawn=all.filter(function(d){return d.status==='已撤回'});
+
+  renderTable('tbody-all',all,['id','title','type','creator','status','createTime','actions']);
+  renderTable('tbody-draft',draft,['id','title','type','creator','createTime','actions']);
+  renderTable('tbody-pending',pending,['id','title','type','creator','createTime','actions']);
+  renderTable('tbody-published',published,['id','title','type','publisher','publishTime','actions']);
+  renderTable('tbody-withdrawn',withdrawn,['id','title','type','withdrawBy','withdrawTime','actions']);
+
+  document.getElementById('count-all').textContent='共 '+all.length+' 条';
+  document.getElementById('count-draft').textContent='共 '+draft.length+' 条';
+  document.getElementById('count-pending').textContent='共 '+pending.length+' 条';
+  document.getElementById('count-published').textContent='共 '+published.length+' 条';
+  document.getElementById('count-withdrawn').textContent='共 '+withdrawn.length+' 条';
+}
+
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  ['tab-all','tab-draft','tab-pending','tab-published','tab-withdrawn'].forEach(function(id){
+    document.getElementById(id).style.display=id===tabId?'':'none'
+  });
+}
+
+function submitReview(id){
+  var d=publishData.find(function(x){return x.id===id});
+  if(d){d.status='待审核';refreshTables();}
+}
+function approveItem(id){
+  var d=publishData.find(function(x){return x.id===id});
+  if(d){d.status='已发布';d.publishTime='2026-04-30 10:00';d.publisher='平台运营管理员';refreshTables();}
+}
+function rejectItem(id){
+  var d=publishData.find(function(x){return x.id===id});
+  if(d){d.status='草稿';refreshTables();}
+}
+function withdrawItem(id){
+  var d=publishData.find(function(x){return x.id===id});
+  if(d){d.status='已撤回';d.withdrawTime='2026-04-30 11:00';d.withdrawBy='平台运营管理员';refreshTables();}
+}
+function deleteItem(id){
+  var idx=publishData.findIndex(function(x){return x.id===id});
+  if(idx>-1){publishData.splice(idx,1);refreshTables();}
+}
+
+function openCreateModal(){
+  openModal('新建信息发布',
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>信息类型</div><div class="ant-form-control"><select class="ant-input" id="createTypeSelect" onchange="toggleCreateFields(this.value)" style="cursor:pointer"><option value="">请选择信息类型</option><option value="公告公示">公告公示</option><option value="办事指南">办事指南</option><option value="测试示范报告">测试示范报告</option></select></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>标题</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入标题"></div></div>' +
+
+    '<div id="create-fields-announce" style="display:none">' +
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>子类型</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer"><option value="">请选择子类型</option><option>政策通知</option><option>安全预警</option><option>法规文件</option><option>工作通报</option></select></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>发布范围</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer"><option value="">请选择发布范围</option><option>全部企业</option><option>已准入企业</option><option>特定企业</option></select></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label">发布部门</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入发布部门"></div></div>' +
+    '</div>' +
+
+    '<div id="create-fields-guide" style="display:none">' +
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>适用对象</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入适用对象，如：整车制造企业、运营服务商"></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label">发布部门</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入发布部门"></div></div>' +
+    '</div>' +
+
+    '<div id="create-fields-report" style="display:none">' +
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告周期</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入报告周期，如：2026年Q1、2025年度"></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告概述</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="请输入关键数据概览，如：测试车辆32台，测试里程12.8万公里"></textarea></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label">发布部门</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入发布部门"></div></div>' +
+    '</div>' +
+
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>正文内容</div><div class="ant-form-control">'+RTE_TPL+'</div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">附件上传</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">点击或拖拽文件上传</button><div class="text-xs text-[#00000040] mt-1">支持PDF/Word/图片等格式</div></div></div>',
+
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn" onclick="closeModal()">保存为草稿</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">提交审核</button>'});
+}
+
+function toggleCreateFields(type){
+  document.getElementById('create-fields-announce').style.display=type==='公告公示'?'':'none';
+  document.getElementById('create-fields-guide').style.display=type==='办事指南'?'':'none';
+  document.getElementById('create-fields-report').style.display=type==='测试示范报告'?'':'none';
+}
+
+function openEditModal(id){
+  var d=publishData.find(function(x){return x.id===id});
+  if(!d)return;
+  var typeFields='';
+  if(d.type==='公告公示'){
+    typeFields='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>子类型</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer"><option>'+(d.subType||'')+'</option><option>政策通知</option><option>安全预警</option><option>法规文件</option><option>工作通报</option></select></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>发布范围</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer"><option>'+(d.scope||'')+'</option><option>全部企业</option><option>已准入企业</option><option>特定企业</option></select></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label">发布部门</div><div class="ant-form-control"><input class="ant-input" value="'+(d.dept||'')+'"></div></div>';
+  }else if(d.type==='办事指南'){
+    typeFields='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>适用对象</div><div class="ant-form-control"><input class="ant-input" value="'+(d.object||'')+'"></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label">发布部门</div><div class="ant-form-control"><input class="ant-input" value="'+(d.dept||'')+'"></div></div>';
+  }else if(d.type==='测试示范报告'){
+    typeFields='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告周期</div><div class="ant-form-control"><input class="ant-input" value="'+(d.period||'')+'"></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告概述</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px;padding:8px 12px">'+(d.overview||'')+'</textarea></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label">发布部门</div><div class="ant-form-control"><input class="ant-input" value="'+(d.dept||'')+'"></div></div>';
+  }
+
+  openModal('编辑信息 - '+d.id,
+    '<div class="ant-form-item"><div class="ant-form-label">信息类型</div><div class="ant-form-control"><input class="ant-input" value="'+d.type+'" disabled></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>标题</div><div class="ant-form-control"><input class="ant-input" value="'+d.title+'"></div></div>' +
+    typeFields +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>正文内容</div><div class="ant-form-control">'+RTE_TPL+'</div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">附件上传</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">点击或拖拽文件上传</button></div></div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn" onclick="closeModal()">保存为草稿</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">提交审核</button>'});
+}
+
+function openViewModal(id){
+  var d=publishData.find(function(x){return x.id===id});
+  if(!d)return;
+  var html='<div class="ant-descriptions">' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">编号</div><div class="ant-descriptions-value">'+d.id+'</div><div class="ant-descriptions-label">信息类型</div><div class="ant-descriptions-value">'+getTypeTag(d.type)+'</div></div>' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">标题</div><div class="ant-descriptions-value" style="flex:3">'+d.title+'</div></div>' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">发布状态</div><div class="ant-descriptions-value">'+getStatusTag(d.status)+'</div><div class="ant-descriptions-label">创建人</div><div class="ant-descriptions-value">'+d.creator+'</div></div>';
+
+  if(d.type==='公告公示'){
+    html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">子类型</div><div class="ant-descriptions-value">'+(d.subType||'—')+'</div><div class="ant-descriptions-label">发布范围</div><div class="ant-descriptions-value">'+(d.scope||'—')+'</div></div>';
+    html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">发布部门</div><div class="ant-descriptions-value">'+(d.dept||'—')+'</div>';
+  }else if(d.type==='办事指南'){
+    html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">适用对象</div><div class="ant-descriptions-value">'+(d.object||'—')+'</div><div class="ant-descriptions-label">发布部门</div><div class="ant-descriptions-value">'+(d.dept||'—')+'</div></div>';
+  }else if(d.type==='测试示范报告'){
+    html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">报告周期</div><div class="ant-descriptions-value">'+(d.period||'—')+'</div><div class="ant-descriptions-label">报告概述</div><div class="ant-descriptions-value">'+(d.overview||'—')+'</div></div>';
+    html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">发布部门</div><div class="ant-descriptions-value">'+(d.dept||'—')+'</div>';
+  }
+
+  if(d.publishTime)html+='<div class="ant-descriptions-label">发布时间</div><div class="ant-descriptions-value">'+d.publishTime+'</div>';
+  html+='</div>';
+
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2 pb-2 border-b border-[#f0f0f0]">正文内容</h4>';
+  html+='<div class="p-3 bg-[#fafafa] rounded text-sm text-[#000000d9] whitespace-pre-line leading-relaxed">'+d.content+'</div>';
+
+  openModal('查看详情 - '+d.id,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+
+refreshTables();
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

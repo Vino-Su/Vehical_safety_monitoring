@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事故分析研判 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5]" style="padding:24px">
+      <div class="page-header"><h2>事故分析研判</h2></div>
+
+      <div class="ant-tabs">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-hotspot')">多发地点分析</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-risk')">风险区域分析</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-trend')">事故趋势分析</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-vehicle')">车辆主体分析</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-report')">分析报告与管控建议</span>
+      </div>
+
+      <!-- ====== Tab1: 多发地点分析 ====== -->
+      <div id="tab-hotspot">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>时间范围</label><input class="ant-input" type="date" value="2026-04-01" style="width:150px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:150px"></div>
+            <div class="filter-item"><label>行政区域</label><select class="ant-input" style="width:120px"><option>全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option></select></div>
+            <div class="filter-item"><label>事故类型</label><select class="ant-input" style="width:120px"><option>全部</option><option>碰撞</option><option>追尾</option><option>刮擦</option><option>行人冲突</option></select></div>
+            <div class="filter-item"><label>判定阈值</label><select class="ant-input" style="width:150px"><option>默认(月≥3起)</option><option>自定义</option></select></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="showToast('查询完成')">查询</button><button class="ant-btn">重置</button><button class="ant-btn" onclick="showToast('导出成功')">导出Excel</button></div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-[#000000d9]">多发地点GIS地图</span>
+            <span class="text-xs text-[#00000073]">符号大小按事故数分级</span>
+          </div>
+          <div id="hotspotMap" style="height:420px;border-radius:6px;overflow:hidden"></div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-[#000000d9]">多发地点清单</span>
+            <span class="text-xs text-[#00000073]">共 10 条 | 点击行查看事故明细</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>点位编号</th><th>点位名称</th><th>所属区县</th><th>道路类型</th><th>事故总数</th><th>死亡</th><th>受伤</th><th>主要类型</th><th>高发时段</th><th>核心致因</th><th>操作</th></tr></thead>
+              <tbody id="hotspotTableBody"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 <b>10</b> 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px">
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination">
+                <span class="page-item">&lt;</span>
+                <span class="page-item active">1</span>
+                <span class="page-item">&gt;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== Tab2: 风险区域分析 ====== -->
+      <div id="tab-risk" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>时间范围</label><input class="ant-input" type="date" value="2026-04-01" style="width:150px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:150px"></div>
+            <div class="filter-item"><label>行政区域</label><select class="ant-input" style="width:120px"><option>全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option></select></div>
+            <div class="filter-item"><label>风险等级</label><select class="ant-input" style="width:120px"><option>全部</option><option>高风险</option><option>中风险</option><option>低风险</option></select></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="showToast('查询完成')">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4 mb-4">
+          <div class="stat-card"><div class="stat-icon" style="background:#fff1f0;color:#f5222d">⚠</div><div class="stat-info"><div class="stat-value">5</div><div class="stat-label">高风险区域</div></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#fff7e6;color:#fa8c16">⚡</div><div class="stat-info"><div class="stat-value">8</div><div class="stat-label">中风险区域</div></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#e6f7ff;color:#1677ff">◉</div><div class="stat-info"><div class="stat-value">12</div><div class="stat-label">低风险区域</div></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#f6ffed;color:#52c41a">✓</div><div class="stat-info"><div class="stat-value">25</div><div class="stat-label">安全区域</div></div></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="card">
+            <div class="text-sm font-semibold text-[#000000d9] mb-3">风险区域GIS分布</div>
+            <div id="riskMap" style="height:380px;border-radius:6px;overflow:hidden"></div>
+          </div>
+          <div class="card">
+            <div class="text-sm font-semibold text-[#000000d9] mb-3">区域风险等级分布</div>
+            <div id="riskChart" style="height:380px"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-sm font-semibold text-[#000000d9] mb-3">风险区域清单</div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>区域编号</th><th>区域名称</th><th>所属区县</th><th>风险等级</th><th>事故总数</th><th>重伤及以上</th><th>主要致因</th><th>管控状态</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td>RA-001</td><td>长虹路与建华路片区</td><td>樊城区</td><td><span class="ant-tag ant-tag-error">高风险</span></td><td>28</td><td>5</td><td>未按规定让行</td><td><span class="ant-tag ant-tag-warning">管控中</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-001')">详情</button></td></tr>
+                <tr><td>RA-002</td><td>檀溪路与铁佛寺路片区</td><td>襄城区</td><td><span class="ant-tag ant-tag-error">高风险</span></td><td>22</td><td>3</td><td>信号违规</td><td><span class="ant-tag ant-tag-warning">管控中</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-002')">详情</button></td></tr>
+                <tr><td>RA-003</td><td>航空路与金富士路片区</td><td>襄州区</td><td><span class="ant-tag ant-tag-error">高风险</span></td><td>18</td><td>6</td><td>行人横穿</td><td><span class="ant-tag ant-tag-processing">待管控</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-003')">详情</button></td></tr>
+                <tr><td>RA-004</td><td>卧龙大道与中原路片区</td><td>樊城区</td><td><span class="ant-tag ant-tag-error">高风险</span></td><td>25</td><td>4</td><td>制动响应延迟</td><td><span class="ant-tag ant-tag-warning">管控中</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-004')">详情</button></td></tr>
+                <tr><td>RA-005</td><td>大庆路与人民路片区</td><td>樊城区</td><td><span class="ant-tag ant-tag-error">高风险</span></td><td>15</td><td>2</td><td>视距不足</td><td><span class="ant-tag ant-tag-success">已管控</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-005')">详情</button></td></tr>
+                <tr><td>RA-006</td><td>建设路与银城大道片区</td><td>南漳县</td><td><span class="ant-tag ant-tag-warning">中风险</span></td><td>10</td><td>1</td><td>超速行驶</td><td><span class="ant-tag ant-tag-processing">待管控</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-006')">详情</button></td></tr>
+                <tr><td>RA-007</td><td>环城南路与檀溪路片区</td><td>襄城区</td><td><span class="ant-tag ant-tag-warning">中风险</span></td><td>8</td><td>0</td><td>车道偏离</td><td><span class="ant-tag ant-tag-success">已管控</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-007')">详情</button></td></tr>
+                <tr><td>RA-008</td><td>前进路与长征路片区</td><td>襄州区</td><td><span class="ant-tag ant-tag-warning">中风险</span></td><td>6</td><td>0</td><td>信号灯识别失败</td><td><span class="ant-tag ant-tag-processing">待管控</span></td><td><button class="ant-btn-link" onclick="openRiskDetail('RA-008')">详情</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 <b>25</b> 条</span>
+            <div class="ant-pagination">
+              <span class="page-item">&lt;</span>
+              <span class="page-item active">1</span>
+              <span class="page-item">2</span>
+              <span class="page-item">3</span>
+              <span class="page-item">&gt;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== Tab3: 事故趋势分析 ====== -->
+      <div id="tab-trend" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>时间范围</label><input class="ant-input" type="date" value="2025-06-01" style="width:150px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:150px"></div>
+            <div class="filter-item"><label>时间粒度</label><select class="ant-input" id="granularitySelect" style="width:100px"><option>周</option><option selected>月</option><option>季度</option></select></div>
+            <div class="filter-item"><label>分析维度</label><select class="ant-input" id="dimensionSelect" style="width:120px"><option>全市</option><option>区县</option><option>企业</option><option>车辆品牌</option><option>车型类别</option></select></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="refreshTrend()">分析</button><button class="ant-btn" onclick="showToast('导出成功')">导出Excel</button></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-5 gap-4 mb-4">
+          <div class="stat-card" style="border-left:3px solid #1677ff"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">本期事故总数</div><div class="stat-value" style="color:#1677ff">180</div><div class="text-xs text-[#00000040]">2026年5月</div></div></div>
+          <div class="stat-card" style="border-left:3px solid #fa8c16"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">环比变化</div><div class="stat-value" style="color:#fa8c16">+9.1%</div><div class="text-xs text-[#00000040]">较上月 ↑</div></div></div>
+          <div class="stat-card" style="border-left:3px solid #f5222d"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">同比变化</div><div class="stat-value" style="color:#f5222d">+16.1%</div><div class="text-xs text-[#00000040]">较去年5月 ↑</div></div></div>
+          <div class="stat-card" style="border-left:3px solid #f5222d"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">趋势方向</div><div class="stat-value" style="color:#f5222d">上升 ↑</div><div class="text-xs text-[#00000040]">近3个月持续上升</div></div></div>
+          <div class="stat-card" style="border-left:3px solid #fa8c16"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">异常预警数</div><div class="stat-value" style="color:#fa8c16">5</div><div class="text-xs text-[#00000040]">待处理 2 条</div></div></div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-[#000000d9]">事故指标趋势 <span class="font-normal text-xs text-[#00000073]">实线=历史 · 虚线=基线 · 红色标记=异常点</span></span>
+            <div class="flex gap-1 bg-[#f5f5f5] rounded p-0.5" id="indicatorSwitch">
+              <button class="px-3 py-1 text-xs font-medium rounded cursor-pointer bg-white text-[#1677ff] shadow-sm" data-idx="0" onclick="switchIndicator(this,0)">事故数量</button>
+              <button class="px-3 py-1 text-xs font-medium rounded cursor-pointer text-[#00000073]" data-idx="1" onclick="switchIndicator(this,1)">事故率</button>
+              <button class="px-3 py-1 text-xs font-medium rounded cursor-pointer text-[#00000073]" data-idx="2" onclick="switchIndicator(this,2)">伤亡数量</button>
+            </div>
+          </div>
+          <div id="mainTrendChart" style="height:370px"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="card">
+            <div class="text-sm font-semibold text-[#000000d9] mb-3">同环比分析</div>
+            <div id="ratioChart" style="height:300px"></div>
+          </div>
+          <div class="card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-semibold text-[#000000d9]">多维度趋势对比</span>
+              <select class="ant-input" id="crossDimSelect" style="width:120px;height:28px;font-size:12px" onchange="renderCrossDimChart(this.value)">
+                <option>区县对比</option>
+                <option>企业对比</option>
+                <option>品牌对比</option>
+                <option>车型对比</option>
+              </select>
+            </div>
+            <div id="crossDimChart" style="height:300px"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-[#000000d9]">趋势预警列表</span>
+            <span class="text-xs text-[#00000073]">共 5 条 | 基于移动平均偏离与标准差突变检测</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>预警编号</th><th>预警时间范围</th><th>涉及维度</th><th>异常类型</th><th>异常幅度</th><th>可能关联因素</th><th>处理状态</th><th>操作</th></tr></thead>
+              <tbody id="warningTableBody"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 <b>5</b> 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px">
+                  <option value="10">10</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination">
+                <span class="page-item">&lt;</span>
+                <span class="page-item active">1</span>
+                <span class="page-item">&gt;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== Tab4: 车辆主体分析 ====== -->
+      <div id="tab-vehicle" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>时间范围</label><div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" value="2026-04-01" style="width:140px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:140px"></div></div>
+            <div class="filter-item"><label>分析维度</label><select class="ant-input" id="vehicleDimSelect" style="width:120px"><option>按企业</option><option>按品牌</option><option>按车型</option></select></div>
+            <div class="filter-item"><label>自动驾驶等级</label><select class="ant-input" style="width:120px"><option>全部</option><option>L2</option><option>L3</option><option>L4</option></select></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="refreshVehicleData()">分析</button><button class="ant-btn" onclick="showToast('导出成功')">导出Excel</button></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4 mb-4" id="vehicleStatCards"></div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="card">
+            <div class="text-sm font-semibold text-[#000000d9] mb-3" id="vehicleRankTitle">企业事故数量排名 Top10</div>
+            <div id="vehicleRankChart" style="height:300px"></div>
+          </div>
+          <div class="card">
+            <div class="text-sm font-semibold text-[#000000d9] mb-3">风险评分雷达图（多主体对比）</div>
+            <div id="vehicleRadarChart" style="height:300px"></div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="text-sm font-semibold text-[#000000d9] mb-3">有责事故占比对比</div>
+          <div id="vehicleFaultChart" style="height:300px"></div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-[#000000d9]">主体风险清单</span>
+            <span class="text-xs text-[#00000073]">共 <span id="vehicleListCount">10</span> 条 | 点击行查看详情</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>主体名称</th><th>主体类型</th><th>事故数量</th><th>死亡</th><th>受伤</th><th>有责事故占比</th><th>风险评分</th><th>风险等级</th><th>操作</th></tr></thead>
+              <tbody id="vehicleTableBody"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 <b id="vehicleTotalCount">10</b> 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px"><option value="10">10</option><option value="20">20</option></select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination">
+                <span class="page-item">&lt;</span>
+                <span class="page-item active">1</span>
+                <span class="page-item">&gt;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== Tab5: 分析报告与管控建议 ====== -->
+      <div id="tab-report" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+              <label style="font-size:12px;color:#00000073;">报告类型</label>
+              <select id="reportTypeSelect" class="ant-input" style="width:140px"><option value="all">全部</option><option value="monthly">月报</option><option value="weekly">周报</option><option value="quarterly">季报</option><option value="annual">年报</option><option value="special">专项报告</option></select>
+            </div>
+            <div class="filter-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+              <label style="font-size:12px;color:#00000073;">统计周期</label>
+              <div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" value="2026-04-01" style="width:130px"><span style="color:#8c8c8c;">-</span><input class="ant-input" type="date" value="2026-04-30" style="width:130px"></div>
+            </div>
+            <div class="flex gap-2 items-end">
+              <button class="ant-btn ant-btn-primary" onclick="showToast('查询完成')">查询</button>
+              <button class="ant-btn ant-btn-primary" onclick="openNewReportModal()">新建报告</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-[#000000d9]">历史报告 <span style="font-weight:400;font-size:12px;color:#00000073;">点击"预览"查看完整报告内容 | 共 <b id="reportTotalCount">10</b> 条</span></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>报告编号</th><th>报告名称</th><th>类型</th><th>统计周期</th><th>生成时间</th><th>生成方式</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody id="reportTableBody"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 <b>10</b> 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px"><option value="10">10</option><option value="20">20</option></select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination">
+                <span class="page-item">&lt;</span>
+                <span class="page-item active">1</span>
+                <span class="page-item">&gt;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 报告预览弹窗 -->
+      <div id="reportPreviewOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:8px;width:820px;max-width:90vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 6px 16px rgba(0,0,0,0.1);">
+          <div style="padding:14px 20px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;font-weight:600;">
+            <span id="reportPreviewTitle">报告预览</span>
+            <button class="ant-btn" style="height:28px;font-size:12px;" onclick="closeReportPreview()">关闭</button>
+          </div>
+          <div id="reportPreviewBody" style="padding:16px 20px;overflow-y:auto;flex:1;font-size:13px;line-height:1.8;"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+const PAGE_ID='accident-judge';
+
+var tabIds = ['tab-hotspot','tab-risk','tab-trend','tab-vehicle','tab-report'];
+
+function switchTab(el, tabId) {
+  document.querySelectorAll('.ant-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  tabIds.forEach(function(id) {
+    var panel = document.getElementById(id);
+    if (panel) panel.style.display = (id === tabId) ? '' : 'none';
+  });
+  if (tabId === 'tab-hotspot') { setTimeout(initHotspotMap, 100); }
+  if (tabId === 'tab-risk') { setTimeout(function(){ initRiskMap(); initRiskCharts(); }, 100); }
+  if (tabId === 'tab-trend') { setTimeout(initTrendCharts, 100); }
+  if (tabId === 'tab-vehicle') { setTimeout(initVehicleCharts, 100); }
+}
+
+// ====== Toast ======
+function showToast(msg) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:14px;border-left:3px solid #1677ff;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.style.opacity = '0'; t.style.transition = '0.3s'; setTimeout(function() { t.remove(); }, 300); }, 2000);
+}
+
+// ====== Tab1: 多发地点分析 ======
+var hotspotPoints = [
+  { id:'HP-001', name:'长虹路与建华路交叉口', lat:32.045, lng:112.140, district:'樊城区', roadType:'主干道', accidents:28, deaths:2, injuries:12, mainType:'追尾', peakHours:'早高峰/晚高峰', cause:'未按规定让行' },
+  { id:'HP-002', name:'檀溪路与铁佛寺路交叉口', lat:32.010, lng:112.105, district:'襄城区', roadType:'主干道', accidents:22, deaths:1, injuries:15, mainType:'碰撞', peakHours:'平峰', cause:'信号违规' },
+  { id:'HP-003', name:'航空路与金富士路交叉口', lat:32.080, lng:112.200, district:'襄州区', roadType:'次干道', accidents:18, deaths:3, injuries:8, mainType:'行人冲突', peakHours:'晚高峰', cause:'行人横穿' },
+  { id:'HP-004', name:'人民路天元四季城路段', lat:32.035, lng:112.125, district:'樊城区', roadType:'支路', accidents:12, deaths:0, injuries:6, mainType:'刮擦', peakHours:'夜间', cause:'疲劳驾驶' },
+  { id:'HP-005', name:'建设路与银城大道交叉口', lat:31.780, lng:111.860, district:'南漳县', roadType:'次干道', accidents:10, deaths:0, injuries:5, mainType:'正面碰撞', peakHours:'早高峰', cause:'超速行驶' },
+  { id:'HP-006', name:'卧龙大道与中原路交叉口', lat:32.060, lng:112.090, district:'樊城区', roadType:'快速路', accidents:25, deaths:1, injuries:18, mainType:'追尾', peakHours:'晚高峰', cause:'制动响应延迟' },
+  { id:'HP-007', name:'大庆路与人民路交叉口', lat:32.025, lng:112.115, district:'樊城区', roadType:'主干道', accidents:15, deaths:0, injuries:9, mainType:'碰撞', peakHours:'平峰', cause:'视距不足' },
+  { id:'HP-008', name:'环城南路与檀溪路交叉口', lat:31.995, lng:112.098, district:'襄城区', roadType:'主干道', accidents:8, deaths:0, injuries:4, mainType:'刮擦', peakHours:'早高峰', cause:'车道偏离' },
+  { id:'HP-009', name:'前进路与长征路交叉口', lat:32.050, lng:112.155, district:'襄州区', roadType:'次干道', accidents:6, deaths:0, injuries:3, mainType:'追尾', peakHours:'夜间', cause:'信号灯识别失败' },
+  { id:'HP-010', name:'解放路与明珠路交叉口', lat:31.805, lng:111.890, district:'南漳县', roadType:'支路', accidents:4, deaths:0, injuries:2, mainType:'行人冲突', peakHours:'平峰', cause:'路口博弈' }
+];
+
+var accidentDetails = {};
+var baseAccidents = [
+  { id:'ACC-001', time:'2026-05-08 08:30', type:'追尾', severity:'轻伤', plate:'鄂F·A1234', company:'襄阳智行科技' },
+  { id:'ACC-002', time:'2026-05-07 18:15', type:'碰撞', severity:'重伤', plate:'鄂F·B5678', company:'汉江出行' },
+  { id:'ACC-003', time:'2026-05-05 14:20', type:'刮擦', severity:'无伤亡', plate:'鄂F·C3456', company:'顺捷科技' },
+  { id:'ACC-004', time:'2026-04-28 07:45', type:'行人冲突', severity:'死亡', plate:'鄂F·D7890', company:'东风出行' },
+  { id:'ACC-005', time:'2026-04-22 20:00', type:'追尾', severity:'轻伤', plate:'鄂F·E9012', company:'百度Apollo' }
+];
+hotspotPoints.forEach(function(p) {
+  accidentDetails[p.id] = baseAccidents.map(function(a, idx) {
+    return {
+      id: 'ACC-' + p.id + '-' + (idx+1),
+      time: a.time.replace(/2026-\d{2}-\d{2}/, '2026-' + (4 + Math.floor(Math.random()*2)).toString().padStart(2,'0') + '-' + (8+idx).toString().padStart(2,'0')),
+      type: a.type,
+      severity: a.severity,
+      plate: a.plate,
+      company: a.company
+    };
+  });
+});
+
+function renderHotspotTable() {
+  var tbody = document.getElementById('hotspotTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = hotspotPoints.map(function(p) {
+    var tagClass = p.accidents >= 20 ? 'ant-tag-error' : (p.accidents >= 10 ? 'ant-tag-warning' : 'ant-tag-processing');
+    return '<tr onclick="showAccidentList(\'' + p.id + '\')" style="cursor:pointer">' +
+      '<td>' + p.id + '</td>' +
+      '<td><b>' + p.name + '</b></td>' +
+      '<td>' + p.district + '</td>' +
+      '<td>' + p.roadType + '</td>' +
+      '<td><span class="ant-tag ' + tagClass + '">' + p.accidents + '</span></td>' +
+      '<td>' + p.deaths + '</td>' +
+      '<td>' + p.injuries + '</td>' +
+      '<td>' + p.mainType + '</td>' +
+      '<td>' + p.peakHours + '</td>' +
+      '<td>' + p.cause + '</td>' +
+      '<td><button class="ant-btn-link" onclick="event.stopPropagation();showAccidentList(\'' + p.id + '\')">查看详情</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+var hotspotMapInstance = null;
+function initHotspotMap() {
+  var container = document.getElementById('hotspotMap');
+  if (!container) return;
+  if (hotspotMapInstance) { hotspotMapInstance.remove(); hotspotMapInstance = null; }
+  hotspotMapInstance = L.map(container).setView([32.0, 112.12], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(hotspotMapInstance);
+  hotspotPoints.forEach(function(p) {
+    var color, radius;
+    if (p.accidents >= 20) { color = '#f5222d'; radius = 18; }
+    else if (p.accidents >= 10) { color = '#fa8c16'; radius = 14; }
+    else { color = '#ffc107'; radius = 10; }
+    L.circleMarker([p.lat, p.lng], {
+      radius: radius, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.85
+    }).addTo(hotspotMapInstance).bindPopup(
+      '<b>' + p.name + '</b><br>事故数：' + p.accidents + '起<br>主要类型：' + p.mainType + '<br>核心致因：' + p.cause
+    );
+  });
+}
+
+function showAccidentList(pointId) {
+  var point = hotspotPoints.find(function(p) { return p.id === pointId; }) || hotspotPoints[0];
+  var accidents = accidentDetails[pointId] || [];
+  var severityColor = { '死亡':'ant-tag-error', '重伤':'ant-tag-warning', '轻伤':'ant-tag-processing', '无伤亡':'ant-tag-success' };
+  var html = '<p class="mb-3 text-sm"><b>点位：</b>' + point.name + ' | <b>事故总数：</b>' + point.accidents + '起</p>' +
+    '<div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>事故编号</th><th>时间</th><th>事故类型</th><th>严重程度</th><th>车牌号</th><th>所属企业</th></tr></thead><tbody>' +
+    accidents.map(function(a) {
+      return '<tr><td>' + a.id + '</td><td>' + a.time + '</td><td>' + a.type + '</td><td><span class="ant-tag ' + (severityColor[a.severity]||'ant-tag-default') + '">' + a.severity + '</span></td><td>' + a.plate + '</td><td>' + a.company + '</td></tr>';
+    }).join('') +
+    '</tbody></table></div>';
+  openModal('事故清单 - ' + point.name, html, { wide: true, footer: '<button class="ant-btn" onclick="closeModal()">关闭</button>' });
+}
+
+// ====== Tab2: 风险区域分析 ======
+var riskMapInstance = null;
+function initRiskMap() {
+  var container = document.getElementById('riskMap');
+  if (!container) return;
+  if (riskMapInstance) { riskMapInstance.remove(); riskMapInstance = null; }
+  riskMapInstance = L.map(container).setView([32.0, 112.12], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(riskMapInstance);
+  var riskAreas = [
+    { name:'长虹路与建华路片区', lat:32.045, lng:112.140, level:'高', accidents:28 },
+    { name:'檀溪路与铁佛寺路片区', lat:32.010, lng:112.105, level:'高', accidents:22 },
+    { name:'航空路与金富士路片区', lat:32.080, lng:112.200, level:'高', accidents:18 },
+    { name:'卧龙大道与中原路片区', lat:32.060, lng:112.090, level:'高', accidents:25 },
+    { name:'大庆路与人民路片区', lat:32.025, lng:112.115, level:'高', accidents:15 },
+    { name:'建设路与银城大道片区', lat:31.780, lng:111.860, level:'中', accidents:10 },
+    { name:'环城南路与檀溪路片区', lat:31.995, lng:112.098, level:'中', accidents:8 },
+    { name:'前进路与长征路片区', lat:32.050, lng:112.155, level:'中', accidents:6 }
+  ];
+  riskAreas.forEach(function(r) {
+    var color = r.level === '高' ? '#f5222d' : (r.level === '中' ? '#fa8c16' : '#1677ff');
+    L.circle([r.lat, r.lng], { radius: 800, fillColor: color, color: color, weight: 2, fillOpacity: 0.25 }).addTo(riskMapInstance).bindPopup(
+      '<b>' + r.name + '</b><br>风险等级：' + r.level + '<br>事故数：' + r.accidents + '起'
+    );
+  });
+}
+
+var riskChartsInited = false;
+function initRiskCharts() {
+  if (riskChartsInited) return;
+  riskChartsInited = true;
+  var chart = echarts.init(document.getElementById('riskChart'));
+  chart.setOption({
+    tooltip: { trigger: 'item' },
+    legend: { bottom: 0 },
+    series: [{
+      type: 'pie', radius: ['40%','70%'], center: ['50%','45%'],
+      label: { formatter: '{b}\n{d}%' },
+      data: [
+        { value: 5, name: '高风险区域', itemStyle: { color: '#f5222d' } },
+        { value: 8, name: '中风险区域', itemStyle: { color: '#fa8c16' } },
+        { value: 12, name: '低风险区域', itemStyle: { color: '#1677ff' } },
+        { value: 25, name: '安全区域', itemStyle: { color: '#52c41a' } }
+      ]
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+}
+
+function openRiskDetail(id) {
+  var html = '<div class="ant-descriptions">' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">区域编号</div><div class="ant-descriptions-value">' + id + '</div><div class="ant-descriptions-label">风险等级</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-error">高风险</span></div></div>' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">事故总数</div><div class="ant-descriptions-value">28起</div><div class="ant-descriptions-label">管控状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-warning">管控中</span></div></div>' +
+    '</div>' +
+    '<h4 class="text-sm font-semibold mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">管控措施</h4>' +
+    '<ul class="text-sm text-[#000000d9] space-y-2">' +
+    '<li>1. 增设信号灯智能配时系统，优化早晚高峰通行效率</li>' +
+    '<li>2. 加装路侧感知设备(RSU)，提升车路协同能力</li>' +
+    '<li>3. 设置自动驾驶车辆专用标识和限速提示</li>' +
+    '</ul>';
+  openModal('风险区域详情 - ' + id, html, { wide: true, footer: '<button class="ant-btn" onclick="closeModal()">关闭</button>' });
+}
+
+// ====== Tab3: 事故趋势分析 ======
+var trendChartInstances = {};
+var currentIndicator = 0;
+var trendChartsInited = false;
+
+var trendMonths = ['2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05'];
+var monthLabels = ['6月','7月','8月','9月','10月','11月','12月','1月','2月','3月','4月','5月'];
+var accidentCounts = [148,155,142,185,150,138,140,178,135,150,165,180];
+var mileages = [85,88,90,92,95,98,100,102,105,108,110,115];
+var accidentRates = accidentCounts.map(function(c,i){ return parseFloat((c/mileages[i]*10).toFixed(1)); });
+var casualties = accidentCounts.map(function(c){ return Math.floor(c*(0.25+Math.random()*0.3)); });
+var baseline = 150;
+var anomalyIdx = [3,7,11];
+var momChanges = [null,4.7,-8.4,30.3,-18.9,-8.0,1.4,27.1,-24.2,11.1,10.0,9.1];
+var indicatorNames = ['事故数量(起)','事故率(起/10万km)','伤亡数量(人)'];
+var indicatorDatas = [accidentCounts, accidentRates, casualties];
+var indicatorBaselines = [150, 14.0, 55];
+
+var trendWarnings = [
+  { id:'TW-005', time:'2026-05-01 ~ 2026-05-08', dim:'全市', type:'异常增长', amplitude:'+9.1%', factors:'节假日出行高峰、恶劣天气', status:'未处理' },
+  { id:'TW-004', time:'2026-04-01 ~ 2026-04-30', dim:'樊城区', type:'异常增长', amplitude:'+10.0%', factors:'新测试路线开放、车流量增加', status:'已查看' },
+  { id:'TW-003', time:'2026-01-01 ~ 2026-01-31', dim:'全市', type:'异常增长', amplitude:'+27.1%', factors:'春运期间交通流量激增', status:'已处置' },
+  { id:'TW-002', time:'2025-09-01 ~ 2025-09-30', dim:'全市', type:'异常增长', amplitude:'+30.3%', factors:'开学季学校周边事故多发', status:'已处置' },
+  { id:'TW-001', time:'2025-06-01 ~ 2025-06-30', dim:'襄州区', type:'轻微异常', amplitude:'+8.2%', factors:'道路施工改道', status:'已处置' }
+];
+
+function renderWarningTable() {
+  var tbody = document.getElementById('warningTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = trendWarnings.map(function(w) {
+    var statusClass = w.status === '未处理' ? 'ant-tag-error' : (w.status === '已查看' ? 'ant-tag-warning' : 'ant-tag-success');
+    return '<tr><td>' + w.id + '</td><td>' + w.time + '</td><td>' + w.dim + '</td>' +
+      '<td><span class="ant-tag ant-tag-error">' + w.type + '</span></td>' +
+      '<td style="color:#f5222d;font-weight:600">' + w.amplitude + '</td>' +
+      '<td>' + w.factors + '</td>' +
+      '<td><span class="ant-tag ' + statusClass + '">' + w.status + '</span></td>' +
+      '<td><button class="ant-btn-link" onclick="showToast(\'查看预警详情：' + w.id + '\')">详情</button></td></tr>';
+  }).join('');
+}
+
+function trendInitChart(id) {
+  var dom = document.getElementById(id);
+  if (!dom) return null;
+  if (trendChartInstances[id]) trendChartInstances[id].dispose();
+  var c = echarts.init(dom);
+  trendChartInstances[id] = c;
+  return c;
+}
+
+function renderMainTrend() {
+  var chart = trendInitChart('mainTrendChart');
+  if (!chart) return;
+  var data = indicatorDatas[currentIndicator];
+  var baseVal = indicatorBaselines[currentIndicator];
+  var yName = indicatorNames[currentIndicator];
+  var movingAvg = data.map(function(v, i, arr) {
+    var start = Math.max(0, i - 2);
+    var slice = arr.slice(start, i + 1);
+    return parseFloat((slice.reduce(function(a,b){return a+b;},0) / slice.length).toFixed(1));
+  });
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 55, right: 30, top: 30, bottom: 45 },
+    xAxis: { type: 'category', data: monthLabels, boundaryGap: false },
+    yAxis: { type: 'value', name: yName },
+    legend: { bottom: 0 },
+    series: [
+      {
+        name: '实际值', type: 'line', data: data, smooth: true,
+        lineStyle: { color: '#1677ff', width: 2.5 },
+        symbol: 'circle', symbolSize: 6,
+        areaStyle: { color: 'rgba(22,119,255,0.08)' },
+        markLine: { silent: true, symbol: 'none', data: [{ yAxis: baseVal, lineStyle: { color: '#8c8c8c', type: 'dashed', width: 2 }, label: { formatter: '基线(' + baseVal + ')', fontSize: 10, color: '#8c8c8c' } }] },
+        markPoint: { data: anomalyIdx.map(function(i) { return { name: '异常', coord: [monthLabels[i], data[i]], symbol: 'pin', symbolSize: 28, itemStyle: { color: '#f5222d' }, label: { fontSize: 9, fontWeight: 'bold', formatter: '{c}' } }; }) }
+      },
+      {
+        name: '移动平均(3月)', type: 'line', data: movingAvg, smooth: true,
+        lineStyle: { color: '#fa8c16', type: 'dotted', width: 1.8 },
+        symbol: 'none'
+      }
+    ]
+  });
+}
+
+function switchIndicator(btn, idx) {
+  currentIndicator = idx;
+  var btns = document.querySelectorAll('#indicatorSwitch button');
+  btns.forEach(function(b) { b.className = 'px-3 py-1 text-xs font-medium rounded cursor-pointer text-[#00000073]'; });
+  btn.className = 'px-3 py-1 text-xs font-medium rounded cursor-pointer bg-white text-[#1677ff] shadow-sm';
+  renderMainTrend();
+}
+
+function renderRatioChart() {
+  var chart = trendInitChart('ratioChart');
+  if (!chart) return;
+  var showMonths = monthLabels.slice(-8);
+  var momData = momChanges.slice(-8).map(function(v){ return v || 0; });
+  var yoyData = [3.2,4.1,-2.5,6.8,8.3,10.5,12.0,16.1];
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 50, right: 30, top: 10, bottom: 35 },
+    xAxis: { type: 'category', data: showMonths },
+    yAxis: { type: 'value', name: '%', axisLabel: { formatter: '{value}%' } },
+    legend: { bottom: 0 },
+    series: [
+      { name: '环比变化率', type: 'bar', data: momData, barWidth: '35%', itemStyle: { color: '#1677ff', borderRadius: [4,4,0,0] }, label: { show: true, position: 'top', fontSize: 9, formatter: '{c}%' } },
+      { name: '同比变化率', type: 'bar', data: yoyData, barWidth: '35%', itemStyle: { color: '#fa8c16', borderRadius: [4,4,0,0] }, label: { show: true, position: 'top', fontSize: 9, formatter: '{c}%' } }
+    ]
+  });
+}
+
+function renderCrossDimChart(dimType) {
+  dimType = dimType || '区县对比';
+  var chart = trendInitChart('crossDimChart');
+  if (!chart) return;
+  var names, seriesData;
+  if (dimType === '区县对比') {
+    names = ['樊城区','襄城区','襄州区','南漳县'];
+    seriesData = [[52,55,48,65,53,49,50,62,47,53,58,63],[38,40,36,48,39,35,37,45,34,39,43,47],[30,32,29,38,31,28,29,36,27,31,34,38],[18,19,17,22,18,16,17,20,16,18,20,22]];
+  } else if (dimType === '企业对比') {
+    names = ['襄阳智行科技','汉江出行','顺捷科技','东风出行'];
+    seriesData = [[28,30,26,35,29,27,28,34,25,29,32,35],[22,24,21,28,23,21,22,27,20,23,26,28],[15,16,14,18,15,14,15,18,13,15,17,18],[18,19,17,22,18,16,17,21,16,18,20,22]];
+  } else if (dimType === '品牌对比') {
+    names = ['东风','比亚迪','蔚来','小鹏'];
+    seriesData = [[30,32,28,38,31,29,30,36,27,31,34,37],[22,24,21,28,23,21,22,27,20,23,26,28],[18,19,17,22,18,16,17,21,16,18,20,22],[12,13,11,15,12,10,11,14,10,12,14,15]];
+  } else {
+    names = ['轿车','客车','货车','环卫车'];
+    seriesData = [[40,42,38,50,41,37,38,48,36,41,45,49],[25,27,24,32,26,23,24,30,22,26,29,31],[20,21,19,25,20,18,19,23,17,20,22,24],[10,11,9,12,10,9,10,12,9,10,11,12]];
+  }
+  var colors = ['#1677ff','#fa8c16','#52c41a','#722ed1'];
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 50, right: 30, top: 10, bottom: 40 },
+    xAxis: { type: 'category', data: monthLabels },
+    yAxis: { type: 'value', name: '事故数(起)' },
+    legend: { bottom: 0 },
+    series: names.map(function(n, i) {
+      return { name: n, type: 'line', data: seriesData[i], lineStyle: { color: colors[i], width: 2 }, symbol: 'circle', symbolSize: 4, smooth: true };
+    })
+  });
+}
+
+function refreshTrend() {
+  showToast('趋势分析已刷新');
+  renderMainTrend();
+  renderRatioChart();
+  var sel = document.getElementById('crossDimSelect');
+  renderCrossDimChart(sel ? sel.value : '区县对比');
+}
+
+function initTrendCharts() {
+  if (trendChartsInited) return;
+  trendChartsInited = true;
+  renderWarningTable();
+  renderMainTrend();
+  renderRatioChart();
+  renderCrossDimChart('区县对比');
+}
+
+// ====== Tab4: 车辆主体分析 ======
+var vehicleSubjects = [
+  {name:'襄阳智行科技',type:'企业',accidents:85,deaths:2,injuries:15,faultRatio:'35%',riskScore:72,risk:'高'},
+  {name:'汉江出行',type:'企业',accidents:62,deaths:3,injuries:18,faultRatio:'42%',riskScore:78,risk:'高'},
+  {name:'顺捷科技',type:'企业',accidents:38,deaths:0,injuries:8,faultRatio:'22%',riskScore:45,risk:'低'},
+  {name:'东风出行',type:'企业',accidents:55,deaths:1,injuries:12,faultRatio:'30%',riskScore:58,risk:'中'},
+  {name:'百度Apollo',type:'企业',accidents:42,deaths:0,injuries:6,faultRatio:'18%',riskScore:38,risk:'低'},
+  {name:'滴滴自动驾驶',type:'企业',accidents:48,deaths:1,injuries:10,faultRatio:'28%',riskScore:52,risk:'中'},
+  {name:'小马智行',type:'企业',accidents:25,deaths:0,injuries:4,faultRatio:'15%',riskScore:30,risk:'低'},
+  {name:'东风品牌',type:'品牌',accidents:95,deaths:3,injuries:22,faultRatio:'38%',riskScore:76,risk:'高'},
+  {name:'比亚迪品牌',type:'品牌',accidents:45,deaths:1,injuries:8,faultRatio:'25%',riskScore:42,risk:'低'},
+  {name:'轿车车型',type:'车型',accidents:120,deaths:4,injuries:30,faultRatio:'32%',riskScore:68,risk:'中'}
+];
+
+var vehicleChartsInited = false;
+var vehicleChartInstances = {};
+
+function vehicleInitChart(id) {
+  var dom = document.getElementById(id);
+  if (!dom) return null;
+  if (vehicleChartInstances[id]) vehicleChartInstances[id].dispose();
+  var c = echarts.init(dom);
+  vehicleChartInstances[id] = c;
+  return c;
+}
+
+function renderVehicleStats() {
+  var high = vehicleSubjects.filter(function(s){return s.risk==='高'}).length;
+  var mid = vehicleSubjects.filter(function(s){return s.risk==='中'}).length;
+  var low = vehicleSubjects.filter(function(s){return s.risk==='低'}).length;
+  document.getElementById('vehicleStatCards').innerHTML =
+    '<div class="stat-card" style="border-left:3px solid #1677ff"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">主体总数</div><div class="stat-value" style="color:#1677ff">' + vehicleSubjects.length + '</div><div class="text-xs text-[#00000040]">全部统计主体</div></div></div>' +
+    '<div class="stat-card" style="border-left:3px solid #f5222d"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">高风险主体</div><div class="stat-value" style="color:#f5222d">' + high + '</div></div></div>' +
+    '<div class="stat-card" style="border-left:3px solid #fa8c16"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">中风险主体</div><div class="stat-value" style="color:#fa8c16">' + mid + '</div></div></div>' +
+    '<div class="stat-card" style="border-left:3px solid #52c41a"><div class="stat-info"><div class="stat-label text-xs text-[#00000073]">低风险主体</div><div class="stat-value" style="color:#52c41a">' + low + '</div></div></div>';
+}
+
+function renderVehicleTable(data) {
+  data = data || vehicleSubjects.slice(0, 10);
+  document.getElementById('vehicleListCount').textContent = data.length;
+  document.getElementById('vehicleTotalCount').textContent = data.length;
+  document.getElementById('vehicleTableBody').innerHTML = data.map(function(s) {
+    var riskTag = s.risk === '高' ? 'ant-tag-error' : s.risk === '中' ? 'ant-tag-warning' : 'ant-tag-success';
+    return '<tr onclick="openVehicleSubjectDetail(\'' + s.name + '\')" style="cursor:pointer">' +
+      '<td><b>' + s.name + '</b></td><td>' + s.type + '</td><td>' + s.accidents + '</td><td>' + s.deaths + '</td><td>' + s.injuries + '</td><td>' + s.faultRatio + '</td><td><b>' + s.riskScore + '</b></td>' +
+      '<td><span class="ant-tag ' + riskTag + '">' + s.risk + '</span></td>' +
+      '<td><button class="ant-btn-link" onclick="event.stopPropagation();openVehicleSubjectDetail(\'' + s.name + '\')">查看详情</button></td></tr>';
+  }).join('');
+}
+
+function renderVehicleCharts(dim) {
+  dim = dim || '企业';
+  var dimSubjects = vehicleSubjects.filter(function(s) {
+    return dim === '企业' ? s.type === '企业' : dim === '品牌' ? s.type === '品牌' : s.type === '车型';
+  });
+  document.getElementById('vehicleRankTitle').textContent = dim + '事故数量排名 Top10';
+
+  var c1 = vehicleInitChart('vehicleRankChart');
+  if (c1) {
+    c1.setOption({
+      tooltip: {}, grid: { left: 100, right: 50, top: 10, bottom: 20 },
+      yAxis: { type: 'category', data: dimSubjects.map(function(s){return s.name}).reverse(), axisLabel: { fontSize: 10 } },
+      xAxis: { type: 'value', name: '事故数' },
+      series: [{ type: 'bar', data: dimSubjects.map(function(s){return s.accidents}).reverse(), barWidth: '60%', itemStyle: { color: '#1677ff', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', fontSize: 10 } }]
+    });
+  }
+
+  var c2 = vehicleInitChart('vehicleRadarChart');
+  if (c2) {
+    var top3 = dimSubjects.slice(0, 3);
+    var maxAcc = Math.max.apply(null, top3.map(function(s){return s.accidents}).concat([1]));
+    var maxFault = Math.max.apply(null, top3.map(function(s){return parseInt(s.faultRatio)}).concat([1]));
+    c2.setOption({
+      radar: { indicator: [
+        { name: '事故数量', max: maxAcc },
+        { name: '有责占比', max: maxFault },
+        { name: '伤亡人数', max: Math.max.apply(null, top3.map(function(s){return s.deaths+s.injuries}).concat([1])) },
+        { name: '风险评分', max: 100 }
+      ], center: ['50%', '55%'], radius: '65%' },
+      series: top3.map(function(s, i) {
+        return { type: 'radar', name: s.name, data: [{ value: [s.accidents, parseInt(s.faultRatio), s.deaths + s.injuries, s.riskScore], name: s.name }], areaStyle: { color: ['rgba(22,119,255,0.15)', 'rgba(250,140,22,0.15)', 'rgba(82,196,26,0.15)'][i] }, itemStyle: { color: ['#1677ff', '#fa8c16', '#52c41a'][i] } };
+      }),
+      legend: { bottom: 0 }
+    });
+  }
+
+  var c3 = vehicleInitChart('vehicleFaultChart');
+  if (c3) {
+    c3.setOption({
+      tooltip: {}, grid: { left: 80, right: 30, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: dimSubjects.map(function(s){return s.name}), axisLabel: { rotate: 30, fontSize: 9 } },
+      yAxis: { type: 'value', name: '有责占比(%)' },
+      series: [{ type: 'bar', data: dimSubjects.map(function(s){return parseInt(s.faultRatio)}), barWidth: '50%', itemStyle: { color: '#fa8c16', borderRadius: [4, 4, 0, 0] }, label: { show: true, position: 'top', fontSize: 10, formatter: '{c}%' } }]
+    });
+  }
+}
+
+function refreshVehicleData() {
+  var dim = document.getElementById('vehicleDimSelect').value.replace('按', '');
+  renderVehicleStats();
+  var filtered = vehicleSubjects.filter(function(s) {
+    return dim === '企业' ? s.type === '企业' : dim === '品牌' ? s.type === '品牌' : s.type === '车型';
+  }).slice(0, 10);
+  renderVehicleTable(filtered);
+  renderVehicleCharts(dim);
+  showToast('数据已刷新');
+}
+
+function openVehicleSubjectDetail(name) {
+  var s = vehicleSubjects.find(function(x){return x.name === name}) || vehicleSubjects[0];
+  var riskTag = s.risk === '高' ? 'ant-tag-error' : s.risk === '中' ? 'ant-tag-warning' : 'ant-tag-success';
+  var strategy = s.risk === '高' ? '建议限制新增测试车辆数量、提高准入审核频次、要求提交专项整改报告' : s.risk === '中' ? '建议持续关注、针对性开展安全培训、定期提交运行报告' : '常规管理，在资源分配、审批流程等方面可优先或简化';
+  var html = '<p class="mb-3 text-sm"><b>主体：</b>' + s.name + ' | <b>类型：</b>' + s.type + ' | <b>风险等级：</b><span class="ant-tag ' + riskTag + '">' + s.risk + '</span> | <b>风险评分：</b>' + s.riskScore + '</p>' +
+    '<p class="mb-3 text-sm"><b>事故数量：</b>' + s.accidents + ' | <b>死亡：</b>' + s.deaths + ' | <b>受伤：</b>' + s.injuries + ' | <b>有责占比：</b>' + s.faultRatio + '</p>' +
+    '<p class="mb-3 text-sm"><b>监管建议：</b>' + strategy + '</p>' +
+    '<div id="vehicleDetailMap" style="height:200px;border-radius:6px;overflow:hidden;margin:10px 0"></div>' +
+    '<h4 class="text-sm font-semibold mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">事故明细列表（最近5条）</h4>' +
+    '<div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>事故编号</th><th>时间</th><th>类型</th><th>严重程度</th><th>地点</th></tr></thead><tbody>' +
+    Array.from({length:5}, function(_, i) {
+      return '<tr><td>ACC-' + s.name.substring(0, 2) + '-' + (i + 1) + '</td><td>2026-05-0' + (i + 1) + '</td><td>' + ['追尾','碰撞','刮擦'][i % 3] + '</td><td><span class="ant-tag ' + ['ant-tag-error','ant-tag-warning','ant-tag-success'][i % 3] + '">' + ['重伤','轻伤','无伤亡'][i % 3] + '</span></td><td>' + ['长虹路','檀溪路','航空路'][i % 3] + '</td></tr>';
+    }).join('') +
+    '</tbody></table></div>';
+  openModal('主体风险画像 - ' + s.name, html, { wide: true, footer: '<button class="ant-btn" onclick="closeModal()">关闭</button>' });
+  setTimeout(function() {
+    var mapDom = document.getElementById('vehicleDetailMap');
+    if (mapDom && !mapDom._leaflet) {
+      var m = L.map(mapDom).setView([32.0, 112.12], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(m);
+      for (var i = 0; i < 8; i++) {
+        L.circleMarker([31.78 + Math.random() * 0.35, 111.7 + Math.random() * 0.5], { radius: 4 + Math.random() * 3, fillColor: '#f5222d', color: '#fff', weight: 1, fillOpacity: 0.7 }).addTo(m).bindPopup('事故点位');
+      }
+      mapDom._leaflet = m;
+    }
+  }, 300);
+}
+
+function initVehicleCharts() {
+  if (vehicleChartsInited) return;
+  vehicleChartsInited = true;
+  renderVehicleStats();
+  renderVehicleTable();
+  renderVehicleCharts('企业');
+  document.getElementById('vehicleDimSelect').addEventListener('change', refreshVehicleData);
+}
+
+// ====== Tab5: 分析报告与管控建议 ======
+var reportData = [
+  { id: 'RPT-2026-04', name: '2026年4月事故分析月报', type: '月报', period: '2026-04-01 ~ 2026-04-30', time: '2026-05-01 09:30', method: '自动', status: '已生成' },
+  { id: 'RPT-2026-W17', name: '2026年第17周事故分析周报', type: '周报', period: '2026-04-20 ~ 2026-04-26', time: '2026-04-27 09:00', method: '自动', status: '已生成' },
+  { id: 'RPT-2026-Q1', name: '2026年Q1事故分析季报', type: '季报', period: '2026-01-01 ~ 2026-03-31', time: '2026-04-05 14:30', method: '手动', status: '已生成' },
+  { id: 'RPT-2026-SP01', name: '清明节保障专项报告', type: '专项', period: '2026-04-03 ~ 2026-04-06', time: '2026-04-07 10:00', method: '手动', status: '已生成' },
+  { id: 'RPT-2026-03', name: '2026年3月事故分析月报', type: '月报', period: '2026-03-01 ~ 2026-03-31', time: '2026-04-01 08:30', method: '自动', status: '已生成' },
+  { id: 'RPT-2026-W13', name: '2026年第13周事故分析周报', type: '周报', period: '2026-03-23 ~ 2026-03-29', time: '2026-03-30 09:00', method: '自动', status: '已生成' },
+  { id: 'RPT-2026-02', name: '2026年2月事故分析月报', type: '月报', period: '2026-02-01 ~ 2026-02-28', time: '2026-03-01 09:30', method: '自动', status: '已生成' },
+  { id: 'RPT-2026-01', name: '2026年1月事故分析月报', type: '月报', period: '2026-01-01 ~ 2026-01-31', time: '2026-02-01 09:30', method: '自动', status: '已生成' },
+  { id: 'RPT-2025-Q4', name: '2025年Q4事故分析季报', type: '季报', period: '2025-10-01 ~ 2025-12-31', time: '2026-01-05 10:00', method: '手动', status: '已生成' },
+  { id: 'RPT-2025-12', name: '2025年12月事故分析月报', type: '月报', period: '2025-12-01 ~ 2025-12-31', time: '2026-01-01 09:30', method: '自动', status: '已生成' },
+  { id: 'RPT-2026-05', name: '2026年5月事故分析月报', type: '月报', period: '2026-05-01 ~ 2026-05-31', time: '-', method: '自动', status: '生成中' }
+];
+
+function renderReportTable() {
+  var tbody = document.getElementById('reportTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = reportData.map(function(r) {
+    var statusTag = r.status === '已生成' ? 'ant-tag-success' : 'ant-tag-processing';
+    var methodTag = r.method === '自动' ? 'ant-tag-processing' : 'ant-tag-warning';
+    return '<tr>' +
+      '<td>' + r.id + '</td>' +
+      '<td><b>' + r.name + '</b></td>' +
+      '<td><span class="ant-tag ant-tag-processing">' + r.type + '</span></td>' +
+      '<td>' + r.period + '</td>' +
+      '<td>' + r.time + '</td>' +
+      '<td><span class="ant-tag ' + methodTag + '">' + r.method + '</span></td>' +
+      '<td><span class="ant-tag ' + statusTag + '">' + r.status + '</span></td>' +
+      '<td>' +
+        '<button class="ant-btn-link" onclick="previewReport(\'' + r.id + '\')">预览</button>' +
+        '<button class="ant-btn-link" onclick="exportPDF(\'' + r.id + '\')">PDF</button>' +
+        '<button class="ant-btn-link" onclick="exportWord(\'' + r.id + '\')">Word</button>' +
+      '</td></tr>';
+  }).join('');
+}
+
+function previewReport(id) {
+  var r = reportData.find(function(rep) { return rep.id === id; }) || reportData[0];
+  var html = '<p><b>报告名称：</b>' + r.name + '</p>' +
+    '<p><b>类型：</b>' + r.type + ' | <b>统计周期：</b>' + r.period + ' | <b>生成时间：</b>' + r.time + ' | <b>生成方式：</b>' + r.method + '</p>' +
+    '<hr style="margin:12px 0;border-color:#f0f0f0;">' +
+    '<h4 style="font-size:14px;font-weight:600;margin:12px 0 8px;">一、总体概况</h4>' +
+    '<p>本期共发生事故 <b>247</b> 起（环比 <span style="color:#f5222d;">+12%</span>，同比 <span style="color:#f5222d;">+16%</span>）。死亡 <b>3</b> 人，受伤 <b>45</b> 人，财产损失事故 <b>199</b> 起。事故率 <b>2.15</b> 起/10万km。</p>' +
+    '<h4 style="font-size:14px;font-weight:600;margin:12px 0 8px;">二、时空分布分析</h4>' +
+    '<p>时间维度：事故主要集中在早高峰（7:00-9:00）和晚高峰（17:00-19:00），占总数的 <b>42%</b>。空间维度：<b>樊城区</b> 事故最多（86起），其次为襄城区（65起）。</p>' +
+    '<h4 style="font-size:14px;font-weight:600;margin:12px 0 8px;">三、多发点位研判</h4>' +
+    '<p>本期共识别多发点位 <b>10</b> 处，其中新增 <b>2</b> 处（大庆路人民路口、环城南路檀溪路口），退出 <b>1</b> 处。长虹路建华路口仍为事故最高发点位（28起）。</p>' +
+    '<h4 style="font-size:14px;font-weight:600;margin:12px 0 8px;">四、风险区域研判</h4>' +
+    '<p>高风险区域 <b>4</b> 处（长虹路建华路口、檀溪路铁佛寺路口、人民路学校周边、解放路明珠路口），中风险区域 <b>4</b> 处，低风险区域 <b>2</b> 处。潜在风险区域 <b>2</b> 处需持续关注。</p>' +
+    '<h4 style="font-size:14px;font-weight:600;margin:12px 0 8px;">五、趋势变化研判</h4>' +
+    '<p>近3个月事故呈 <span style="color:#f5222d;font-weight:600;">上升趋势</span>，5月事故数（180起）较基线（155起）偏离 <b>+16.1%</b>。异常预警：樊城区、汉江出行主体存在显著异常增长。</p>' +
+    '<h4 style="font-size:14px;font-weight:600;margin:12px 0 8px;">六、车辆主体评价</h4>' +
+    '<p>高风险主体：<b>汉江出行</b>（风险评分78）、<b>襄阳智行科技</b>（风险评分72）。低风险主体：小马智行（30）、顺捷科技（45）。</p>' +
+    '<h4 style="font-size:14px;font-weight:600;margin:12px 0 8px;">七、管控建议清单</h4>' +
+    '<div style="background:#fff1f0;border-left:3px solid #f5222d;border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:12px;">' +
+      '<b style="color:#f5222d;">🔴 高危</b> — 长虹路建华路口增设信号灯，优化绿化带视距，建议高峰时段增派交警执勤。（设施类 · 责任部门：交通部门）' +
+    '</div>' +
+    '<div style="background:#fff1f0;border-left:3px solid #f5222d;border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:12px;">' +
+      '<b style="color:#f5222d;">🔴 高危</b> — 高风险企业（汉江出行）限制新增测试车辆数量，要求提交专项整改报告。（管理类 · 责任部门：交通部门）' +
+    '</div>' +
+    '<div style="background:#fff7e6;border-left:3px solid #fa8c16;border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:12px;">' +
+      '<b style="color:#fa8c16;">🟠 中危</b> — 加强樊城区高峰时段巡查频次，针对性调整测试时段。（管理类 · 责任部门：公安部门）' +
+    '</div>' +
+    '<div style="background:#fff7e6;border-left:3px solid #fa8c16;border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:12px;">' +
+      '<b style="color:#fa8c16;">🟠 中危</b> — 建议汉江出行全面检修制动系统，升级感知算法。（技术类 · 责任部门：企业自主）' +
+    '</div>' +
+    '<div style="background:#e6f7ff;border-left:3px solid #1890ff;border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:12px;">' +
+      '<b style="color:#1890ff;">🔵 低危</b> — 航空路金富士路口增加行人过街设施与人行横道预警标志。（设施类 · 责任部门：住建部门）' +
+    '</div>' +
+    '<div style="margin-top:12px;text-align:right;"><button class="ant-btn" onclick="showToast(\'建议清单已导出为Excel\')">导出建议清单</button></div>';
+  document.getElementById('reportPreviewTitle').textContent = r.name;
+  document.getElementById('reportPreviewBody').innerHTML = html;
+  document.getElementById('reportPreviewOverlay').style.display = 'flex';
+}
+
+function closeReportPreview() {
+  document.getElementById('reportPreviewOverlay').style.display = 'none';
+}
+
+function exportPDF(id) {
+  var r = reportData.find(function(rep) { return rep.id === id; });
+  showToast('正在导出PDF：' + (r ? r.name : '报告'));
+}
+
+function exportWord(id) {
+  var r = reportData.find(function(rep) { return rep.id === id; });
+  showToast('正在导出Word：' + (r ? r.name : '报告'));
+}
+
+function openNewReportModal() {
+  var html = '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告名称</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入报告名称"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告类型</div><div class="ant-form-control"><select class="ant-input"><option>月报</option><option>周报</option><option>季报</option><option>年报</option><option>专项报告</option></select></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>统计周期</div><div class="ant-form-control"><div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" style="width:45%;display:inline-block"><span style="color:#8c8c8c;">-</span><input class="ant-input" type="date" style="width:45%;display:inline-block"></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">报告摘要</div><div class="ant-form-control"><textarea class="ant-input" style="height:100px;padding:8px 12px" placeholder="请输入报告摘要"></textarea></div></div>';
+  openModal('新建分析报告', html, { footer: '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="showToast(\'报告创建成功\');closeModal()">提交</button>' });
+}
+
+// ====== 初始化 ======
+renderHotspotTable();
+renderReportTable();
+setTimeout(initHotspotMap, 200);
+
+document.getElementById('reportPreviewOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeReportPreview();
+});
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

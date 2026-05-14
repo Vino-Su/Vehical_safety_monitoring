@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>安全员数据查询 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>安全员数据查询</h2></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>企业名称</label><input class="ant-input" placeholder="请输入企业名称搜索" style="width:200px"></div>
+          <div class="filter-item"><label>安全员姓名</label><input class="ant-input" placeholder="请输入安全员姓名搜索" style="width:180px"></div>
+          <div class="filter-item"><label>开始时间</label><input class="ant-input" type="date" value="2026-01-01" style="width:160px"></div>
+          <div class="filter-item"><label>截止时间</label><input class="ant-input" type="date" value="2026-04-30" style="width:160px"></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          <button class="ant-btn ml-auto">导出</button>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th>企业名称</th><th>安全员姓名</th><th>开始时间</th><th>截止时间</th><th>干预次数</th><th>自动驾驶测试里程(km)</th><th>干预率(%)</th></tr></thead>
+            <tbody>
+              <tr><td>襄阳智行科技有限公司</td><td>张伟</td><td>2025-06-01</td><td>2026-04-30</td><td>23</td><td>124,356</td><td>0.02</td></tr>
+              <tr><td>襄阳智行科技有限公司</td><td>刘波</td><td>2025-08-15</td><td>2026-04-30</td><td>18</td><td>98,752</td><td>0.02</td></tr>
+              <tr><td>上海蔚来汽车有限公司</td><td>韩梅梅</td><td>2025-03-01</td><td>2026-04-30</td><td>12</td><td>72,430</td><td>0.02</td></tr>
+              <tr><td>百度Apollo</td><td>王小明</td><td>2025-09-01</td><td>2026-04-30</td><td>8</td><td>54,120</td><td>0.01</td></tr>
+              <tr><td>深圳AutoX</td><td>赵敏</td><td>2025-07-01</td><td>2026-04-30</td><td>6</td><td>45,678</td><td>0.01</td></tr>
+              <tr><td>北京百度网讯科技有限公司</td><td>李明华</td><td>2025-10-01</td><td>2026-04-30</td><td>15</td><td>38,765</td><td>0.04</td></tr>
+              <tr><td>广州小马智行科技有限公司</td><td>陈志远</td><td>2025-11-01</td><td>2026-04-30</td><td>10</td><td>32,150</td><td>0.03</td></tr>
+              <tr><td>北京主线科技有限公司</td><td>赵建国</td><td>2025-06-15</td><td>2026-04-30</td><td>7</td><td>28,430</td><td>0.02</td></tr>
+              <tr><td>上海滴滴沃芽科技有限公司</td><td>王芳</td><td>2025-12-01</td><td>2026-04-30</td><td>4</td><td>22,870</td><td>0.02</td></tr>
+              <tr><td>重庆长安汽车股份有限公司</td><td>李强</td><td>2025-05-01</td><td>2026-04-30</td><td>11</td><td>19,650</td><td>0.06</td></tr>
+              <tr><td>东风汽车集团有限公司</td><td>周建国</td><td>2026-01-01</td><td>2026-04-30</td><td>3</td><td>0</td><td>-</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 29 条</span>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-sm text-[#00000073]">
+              <span>每页显示</span>
+              <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>条</span>
+            </div>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='safety-driver-query';
+function changePageSize(val){console.log('Page size changed to:',val);}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

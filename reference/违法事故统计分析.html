@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>违法事故统计</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+            --shadow-card: 0 1px 2px -2px rgba(0, 0, 0, 0.08), 0 3px 6px 0 rgba(0, 0, 0, 0.06);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei',
+                sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-header {
+            background: #001529;
+            color: #fff;
+            padding: 0 32px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .app-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .app-header .logo .icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius);
+            background: var(--error);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .app-body {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px 28px 40px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 18px;
+        }
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 16px 22px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 14px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 130px;
+        }
+        .form-group label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        select,
+        input {
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: var(--font);
+            color: var(--text-primary);
+            background: #fff;
+            outline: none;
+            min-width: 120px;
+        }
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.12);
+        }
+        select[multiple] {
+            height: auto;
+            min-height: 34px;
+            padding: 6px 8px;
+        }
+        .btn {
+            height: 34px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.35);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary-bg);
+        }
+        .btn-sm {
+            height: 28px;
+            padding: 0 12px;
+            font-size: 12px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 4px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover {
+            box-shadow: var(--shadow-card);
+            transform: translateY(-1px);
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        .stat-card .stat-value {
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+        .stat-card .stat-sub {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+        .stat-card.accent-red {
+            border-left: 3px solid var(--error);
+        }
+        .stat-card.accent-orange {
+            border-left: 3px solid var(--warning);
+        }
+        .stat-card.accent-blue {
+            border-left: 3px solid var(--primary);
+        }
+        .stat-card.accent-green {
+            border-left: 3px solid var(--success);
+        }
+
+        .card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 16px;
+        }
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.3px;
+        }
+        .chart-container {
+            min-height: 300px;
+        }
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .row-1 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            background: #fafafa;
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f5f5f5;
+            color: var(--text-primary);
+        }
+        tbody tr {
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        tbody tr:hover {
+            background: #fafafa;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-yellow {
+            background: #fffbe6;
+            color: #d4b106;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .tag-purple {
+            background: #f9f0ff;
+            color: #722ed1;
+        }
+
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .pagination-bar select {
+            width: 80px;
+            height: 30px;
+        }
+        .pagination-bar .page-info {
+            font-weight: 500;
+        }
+        .pagination-bar .btn-sm {
+            height: 30px;
+        }
+
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 8px;
+            width: 720px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05);
+        }
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+            font-size: 13px;
+            line-height: 2;
+        }
+        .modal-body .detail-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 20px;
+        }
+        .modal-body .detail-row .dl {
+            color: var(--text-tertiary);
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .modal-body .detail-row .dv {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 1200px) {
+            .stat-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .row-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            .stat-cards {
+                grid-template-columns: 1fr;
+            }
+            .query-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="logo">
+            <span class="icon">🚨</span>
+            <span>违法事故统计</span>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <div class="page-title">违法事故统计</div>
+        <div class="page-subtitle">智能网联汽车道路测试与示范应用 · 违法事故全维度统计与可视化</div>
+
+        <!-- 筛选条件 -->
+        <div class="query-bar">
+            <div class="form-group">
+                <label>时间范围</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <input type="date" value="2026-04-01" style="min-width:130px;">
+                    <span style="color:var(--text-tertiary);">—</span>
+                    <input type="date" value="2026-05-08" style="min-width:130px;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>行政区域</label>
+                <select>
+                    <option>全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>事故分类</label>
+                <select>
+                    <option>全部</option><option>已上报</option><option>已提交交通事故报告</option><option>已提交分析报告</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>事故类型</label>
+                <select>
+                    <option>全部</option><option>碰撞</option><option>刮擦</option><option>追尾</option><option>行人冲突</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>严重程度</label>
+                <select>
+                    <option>全部</option><option>死亡</option><option>重伤</option><option>轻伤</option><option>无伤亡</option>
+                </select>
+            </div>
+            <button class="btn btn-primary">🔍 查询</button>
+            <button class="btn btn-outline">📥 导出Excel</button>
+        </div>
+
+        <!-- 统计卡片（分类调整为已上报、已提交交通事故报告、已提交分析报告） -->
+        <div class="stat-cards">
+            <div class="stat-card accent-red">
+                <span class="stat-label">事故总数</span>
+                <span class="stat-value warn">247</span>
+                <span class="stat-sub">统计周期内累计</span>
+            </div>
+            <div class="stat-card accent-orange">
+                <span class="stat-label">已上报</span>
+                <span class="stat-value" style="color:#fa8c16;">86</span>
+                <span class="stat-sub">占比 34.8%</span>
+            </div>
+            <div class="stat-card accent-blue">
+                <span class="stat-label">已提交交通事故报告</span>
+                <span class="stat-value" style="color:#1890ff;">112</span>
+                <span class="stat-sub">占比 45.3%</span>
+            </div>
+            <div class="stat-card accent-green">
+                <span class="stat-label">已提交分析报告</span>
+                <span class="stat-value" style="color:#52c41a;">49</span>
+                <span class="stat-sub">占比 19.9%</span>
+            </div>
+        </div>
+
+        <!-- 图表区域（违法类型分布 -> 事故类型分布；剔除处理状态分布） -->
+        <div class="row-2">
+            <div class="card">
+                <div class="card-header">事故类型分布</div>
+                <div class="chart-container" id="chartAccidentTypePie"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">事故趋势（近30天）</div>
+                <div class="chart-container" id="chartTrend"></div>
+            </div>
+        </div>
+
+        <div class="row-1">
+            <div class="card">
+                <div class="card-header">行政区域事故分布</div>
+                <div class="chart-container" id="chartRegionBar" style="height:320px;"></div>
+            </div>
+        </div>
+
+        <!-- 事故列表（移除违法类型字段，默认10列） -->
+        <div class="card">
+            <div class="card-header">事故列表</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>事故编号</th>
+                            <th>时间</th>
+                            <th>地点</th>
+                            <th>事故类型</th>
+                            <th>严重程度</th>
+                            <th>车牌号</th>
+                            <th>VIN码</th>
+                            <th>所属企业</th>
+                            <th>事故分类</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accidentTableBody"></tbody>
+                </table>
+            </div>
+            <div class="pagination-bar">
+                <span>共 <b id="totalCount">247</b> 条</span>
+                <select id="pageSizeSelect">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span>条/页</span>
+                <button class="btn btn-sm btn-outline" id="prevBtn">上一页</button>
+                <span class="page-info">第 <b id="currPage">1</b> / <b id="totalPage">13</b> 页</span>
+                <button class="btn btn-sm btn-outline" id="nextBtn">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 事故详情弹窗 -->
+    <div class="modal-mask" id="modalMask">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="modalTitle">事故详情</span>
+                <button class="btn btn-sm btn-outline" onclick="closeModal()">✕ 关闭</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // 模拟数据
+            const accidentTypes = ['碰撞', '刮擦', '追尾', '行人冲突', '侧翻'];
+            const severityLevels = ['死亡', '重伤', '轻伤', '无伤亡'];
+            const categories = ['已上报', '已提交交通事故报告', '已提交分析报告'];
+            const companies = ['襄阳智行科技', '汉江出行', '顺捷科技', '东风出行', '百度Apollo', '滴滴自动驾驶', '小马智行'];
+            const plates = [
+                '鄂F·A1234', '鄂F·B5678', '鄂F·C3456', '鄂F·D7890', '鄂F·E9012',
+                '鄂F·F4567', '鄂F·G8901', '鄂F·H2345', '鄂F·I6789', '鄂F·J0123'
+            ];
+            const vins = [
+                'LSVAA4189N2000001', 'LSVAA4189N2000002', 'LSVAA4189N2000003',
+                'LSVAA4189N2000004', 'LSVAA4189N2000005', 'LSVAA4189N2000006',
+                'LSVAA4189N2000007', 'LSVAA4189N2000008', 'LSVAA4189N2000009',
+                'LSVAA4189N2000010'
+            ];
+            const locations = [
+                '长虹路与建华路交叉口', '檀溪路与铁佛寺路交叉口', '航空路与金富士路交叉口',
+                '人民路天元四季城前', '建设路与银城大道交叉口', '金源路中段',
+                '卧龙大道与中原路交叉口', '大庆路与人民路交叉口', '环城南路与檀溪路交叉口',
+                '前进路与长征路交叉口'
+            ];
+
+            function randomEl(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+            function generateAccidents(count = 247) {
+                const arr = [];
+                for (let i = 0; i < count; i++) {
+                    const date = new Date(2026, 3, 1);
+                    date.setDate(date.getDate() + Math.floor(Math.random() * 38));
+                    date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), Math.floor(Math
+                        .random() * 60));
+                    const accidentType = randomEl(accidentTypes);
+                    const severity = randomEl(severityLevels);
+                    const company = randomEl(companies);
+                    const plateIdx = Math.floor(Math.random() * plates.length);
+                    const category = randomEl(categories);
+                    arr.push({
+                        id: 'ACC-2026-' + String(i + 1).padStart(4, '0'),
+                        time: date.toISOString().replace('T', ' ').substring(0, 19),
+                        location: randomEl(locations),
+                        accidentType: accidentType,
+                        severity: severity,
+                        plate: plates[plateIdx],
+                        vin: vins[plateIdx],
+                        company: company,
+                        category: category,
+                        casualties: severity === '死亡' ? '死亡1人' : severity === '重伤' ? '重伤1人' : severity ===
+                            '轻伤' ? '轻伤1-2人' : '无伤亡',
+                        description: '车辆在' + locations[Math.floor(Math.random() * locations.length)] + '发生' +
+                            accidentType + '事故。',
+                    });
+                }
+                arr.sort((a, b) => b.time.localeCompare(a.time));
+                return arr;
+            }
+
+            const allAccidents = generateAccidents(247);
+            let currentPage = 1;
+            let pageSize = 20;
+
+            function renderTable(page = 1) {
+                const tbody = document.getElementById('accidentTableBody');
+                const start = (page - 1) * pageSize;
+                const end = Math.min(start + pageSize, allAccidents.length);
+                const pageData = allAccidents.slice(start, end);
+
+                tbody.innerHTML = pageData.map(a => {
+                    const severityTag = a.severity === '死亡' ? 'tag-red' : a.severity === '重伤' ?
+                        'tag-orange' : a.severity === '轻伤' ? 'tag-yellow' : 'tag-green';
+                    const typeTag = a.accidentType === '追尾' ? 'tag-red' : a.accidentType === '碰撞' ?
+                        'tag-orange' : a.accidentType === '行人冲突' ? 'tag-purple' : 'tag-blue';
+                    const categoryTag = a.category === '已上报' ? 'tag-yellow' : a.category ===
+                        '已提交交通事故报告' ? 'tag-blue' : 'tag-green';
+                    return `<tr onclick="openDetail('${a.id}')" style="cursor:pointer;">
+                        <td><strong>${a.id}</strong></td>
+                        <td>${a.time}</td>
+                        <td>${a.location}</td>
+                        <td><span class="tag ${typeTag}">${a.accidentType}</span></td>
+                        <td><span class="tag ${severityTag}">${a.severity}</span></td>
+                        <td>${a.plate}</td>
+                        <td style="font-family:monospace;font-size:11px;">${a.vin}</td>
+                        <td>${a.company}</td>
+                        <td><span class="tag ${categoryTag}">${a.category}</span></td>
+                        <td><button class="btn-link btn-sm" onclick="event.stopPropagation();openDetail('${a.id}')">详情</button></td>
+                    </tr>`;
+                }).join('');
+
+                document.getElementById('totalCount').textContent = allAccidents.length;
+                document.getElementById('currPage').textContent = page;
+                document.getElementById('totalPage').textContent = Math.ceil(allAccidents.length / pageSize);
+            }
+
+            document.getElementById('prevBtn').addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--;
+                    renderTable(currentPage); }
+            });
+            document.getElementById('nextBtn').addEventListener('click', () => {
+                const totalPages = Math.ceil(allAccidents.length / pageSize);
+                if (currentPage < totalPages) { currentPage++;
+                    renderTable(currentPage); }
+            });
+            document.getElementById('pageSizeSelect').addEventListener('change', function() {
+                pageSize = parseInt(this.value);
+                currentPage = 1;
+                renderTable(currentPage);
+            });
+
+            window.openDetail = function(id) {
+                const accident = allAccidents.find(a => a.id === id) || allAccidents[0];
+                const severityTag = accident.severity === '死亡' ? 'tag-red' : accident.severity === '重伤' ?
+                    'tag-orange' : accident.severity === '轻伤' ? 'tag-yellow' : 'tag-green';
+                const categoryTag = accident.category === '已上报' ? 'tag-yellow' : accident.category ===
+                    '已提交交通事故报告' ? 'tag-blue' : 'tag-green';
+                const html = `
+                    <div class="detail-row">
+                        <div><span class="dl">事故编号</span><br><span class="dv">${accident.id}</span></div>
+                        <div><span class="dl">发生时间</span><br><span class="dv">${accident.time}</span></div>
+                        <div><span class="dl">地点</span><br><span class="dv">${accident.location}</span></div>
+                        <div><span class="dl">事故类型</span><br><span class="tag ${accident.accidentType==='追尾'?'tag-red':accident.accidentType==='碰撞'?'tag-orange':accident.accidentType==='行人冲突'?'tag-purple':'tag-blue'}">${accident.accidentType}</span></div>
+                        <div><span class="dl">严重程度</span><br><span class="tag ${severityTag}">${accident.severity}</span></div>
+                        <div><span class="dl">车牌号</span><br><span class="dv">${accident.plate}</span></div>
+                        <div><span class="dl">VIN码</span><br><span class="dv" style="font-family:monospace;">${accident.vin}</span></div>
+                        <div><span class="dl">所属企业</span><br><span class="dv">${accident.company}</span></div>
+                        <div><span class="dl">事故分类</span><br><span class="tag ${categoryTag}">${accident.category}</span></div>
+                        <div><span class="dl">伤亡情况</span><br><span class="dv">${accident.casualties}</span></div>
+                        <div><span class="dl">事故描述</span><br><span class="dv">${accident.description}</span></div>
+                    </div>
+                    <hr style="margin:14px 0;border-color:var(--border-light);">
+                    <p style="font-weight:600;">关联信息</p>
+                    <p>同车辆历史事故：<b>2</b> 起 | 同路段历史事故：<b>8</b> 起 | 同企业事故：<b>${Math.floor(Math.random()*30+10)}</b> 起</p>
+                    <p>数据来源：车端CAN总线 + 路侧感知设备 + 交警执法系统</p>
+                `;
+                document.getElementById('modalTitle').textContent = '事故详情 - ' + accident.id;
+                document.getElementById('modalBody').innerHTML = html;
+                document.getElementById('modalMask').classList.add('show');
+            };
+            window.closeModal = function() { document.getElementById('modalMask').classList.remove('show'); };
+            document.getElementById('modalMask').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            // ECharts 图表初始化
+            const chartInstances = {};
+            function initChart(id) {
+                const dom = document.getElementById(id);
+                if (!dom) return null;
+                if (chartInstances[id]) chartInstances[id].dispose();
+                const chart = echarts.init(dom);
+                chartInstances[id] = chart;
+                return chart;
+            }
+
+            // 事故类型分布饼图（替代原违法类型）
+            const chartAccidentType = initChart('chartAccidentTypePie');
+            chartAccidentType.setOption({
+                tooltip: { trigger: 'item', formatter: '{b}: {c} 起 ({d}%)' },
+                legend: { bottom: 0, textStyle: { fontSize: 11 } },
+                series: [{
+                    type: 'pie',
+                    radius: ['50%', '75%'],
+                    center: ['50%', '46%'],
+                    itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+                    label: { formatter: '{b}\n{d}%', fontSize: 11 },
+                    data: [
+                        { value: 85, name: '碰撞', itemStyle: { color: '#f5222d' } },
+                        { value: 62, name: '追尾', itemStyle: { color: '#fa8c16' } },
+                        { value: 43, name: '刮擦', itemStyle: { color: '#1890ff' } },
+                        { value: 35, name: '行人冲突', itemStyle: { color: '#722ed1' } },
+                        { value: 22, name: '侧翻', itemStyle: { color: '#eb2f96' } },
+                    ],
+                }],
+            });
+
+            // 事故趋势
+            const chartTrend = initChart('chartTrend');
+            const days = [];
+            const trendData = [];
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date(2026, 4, 8);
+                d.setDate(d.getDate() - i);
+                days.push((d.getMonth() + 1) + '/' + d.getDate());
+                trendData.push(Math.floor(4 + Math.random() * 14));
+            }
+            chartTrend.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 45, right: 20, top: 10, bottom: 40 },
+                xAxis: { type: 'category', data: days, axisLabel: { rotate: 45, fontSize: 10 } },
+                yAxis: { type: 'value', name: '事故数(起)' },
+                series: [{
+                    type: 'line',
+                    data: trendData,
+                    lineStyle: { color: '#f5222d', width: 2 },
+                    itemStyle: { color: '#f5222d' },
+                    smooth: true,
+                    areaStyle: { color: 'rgba(245,34,45,0.1)' },
+                }],
+            });
+
+            // 行政区域柱状图
+            const chartRegionBar = initChart('chartRegionBar');
+            chartRegionBar.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 50, right: 20, top: 10, bottom: 30 },
+                xAxis: {
+                    type: 'category',
+                    data: ['樊城区', '襄城区', '襄州区', '南漳县', '谷城县'],
+                    axisLabel: { fontSize: 11 },
+                },
+                yAxis: { type: 'value', name: '事故数(起)' },
+                series: [{
+                    type: 'bar',
+                    data: [86, 65, 48, 30, 18],
+                    itemStyle: {
+                        color: function(p) {
+                            const colors = ['#f5222d', '#fa8c16', '#1890ff', '#52c41a', '#722ed1'];
+                            return colors[p.dataIndex];
+                        },
+                        borderRadius: [4, 4, 0, 0],
+                    },
+                    barWidth: '50%',
+                    label: { show: true, position: 'top', fontSize: 12, fontWeight: 600 },
+                }],
+            });
+
+            function resizeAllCharts() {
+                Object.values(chartInstances).forEach(c => {
+                    if (c && !c.isDisposed()) c.resize();
+                });
+            }
+            window.addEventListener('resize', () => {
+                clearTimeout(window._resizeTimer);
+                window._resizeTimer = setTimeout(resizeAllCharts, 200);
+            });
+
+            renderTable(1);
+        })();
+    </script>
+</body>
+</html>

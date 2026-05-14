@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>示范应用准入分析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5]" style="padding:24px">
+      <div class="page-header"><h2>示范应用准入分析</h2></div>
+
+      <div class="ant-tabs">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-overview')">总体监测</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-company')">企业监测</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-vehicle')">车辆运行分析</span>
+      </div>
+
+      <!-- ====== 总体监测 ====== -->
+      <div id="tab-overview">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>时间范围</label><div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" value="2026-04-01" style="width:140px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:140px"></div></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="showToast('查询完成')">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-4 mb-4">
+          <div class="stat-card"><div class="stat-icon" style="background:#e6f7ff;color:#1677ff">企</div><div class="stat-info"><div class="stat-value">32</div><div class="stat-label">示范企业数</div></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#f6ffed;color:#52c41a">车</div><div class="stat-info"><div class="stat-value">156</div><div class="stat-label">运营车辆数</div></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#fff7e6;color:#fa8c16">域</div><div class="stat-info"><div class="stat-value">18</div><div class="stat-label">覆盖区域数</div></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#e6f7ff;color:#1677ff">服</div><div class="stat-info"><div class="stat-value">86,520</div><div class="stat-label">累计服务次数</div></div></div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="text-sm font-semibold text-[#000000d9] mb-3">月度趋势（企业数·车辆数·服务次数）</div>
+          <div id="overviewTrendChart" style="height:360px"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="card">
+            <div class="text-sm font-semibold text-[#000000d9] mb-3">示范场景分布</div>
+            <div id="sceneChart" style="height:320px"></div>
+          </div>
+          <div class="card">
+            <div class="text-sm font-semibold text-[#000000d9] mb-3">区域覆盖统计</div>
+            <div style="overflow-x:auto">
+              <table class="ant-table">
+                <thead><tr><th>行政区</th><th>企业数</th><th>车辆数</th><th>服务次数</th><th>覆盖场景</th></tr></thead>
+                <tbody>
+                  <tr><td>樊城区</td><td>12</td><td>58</td><td>35,200</td><td>无人出租、小巴</td></tr>
+                  <tr><td>襄城区</td><td>8</td><td>42</td><td>22,800</td><td>无人出租、公交</td></tr>
+                  <tr><td>襄州区</td><td>7</td><td>36</td><td>18,520</td><td>小巴、配送</td></tr>
+                  <tr><td>南漳县</td><td>3</td><td>12</td><td>6,200</td><td>配送</td></tr>
+                  <tr><td>谷城县</td><td>2</td><td>8</td><td>3,800</td><td>配送</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== 企业监测 ====== -->
+      <div id="tab-company" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>时间范围</label><div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" value="2026-04-01" style="width:140px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:140px"></div></div>
+            <div class="filter-item"><label>企业名称</label><input class="ant-input" placeholder="请输入企业名称搜索" style="width:200px"></div>
+            <div class="filter-item"><label>所属区县</label><select class="ant-input" style="width:120px"><option>全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option></select></div>
+            <div class="filter-item"><label>示范场景</label><select class="ant-input" style="width:120px"><option>全部</option><option>无人出租</option><option>小巴</option><option>公交</option><option>配送</option></select></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="showToast('查询完成')">查询</button><button class="ant-btn">重置</button><button class="ant-btn" onclick="showToast('导出成功')">导出</button></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-sm font-semibold text-[#000000d9] mb-3">企业列表</div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>企业名称</th><th>所属区县</th><th>运营车辆数</th><th>累计里程(km)</th><th>运营时长(h)</th><th>服务次数</th><th>告警数</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td><a class="ant-btn-link" onclick="openCompanyDetail(0)">襄阳智行科技有限公司</a></td><td>樊城区</td><td>42</td><td>98,532</td><td>2,860</td><td>28,500</td><td>12</td><td><a class="ant-btn-link" onclick="openCompanyDetail(0)">详情</a></td></tr>
+                <tr><td><a class="ant-btn-link" onclick="openCompanyDetail(1)">上海蔚来汽车有限公司</a></td><td>襄城区</td><td>38</td><td>82,156</td><td>2,420</td><td>22,800</td><td>8</td><td><a class="ant-btn-link" onclick="openCompanyDetail(1)">详情</a></td></tr>
+                <tr><td><a class="ant-btn-link" onclick="openCompanyDetail(2)">百度Apollo</a></td><td>襄州区</td><td>28</td><td>65,432</td><td>1,920</td><td>15,200</td><td>10</td><td><a class="ant-btn-link" onclick="openCompanyDetail(2)">详情</a></td></tr>
+                <tr><td><a class="ant-btn-link" onclick="openCompanyDetail(3)">深圳AutoX</a></td><td>樊城区</td><td>22</td><td>52,680</td><td>1,560</td><td>12,300</td><td>6</td><td><a class="ant-btn-link" onclick="openCompanyDetail(3)">详情</a></td></tr>
+                <tr><td><a class="ant-btn-link" onclick="openCompanyDetail(4)">东风汽车集团有限公司</a></td><td>襄州区</td><td>16</td><td>38,920</td><td>1,150</td><td>8,600</td><td>4</td><td><a class="ant-btn-link" onclick="openCompanyDetail(4)">详情</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 <b>32</b> 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px"><option>10</option><option>20</option></select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== 车辆运行分析 ====== -->
+      <div id="tab-vehicle" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>时间范围</label><div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" value="2026-04-01" style="width:140px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:140px"></div></div>
+            <div class="filter-item"><label>VIN码/号牌</label><input class="ant-input" placeholder="请输入VIN码或号牌" style="width:200px"></div>
+            <div class="filter-item"><label>所属企业</label><select class="ant-input" style="width:180px"><option>全部</option><option>襄阳智行科技有限公司</option><option>上海蔚来汽车有限公司</option><option>百度Apollo</option><option>深圳AutoX</option></select></div>
+            <div class="filter-item"><label>示范场景</label><select class="ant-input" style="width:120px"><option>全部</option><option>无人出租</option><option>小巴</option><option>公交</option><option>配送</option></select></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="showToast('查询完成')">查询</button><button class="ant-btn">重置</button><button class="ant-btn" onclick="showToast('导出成功')">导出</button></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-sm font-semibold text-[#000000d9] mb-3">车辆列表</div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>号牌</th><th>车型</th><th>所属企业</th><th>示范场景</th><th>累计里程(km)</th><th>服务次数</th><th>平均载客量</th><th>接管次数</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td>鄂A·T0001</td><td>东风风神E70</td><td>襄阳智行科技有限公司</td><td><span class="ant-tag ant-tag-processing">无人出租</span></td><td>12,356</td><td>2,850</td><td>1.8</td><td>1</td><td><button class="ant-btn-link" onclick="openVehicleDetail(0)">详情</button></td></tr>
+                <tr><td>鄂A·T0002</td><td>比亚迪汉EV</td><td>襄阳智行科技有限公司</td><td><span class="ant-tag ant-tag-processing">无人出租</span></td><td>9,875</td><td>2,120</td><td>1.6</td><td>0</td><td><button class="ant-btn-link" onclick="openVehicleDetail(1)">详情</button></td></tr>
+                <tr><td>沪A·W0003</td><td>蔚来ET7</td><td>上海蔚来汽车有限公司</td><td><span class="ant-tag ant-tag-success">小巴</span></td><td>15,432</td><td>3,200</td><td>8.5</td><td>0</td><td><button class="ant-btn-link" onclick="openVehicleDetail(2)">详情</button></td></tr>
+                <tr><td>京B·T0004</td><td>金龙XMQ6127</td><td>百度Apollo</td><td><span class="ant-tag ant-tag-warning">公交</span></td><td>8,234</td><td>1,560</td><td>22.3</td><td>2</td><td><button class="ant-btn-link" onclick="openVehicleDetail(3)">详情</button></td></tr>
+                <tr><td>粤B·T0005</td><td>小鹏P7</td><td>深圳AutoX</td><td><span class="ant-tag ant-tag-processing">无人出租</span></td><td>7,650</td><td>1,850</td><td>1.5</td><td>0</td><td><button class="ant-btn-link" onclick="openVehicleDetail(4)">详情</button></td></tr>
+                <tr><td>鄂C·T0008</td><td>东风天龙KL</td><td>东风汽车集团有限公司</td><td><span class="ant-tag ant-tag-default">配送</span></td><td>9,210</td><td>1,280</td><td>-</td><td>1</td><td><button class="ant-btn-link" onclick="openVehicleDetail(5)">详情</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 <b>156</b> 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px"><option>10</option><option>20</option></select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+const PAGE_ID='demo-apply-analysis';
+var tabIds=['tab-overview','tab-company','tab-vehicle'];
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  tabIds.forEach(function(id){document.getElementById(id).style.display=id===tabId?'':'none'});
+  if(tabId==='tab-overview')setTimeout(initOverviewCharts,100);
+}
+
+function showToast(msg){var t=document.createElement('div');t.style.cssText='position:fixed;top:20px;right:20px;z-index:9999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:14px;border-left:3px solid #1677ff;';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='0.3s';setTimeout(function(){t.remove()},300)},2000)}
+
+var overviewInited=false;
+function initOverviewCharts(){
+  if(overviewInited)return;overviewInited=true;
+  var mLabels=['6月','7月','8月','9月','10月','11月','12月','1月','2月','3月','4月','5月'];
+  var c1=echarts.init(document.getElementById('overviewTrendChart'));
+  c1.setOption({tooltip:{trigger:'axis'},legend:{bottom:0},grid:{left:60,right:60,top:30,bottom:40},xAxis:{type:'category',data:mLabels},yAxis:[{type:'value',name:'数量',position:'left'},{type:'value',name:'服务次数',position:'right'}],series:[
+    {name:'企业数',type:'bar',data:[18,20,22,24,25,26,28,28,29,30,31,32],itemStyle:{color:'#1677ff'},barWidth:20},
+    {name:'车辆数',type:'bar',data:[60,72,85,95,105,115,125,132,140,148,152,156],itemStyle:{color:'#52c41a'},barWidth:20},
+    {name:'服务次数',type:'line',yAxisIndex:1,data:[3200,4500,5800,6200,7500,8200,9500,10200,11500,12800,13500,14200],smooth:true,itemStyle:{color:'#fa8c16'},lineStyle:{width:2.5}}
+  ]});
+  window.addEventListener('resize',function(){c1.resize()});
+
+  var c2=echarts.init(document.getElementById('sceneChart'));
+  c2.setOption({tooltip:{trigger:'item'},legend:{bottom:0},series:[{type:'pie',radius:['40%','70%'],center:['50%','45%'],label:{formatter:'{b}\n{d}%'},data:[
+    {value:45,name:'无人出租',itemStyle:{color:'#1677ff'}},
+    {value:25,name:'小巴',itemStyle:{color:'#52c41a'}},
+    {value:15,name:'公交',itemStyle:{color:'#fa8c16'}},
+    {value:12,name:'配送',itemStyle:{color:'#722ed1'}},
+    {value:3,name:'其他',itemStyle:{color:'#8c8c8c'}}
+  ]}]});
+  window.addEventListener('resize',function(){c2.resize()});
+}
+
+var companies=[
+  {name:'襄阳智行科技有限公司',district:'樊城区',vehicles:42,mileage:98532,hours:2860,services:28500,alarms:12},
+  {name:'上海蔚来汽车有限公司',district:'襄城区',vehicles:38,mileage:82156,hours:2420,services:22800,alarms:8},
+  {name:'百度Apollo',district:'襄州区',vehicles:28,mileage:65432,hours:1920,services:15200,alarms:10},
+  {name:'深圳AutoX',district:'樊城区',vehicles:22,mileage:52680,hours:1560,services:12300,alarms:6},
+  {name:'东风汽车集团有限公司',district:'襄州区',vehicles:16,mileage:38920,hours:1150,services:8600,alarms:4}
+];
+
+function openCompanyDetail(idx){
+  var c=companies[idx]||companies[0];
+  var html='<div class="ant-descriptions">'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">企业名称</div><div class="ant-descriptions-value">'+c.name+'</div><div class="ant-descriptions-label">所属区县</div><div class="ant-descriptions-value">'+c.district+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">运营车辆数</div><div class="ant-descriptions-value">'+c.vehicles+'</div><div class="ant-descriptions-label">累计里程</div><div class="ant-descriptions-value">'+c.mileage.toLocaleString()+' km</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">运营时长</div><div class="ant-descriptions-value">'+c.hours.toLocaleString()+' h</div><div class="ant-descriptions-label">服务次数</div><div class="ant-descriptions-value">'+c.services.toLocaleString()+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">告警数</div><div class="ant-descriptions-value">'+c.alarms+'</div><div class="ant-descriptions-label">告警率</div><div class="ant-descriptions-value">'+(c.alarms/c.vehicles*100).toFixed(1)+'%</div></div>'+
+    '</div>'+
+    '<h4 class="text-sm font-semibold mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">车辆里程TOP5</h4>'+
+    '<div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>排名</th><th>号牌</th><th>示范场景</th><th>累计里程(km)</th><th>服务次数</th></tr></thead><tbody>'+
+    '<tr><td>1</td><td>鄂A·T0001</td><td>无人出租</td><td>12,356</td><td>2,850</td></tr>'+
+    '<tr><td>2</td><td>鄂A·T0002</td><td>无人出租</td><td>9,875</td><td>2,120</td></tr>'+
+    '<tr><td>3</td><td>鄂A·T0003</td><td>小巴</td><td>8,560</td><td>1,980</td></tr>'+
+    '<tr><td>4</td><td>鄂A·T0004</td><td>配送</td><td>7,230</td><td>1,560</td></tr>'+
+    '<tr><td>5</td><td>鄂A·T0005</td><td>无人出租</td><td>6,850</td><td>1,420</td></tr>'+
+    '</tbody></table></div>';
+  openModal('企业详情 - '+c.name,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+
+var vehicleData=[
+  {plate:'鄂A·T0001',model:'东风风神E70',company:'襄阳智行科技有限公司',scene:'无人出租',totalMileage:12356,services:2850,avgPassengers:1.8,takeovers:1,vin:'LSVAG2180N2000001'},
+  {plate:'鄂A·T0002',model:'比亚迪汉EV',company:'襄阳智行科技有限公司',scene:'无人出租',totalMileage:9875,services:2120,avgPassengers:1.6,takeovers:0,vin:'LSVAG2180N2000002'},
+  {plate:'沪A·W0003',model:'蔚来ET7',company:'上海蔚来汽车有限公司',scene:'小巴',totalMileage:15432,services:3200,avgPassengers:8.5,takeovers:0,vin:'LSVAG2180N2000003'},
+  {plate:'京B·T0004',model:'金龙XMQ6127',company:'百度Apollo',scene:'公交',totalMileage:8234,services:1560,avgPassengers:22.3,takeovers:2,vin:'LSVAG2180N2000004'},
+  {plate:'粤B·T0005',model:'小鹏P7',company:'深圳AutoX',scene:'无人出租',totalMileage:7650,services:1850,avgPassengers:1.5,takeovers:0,vin:'LSVAG2180N2000005'},
+  {plate:'鄂C·T0008',model:'东风天龙KL',company:'东风汽车集团有限公司',scene:'配送',totalMileage:9210,services:1280,avgPassengers:0,takeovers:1,vin:'LSVAG2180N2000008'}
+];
+
+function openVehicleDetail(idx){
+  var v=vehicleData[idx]||vehicleData[0];
+  var html='<div class="ant-descriptions">'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">号牌</div><div class="ant-descriptions-value">'+v.plate+'</div><div class="ant-descriptions-label">VIN码</div><div class="ant-descriptions-value">'+v.vin+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车型</div><div class="ant-descriptions-value">'+v.model+'</div><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+v.company+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">示范场景</div><div class="ant-descriptions-value">'+v.scene+'</div><div class="ant-descriptions-label">累计里程</div><div class="ant-descriptions-value">'+v.totalMileage.toLocaleString()+' km</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">服务次数</div><div class="ant-descriptions-value">'+v.services.toLocaleString()+'</div><div class="ant-descriptions-label">平均载客量</div><div class="ant-descriptions-value">'+(v.avgPassengers>0?v.avgPassengers+'人/次':'-')+'</div></div>'+
+    '</div>'+
+    '<h4 class="text-sm font-semibold mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">示范场景分析</h4>'+
+    '<div id="vSceneChart" style="height:280px"></div>'+
+    '<h4 class="text-sm font-semibold mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">人工接管分析</h4>'+
+    '<div class="grid grid-cols-2 gap-4">'+
+    '<div><div class="text-xs text-[#00000073] mb-2">接管次数趋势(按月)</div><div id="vTakeoverChart" style="height:220px"></div></div>'+
+    '<div><div class="text-xs text-[#00000073] mb-2">脱离场景分类</div><div id="vTakeoverSceneChart" style="height:220px"></div></div>'+
+    '</div>'+
+    '<h4 class="text-sm font-semibold mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">车辆异常分析</h4>'+
+    '<div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>异常类型</th><th>发生次数</th><th>高发时段</th><th>高发地点</th></tr></thead><tbody>'+
+    '<tr><td><span class="ant-tag ant-tag-warning">长时间不移动</span></td><td>3</td><td>02:00-05:00</td><td>充电站区域</td></tr>'+
+    '</tbody></table></div>';
+  openModal('车辆详情 - '+v.plate,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>',onOpen:function(){
+    setTimeout(function(){
+      var sc=echarts.init(document.getElementById('vSceneChart'));
+      var sceneNames=v.scene==='无人出租'?['市区通勤','机场接驳','商圈巡游','夜间出行']:v.scene==='小巴'?['社区接驳','园区通勤','景点环线','地铁接驳']:v.scene==='公交'?['主干线路','支线补充','夜间公交','定制公交']:['快递配送','生鲜配送','药品配送','商超配送'];
+      sc.setOption({tooltip:{trigger:'axis'},legend:{bottom:0},grid:{left:50,right:20,top:10,bottom:40},xAxis:{type:'category',data:sceneNames},yAxis:{type:'value'},series:[
+        {name:'里程(km)',type:'bar',stack:'total',data:sceneNames.map(function(){return Math.floor(Math.random()*3000+500)}),itemStyle:{color:'#1677ff'}},
+        {name:'时长(h)',type:'bar',stack:'total',data:sceneNames.map(function(){return Math.floor(Math.random()*600+100)}),itemStyle:{color:'#52c41a'}}
+      ]});
+      var tt=echarts.init(document.getElementById('vTakeoverChart'));
+      tt.setOption({tooltip:{trigger:'axis'},grid:{left:40,right:10,top:10,bottom:20},xAxis:{type:'category',data:['1月','2月','3月','4月','5月']},yAxis:{type:'value'},series:[{type:'bar',data:[1,0,2,1,v.takeovers],itemStyle:{color:'#fa8c16'},barWidth:20}]});
+      var ts=echarts.init(document.getElementById('vTakeoverSceneChart'));
+      ts.setOption({tooltip:{trigger:'item'},series:[{type:'pie',radius:['35%','65%'],data:[{value:35,name:'目标物占用车道',itemStyle:{color:'#1677ff'}},{value:25,name:'路口博弈',itemStyle:{color:'#fa8c16'}},{value:20,name:'施工区域',itemStyle:{color:'#f5222d'}},{value:12,name:'恶劣天气',itemStyle:{color:'#52c41a'}},{value:8,name:'其他',itemStyle:{color:'#8c8c8c'}}],label:{formatter:'{b}\n{d}%'}}]});
+    },200);
+  }});
+}
+
+initOverviewCharts();
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

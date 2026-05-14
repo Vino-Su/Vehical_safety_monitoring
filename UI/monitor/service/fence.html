@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>电子围栏管理与配置 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>电子围栏管理与配置</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openFenceModal()">+ 新建围栏</button></div></div>
+      <div class="flex gap-4" style="height:calc(100vh - 200px)">
+        <div class="w-[520px] min-w-[520px] flex flex-col gap-4 overflow-y-auto">
+          <div class="ant-table-wrapper">
+            <div style="overflow-x:auto">
+            <table class="ant-table"><thead><tr><th>围栏名称</th><th>围栏区域</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td><b>樊城区-高新区测试路段-东津新区</b></td><td>樊城区</td><td><span class="ant-tag ant-tag-success">启用</span></td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFenceDetail('樊城区-高新区测试路段-东津新区','允许区域','启用','','越界报警')">查看</button><button class="ant-btn-link" onclick="openPropertyEditModal('樊城区-高新区测试路段-东津新区','允许区域','启用','','越界报警')">属性编辑</button><button class="ant-btn-link" onclick="openGraphicEdit('樊城区-高新区测试路段-东津新区')">图形编辑</button><button class="ant-btn-link danger" onclick="deleteFence('樊城区-高新区测试路段-东津新区')">删除</button></td></tr>
+              <tr><td><b>樊城区-襄城环线路段-东风试验场</b></td><td>樊城区</td><td><span class="ant-tag ant-tag-success">启用</span></td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFenceDetail('樊城区-襄城环线路段-东风试验场','允许区域','启用','','越界报警、超速报警')">查看</button><button class="ant-btn-link" onclick="openPropertyEditModal('樊城区-襄城环线路段-东风试验场','允许区域','启用','','越界报警、超速报警')">属性编辑</button><button class="ant-btn-link" onclick="openGraphicEdit('樊城区-襄城环线路段-东风试验场')">图形编辑</button><button class="ant-btn-link danger" onclick="deleteFence('樊城区-襄城环线路段-东风试验场')">删除</button></td></tr>
+              <tr><td><b>高新区产业园内部道路及停车场</b></td><td>高新区</td><td><span class="ant-tag ant-tag-success">启用</span></td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFenceDetail('高新区产业园内部道路及停车场','限速区域','启用','40','超速报警、停留超时报警')">查看</button><button class="ant-btn-link" onclick="openPropertyEditModal('高新区产业园内部道路及停车场','限速区域','启用','40','超速报警、停留超时报警')">属性编辑</button><button class="ant-btn-link" onclick="openGraphicEdit('高新区产业园内部道路及停车场')">图形编辑</button><button class="ant-btn-link danger" onclick="deleteFence('高新区产业园内部道路及停车场')">删除</button></td></tr>
+              <tr><td><b>襄州区-老城区禁止驶入区域</b></td><td>襄州区</td><td><span class="ant-tag ant-tag-success">启用</span></td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFenceDetail('襄州区-老城区禁止驶入区域','禁止区域','启用','','越界报警')">查看</button><button class="ant-btn-link" onclick="openPropertyEditModal('襄州区-老城区禁止驶入区域','禁止区域','启用','','越界报警')">属性编辑</button><button class="ant-btn-link" onclick="openGraphicEdit('襄州区-老城区禁止驶入区域')">图形编辑</button><button class="ant-btn-link danger" onclick="deleteFence('襄州区-老城区禁止驶入区域')">删除</button></td></tr>
+              <tr><td><b>临时测试区域</b></td><td>其他</td><td><span class="ant-tag ant-tag-default">停用</span></td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFenceDetail('临时测试区域','限速区域','停用','30','越界报警、超速报警')">查看</button><button class="ant-btn-link" onclick="openPropertyEditModal('临时测试区域','限速区域','停用','30','越界报警、超速报警')">属性编辑</button><button class="ant-btn-link" onclick="openGraphicEdit('临时测试区域')">图形编辑</button><button class="ant-btn-link danger" onclick="deleteFence('临时测试区域')">删除</button></td></tr>
+            </tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 card p-0 overflow-hidden">
+          <div class="map-container w-full h-full bg-[#e8e8e8] flex items-center justify-center">
+            <div class="text-center text-[#00000040]">
+              <div class="text-5xl mb-3">🗺️</div>
+              <p class="text-base">电子围栏地图展示区域</p>
+              <p class="text-sm mt-1">选择左侧列表中的围栏项后，可在地图上查看其详细位置信息</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='fence';
+var currentEditingFence = null;
+
+function getAlarmOptionsHTML(checkedRules) {
+  var rules = [
+    { key: 'cross', label: '越界报警' },
+    { key: 'speed', label: '超速报警' },
+    { key: 'stay', label: '停留超时报警' }
+  ];
+  var list = checkedRules ? checkedRules.split('、') : [];
+  return rules.map(function(r) {
+    var isChecked = list.indexOf(r.label) !== -1 ? ' checked' : '';
+    return '<label class="flex items-center gap-2 text-sm"><input type="checkbox" value="' + r.key + '"' + isChecked + '> ' + r.label + '</label>';
+  }).join('');
+}
+
+function openFenceModal() {
+  var html =
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>围栏名称</div><div class="ant-form-control"><input class="ant-input" id="fenceNameInput" placeholder="请输入围栏名称"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>围栏类型</div><div class="ant-form-control"><select class="ant-input" id="fenceTypeSelect" onchange="onFenceTypeChange()"><option value="">请选择</option><option value="allow">允许区域</option><option value="forbid">禁止区域</option><option value="limit">限速区域</option></select></div></div>' +
+    '<div class="ant-form-item" id="fenceSpeedGroup" style="display:none"><div class="ant-form-label"><span class="required">*</span>限速值</div><div class="ant-form-control"><div style="display:flex;align-items:center;gap:8px;"><input class="ant-input" id="fenceSpeedInput" placeholder="请输入限速值" style="width:120px"><span class="text-sm text-[#00000073]">km/h</span></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报警规则</div><div class="ant-form-control"><div class="space-y-2" id="fenceAlarmGroup">' + getAlarmOptionsHTML('') + '</div></div></div>';
+  openModal('新建围栏 - 第一步（填写基本信息）', html, {
+    wide: true,
+    footer: '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="saveFenceBasic()">保存</button>'
+  });
+}
+
+function onFenceTypeChange() {
+  var typeVal = document.getElementById('fenceTypeSelect').value;
+  document.getElementById('fenceSpeedGroup').style.display = typeVal === 'limit' ? 'flex' : 'none';
+}
+
+function saveFenceBasic() {
+  var name = document.getElementById('fenceNameInput').value.trim();
+  var typeSel = document.getElementById('fenceTypeSelect');
+  var typeVal = typeSel.value;
+  var typeName = typeSel.options[typeSel.selectedIndex].text;
+  var speed = '';
+  if (typeVal === 'limit') {
+    speed = document.getElementById('fenceSpeedInput').value.trim();
+    if (!speed) { alert('限速区域必须填写限速值'); return; }
+  }
+  if (!name) { alert('请填写围栏名称'); return; }
+  if (!typeVal) { alert('请选择围栏类型'); return; }
+
+  var checkedRules = [];
+  var alarms = document.getElementById('fenceAlarmGroup').querySelectorAll('input[type=checkbox]:checked');
+  alarms.forEach(function(cb) {
+    if (cb.value === 'cross') checkedRules.push('越界报警');
+    if (cb.value === 'speed') checkedRules.push('超速报警');
+    if (cb.value === 'stay') checkedRules.push('停留超时报警');
+  });
+  if (checkedRules.length === 0) { alert('请至少选择一项报警规则'); return; }
+
+  currentEditingFence = name;
+  closeModal();
+  alert('围栏基本信息已保存成功！\n\n▶ 围栏名称：' + name + '\n▶ 围栏类型：' + typeName + '\n' + (speed ? '▶ 限速值：' + speed + ' km/h\n' : '') + '▶ 报警规则：' + checkedRules.join('、') + '\n\n接下来请进入第二步——点击该围栏的"图形编辑"按钮，在地图上绘制围栏的矢量范围。');
+}
+
+function openFenceDetail(name, type, status, speed, alarmRules) {
+  var speedText = speed ? speed + ' km/h' : '-';
+  var typeTag = type === '允许区域' ? 'ant-tag-processing' : (type === '禁止区域' ? 'ant-tag-error' : 'ant-tag-warning');
+  var statusTag = status === '启用' ? 'ant-tag-success' : 'ant-tag-default';
+  var html =
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">围栏名称</div><div class="ant-descriptions-value">' + name + '</div><div class="ant-descriptions-label">围栏类型</div><div class="ant-descriptions-value"><span class="ant-tag ' + typeTag + '">' + type + '</span></div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">状态</div><div class="ant-descriptions-value"><span class="ant-tag ' + statusTag + '">' + status + '</span></div><div class="ant-descriptions-label">限速值</div><div class="ant-descriptions-value">' + speedText + '</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报警规则</div><div class="ant-descriptions-value" style="flex:3">' + alarmRules + '</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">创建时间</div><div class="ant-descriptions-value">2026-04-15 10:30</div><div class="ant-descriptions-label">最近编辑</div><div class="ant-descriptions-value">2026-05-08 14:20</div></div>' +
+    '</div>';
+  openModal('围栏详情 - ' + name, html, {
+    wide: true,
+    footer: '<button class="ant-btn" onclick="closeModal()">关闭</button>'
+  });
+}
+
+function openPropertyEditModal(name, type, status, speed, alarmRules) {
+  var typeOpts = ['允许区域', '禁止区域', '限速区域'];
+  var typeSelected = function(t) { return type === t ? ' selected' : ''; };
+  var statusOpts = ['启用', '停用'];
+  var statusSelected = function(s) { return status === s ? ' selected' : ''; };
+  var html =
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>围栏名称</div><div class="ant-form-control"><input class="ant-input" id="editFenceName" value="' + name + '"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>围栏类型</div><div class="ant-form-control"><select class="ant-input" id="editFenceType" onchange="onEditFenceTypeChange()"><option value="allow"' + typeSelected('允许区域') + '>允许区域</option><option value="forbid"' + typeSelected('禁止区域') + '>禁止区域</option><option value="limit"' + typeSelected('限速区域') + '>限速区域</option></select></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>状态</div><div class="ant-form-control"><select class="ant-input" id="editFenceStatus"><option' + statusSelected('启用') + '>启用</option><option' + statusSelected('停用') + '>停用</option></select></div></div>' +
+    '<div class="ant-form-item" id="editFenceSpeedGroup" style="display:' + (type === '限速区域' ? 'flex' : 'none') + '"><div class="ant-form-label"><span class="required">*</span>限速值</div><div class="ant-form-control"><div style="display:flex;align-items:center;gap:8px;"><input class="ant-input" id="editFenceSpeed" value="' + speed + '" style="width:120px"><span class="text-sm text-[#00000073]">km/h</span></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报警规则</div><div class="ant-form-control"><div class="space-y-2" id="editFenceAlarmGroup">' + getAlarmOptionsHTML(alarmRules) + '</div></div></div>';
+  openModal('属性编辑 - ' + name, html, {
+    wide: true,
+    footer: '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="savePropertyEdit()">确认修改</button>'
+  });
+}
+
+function onEditFenceTypeChange() {
+  var typeVal = document.getElementById('editFenceType').value;
+  document.getElementById('editFenceSpeedGroup').style.display = typeVal === 'limit' ? 'flex' : 'none';
+}
+
+function savePropertyEdit() {
+  var name = document.getElementById('editFenceName').value.trim();
+  var typeSel = document.getElementById('editFenceType');
+  var typeVal = typeSel.value;
+  if (typeVal === 'limit') {
+    var spd = document.getElementById('editFenceSpeed').value.trim();
+    if (!spd) { alert('限速区域必须填写限速值'); return; }
+  }
+  if (!name) { alert('请填写围栏名称'); return; }
+  closeModal();
+  alert('围栏属性已修改成功！');
+}
+
+function openGraphicEdit(name) {
+  currentEditingFence = name;
+  document.querySelector('.map-container').innerHTML =
+    '<div class="w-full h-full relative">' +
+      '<div class="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-3 flex gap-2">' +
+        '<button class="ant-btn ant-btn-primary text-sm" onclick="startDrawPolygon()">开始绘制多边形区域</button>' +
+        '<button class="ant-btn text-sm" onclick="clearDrawing()">清除绘制</button>' +
+      '</div>' +
+      '<div class="w-full h-full bg-[#e8e8e8] flex items-center justify-center">' +
+        '<div class="text-center text-[#00000040]">' +
+          '<div class="text-5xl mb-3">🗺️</div>' +
+          '<p class="text-base">电子围栏图形编辑界面</p>' +
+          '<p class="text-sm mt-1">正在编辑围栏：' + name + '</p>' +
+          '<p class="text-sm mt-1 text-primary">提示：在地图上依次点击各个顶点，完成多边形区域绘制后即可保存</p>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function startDrawPolygon() {
+  alert('请在地图上通过鼠标点击来绘制电子围栏的多边形边界区域。每次点击将添加一个新的顶点，双击或右键结束绘制。');
+}
+function clearDrawing() {
+  if (confirm('当前绘制内容将被清除，是否继续？')) {
+    alert('绘制内容已清除。');
+  }
+}
+
+function deleteFence(name) {
+  openModal('确认删除',
+    '<p class="text-sm text-[#000000d9]">确定要删除电子围栏 <b>"' + name + '"</b> 吗？</p><p class="text-sm text-[#f5222d] mt-2">此操作不可撤销，删除后该围栏的矢量范围和报警规则将同时被清除。</p>',
+    {
+      footer: '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-danger" onclick="confirmDeleteFence(\'' + name + '\')">确认删除</button>'
+    }
+  );
+}
+
+function confirmDeleteFence(name) {
+  closeModal();
+  alert('电子围栏 "' + name + '" 已成功删除。');
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开放道路评估模块</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei',
+                sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+        }
+        .app-layout {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: #fff;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar-logo {
+            padding: 18px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.5px;
+        }
+        .sidebar-logo .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .sidebar-menu {
+            flex: 1;
+            padding: 8px 0;
+            overflow-y: auto;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            transition: 0.2s;
+            border-left: 3px solid transparent;
+            user-select: none;
+        }
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        .menu-item.active {
+            background: rgba(24, 144, 255, 0.2);
+            color: #fff;
+            border-left-color: var(--primary);
+            font-weight: 500;
+        }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 28px 40px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 14px 20px;
+            margin-bottom: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 110px;
+        }
+        .form-group label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        select,
+        input {
+            height: 32px;
+            padding: 0 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: var(--font);
+            background: #fff;
+            outline: none;
+            min-width: 100px;
+        }
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.12);
+        }
+        .btn {
+            height: 32px;
+            padding: 0 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary-bg);
+        }
+        .btn-sm {
+            height: 26px;
+            padding: 0 10px;
+            font-size: 11px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 3px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 11px;
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+        }
+        .card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 14px;
+        }
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.3px;
+        }
+        .chart-container {
+            min-height: 260px;
+        }
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .row-1 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th {
+            background: #fafafa;
+            padding: 9px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        tbody tr:hover {
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-yellow {
+            background: #fffbe6;
+            color: #d4b106;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .tag-gray {
+            background: #f5f5f5;
+            color: #8c8c8c;
+        }
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .pagination-bar select {
+            width: 70px;
+            height: 28px;
+        }
+        .pagination-bar .btn-sm {
+            height: 28px;
+        }
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 8px;
+            width: 780px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .modal-wide {
+            width: 900px;
+        }
+        .modal-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+        .detail-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .detail-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+        .detail-tab:hover {
+            color: var(--primary);
+        }
+        .detail-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .detail-tab-content {
+            display: none;
+        }
+        .detail-tab-content.active {
+            display: block;
+        }
+        .score-circle {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+        }
+        .progress-bar-wrap {
+            height: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        .config-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .config-tab {
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+        .config-tab:hover {
+            color: var(--primary);
+        }
+        .config-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .config-tab-content {
+            display: none;
+        }
+        .config-tab-content.active {
+            display: block;
+        }
+        .diff-table td {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        .diff-up {
+            color: #f5222d;
+            font-weight: 600;
+        }
+        .diff-down {
+            color: #52c41a;
+            font-weight: 600;
+        }
+        @media (max-width:1200px) {
+            .row-2 {
+                grid-template-columns: 1fr;
+            }
+            .modal {
+                width: 95vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 左侧导航 -->
+        <aside class="sidebar">
+            <div class="sidebar-logo"><span class="icon">🛣️</span>开放道路评估</div>
+            <nav class="sidebar-menu" id="sideMenu">
+                <div class="menu-item active" data-page="list">📋 评估结果列表</div>
+                <div class="menu-item" data-page="config">⚙️ 评估指标配置</div>
+                <div class="menu-item" data-page="log">📝 评估日志管理</div>
+            </nav>
+        </aside>
+        <!-- 右侧主内容 -->
+        <main class="main-content" id="mainContent"></main>
+    </div>
+    <!-- 模态弹窗容器 -->
+    <div class="modal-mask" id="modalMask"><div class="modal" id="modalDialog"><div class="modal-header" id="modalHeader"></div><div class="modal-body" id="modalBody"></div></div></div>
+
+    <script>
+        (function() {
+            const chartInstances = {};
+            const $ = (s) => document.querySelector(s);
+            const $$ = (s) => document.querySelectorAll(s);
+
+            function initChart(id) {
+                const dom = document.getElementById(id);
+                if (!dom) return null;
+                if (chartInstances[id]) chartInstances[id].dispose();
+                const c = echarts.init(dom);
+                chartInstances[id] = c;
+                return c;
+            }
+
+            function resizeAll() { Object.values(chartInstances).forEach(c => { if (c && !c.isDisposed()) c.resize(); }); }
+            window.addEventListener('resize', () => { clearTimeout(window._rt);
+                window._rt = setTimeout(resizeAll, 200); });
+
+            // 模拟数据
+            const districts = ['樊城区', '襄城区', '襄州区', '南漳县', '谷城县'];
+            const roads = [
+                { code: 'RD-001', name: '长虹路', district: '樊城区', complexity: '高', risk: '高', scene: '城区道路',
+                    openLevel: '条件开放', score: 72.5, time: '2026-05-08 02:00', clScore: 72, rlScore: 68,
+                    scenes: [{ name: '城区道路', fit: '适用', score: 78, threshold: 60 }, { name: '园区道路', fit: '适用',
+                        score: 65, threshold: 60 }, { name: '环卫作业', fit: '不适用', score: 42, threshold: 60 },
+                    { name: '物流配送', fit: '适用', score: 70, threshold: 60 }, { name: '公交运营', fit: '不适用',
+                        score: 35, threshold: 60 }
+                ], rules: [{ name: '风险高限制', cond: '风险等级=高', action: '条件开放', priority: 1 }, { name: '复杂度高降级',
+                        cond: '复杂度=高', action: '条件开放', priority: 2 }], autoLevel: 'L3/L4', testTypes: '载货、环卫、物流',
+                    limitTime: '06:00-22:00', control: '需额外提交安全评估' },
+                { code: 'RD-002', name: '檀溪路', district: '襄城区', complexity: '中', risk: '中', scene: '城区道路',
+                    openLevel: '完全开放', score: 85.2, time: '2026-05-08 02:00', clScore: 52, rlScore: 45,
+                    scenes: [{ name: '城区道路', fit: '适用', score: 88, threshold: 60 }, { name: '园区道路', fit: '适用',
+                        score: 75, threshold: 60 }, { name: '环卫作业', fit: '适用', score: 68, threshold: 60 },
+                    { name: '物流配送', fit: '适用', score: 80, threshold: 60 }, { name: '公交运营', fit: '适用',
+                        score: 72, threshold: 60 }
+                ], rules: [{ name: '默认规则', cond: '无高风险', action: '完全开放', priority: 0 }], autoLevel: 'L2/L3/L4',
+                    testTypes: '载人、载货、环卫、物流', limitTime: '无限制', control: '无特殊要求' },
+                { code: 'RD-003', name: '航空路', district: '襄州区', complexity: '高', risk: '高', scene: '城区道路',
+                    openLevel: '限制开放', score: 48.3, time: '2026-05-08 02:00', clScore: 78, rlScore: 82,
+                    scenes: [{ name: '城区道路', fit: '不适用', score: 45, threshold: 60 }, { name: '园区道路', fit: '适用',
+                        score: 62, threshold: 60 }, { name: '环卫作业', fit: '适用', score: 68, threshold: 60 },
+                    { name: '物流配送', fit: '不适用', score: 38, threshold: 60 }, { name: '公交运营', fit: '不适用',
+                        score: 22, threshold: 60 }
+                ], rules: [{ name: '高风险禁止载人', cond: '风险=高', action: '限制开放', priority: 1 }], autoLevel: 'L4',
+                    testTypes: '环卫、物流', limitTime: '09:00-17:00', control: '需安全员全程监控' },
+                { code: 'RD-004', name: '人民路', district: '樊城区', complexity: '低', risk: '低', scene: '园区道路',
+                    openLevel: '完全开放', score: 91.6, time: '2026-05-08 02:00', clScore: 28, rlScore: 22,
+                    scenes: [{ name: '城区道路', fit: '适用', score: 75, threshold: 60 }, { name: '园区道路', fit: '适用',
+                        score: 90, threshold: 60 }, { name: '环卫作业', fit: '适用', score: 82, threshold: 60 },
+                    { name: '物流配送', fit: '适用', score: 85, threshold: 60 }, { name: '公交运营', fit: '适用',
+                        score: 70, threshold: 60 }
+                ], rules: [{ name: '默认规则', cond: '无高风险', action: '完全开放', priority: 0 }], autoLevel: 'L2/L3/L4',
+                    testTypes: '载人、载货、环卫、物流', limitTime: '无限制', control: '无特殊要求' },
+                { code: 'RD-005', name: '建设路', district: '谷城县', complexity: '中', risk: '低', scene: '物流配送',
+                    openLevel: '条件开放', score: 68.9, time: '2026-05-08 02:00', clScore: 55, rlScore: 35,
+                    scenes: [{ name: '城区道路', fit: '不适用', score: 48, threshold: 60 }, { name: '园区道路', fit: '适用',
+                        score: 68, threshold: 60 }, { name: '环卫作业', fit: '适用', score: 72, threshold: 60 },
+                    { name: '物流配送', fit: '适用', score: 85, threshold: 60 }, { name: '公交运营', fit: '不适用',
+                        score: 40, threshold: 60 }
+                ], rules: [{ name: '复杂度中+场景限制', cond: '复杂度=中', action: '条件开放', priority: 2 }], autoLevel: 'L3/L4',
+                    testTypes: '载货、物流', limitTime: '06:00-22:00', control: '需额外提交安全评估' },
+                { code: 'RD-006', name: '金源路', district: '南漳县', complexity: '低', risk: '低', scene: '环卫作业',
+                    openLevel: '完全开放', score: 88.0, time: '2026-05-01 02:00', clScore: 22, rlScore: 18,
+                    scenes: [{ name: '环卫作业', fit: '适用', score: 88, threshold: 60 }], rules: [{ name: '默认规则',
+                        cond: '无高风险', action: '完全开放', priority: 0 }], autoLevel: 'L2/L3/L4',
+                    testTypes: '载人、载货、环卫、物流', limitTime: '无限制', control: '无特殊要求' },
+            ];
+            // 补全10条
+            for (let i = 7; i <= 10; i++) {
+                const r = roads[i % roads.length];
+                roads.push({ ...r, code: 'RD-' + String(i).padStart(3, '0'), name: r.name + '辅路', score: (r.score +
+                        Math.random() * 10 - 5).toFixed(1), time: '2026-05-0' + (i % 8 + 1) + ' 02:00' });
+            }
+            const allRoads = roads.slice(0, 10);
+
+            // 历史版本数据
+            const historyVersions = [
+                { ver: 'V3.2', time: '2026-05-08 02:00', score: 72.5, level: '条件开放', complexity: 72, risk: 68,
+                    sceneScore: 78 },
+                { ver: 'V3.1', time: '2026-04-01 02:00', score: 78.2, level: '完全开放', complexity: 65, risk: 55,
+                    sceneScore: 82 }, { ver: 'V3.0', time: '2026-03-01 02:00', score: 75.0, level: '条件开放',
+                    complexity: 70, risk: 60, sceneScore: 76 },
+            ];
+
+            // 日志数据
+            const logs = [];
+            for (let i = 1; i <= 10; i++) {
+                logs.push({
+                    id: 'LOG-' + String(i).padStart(5, '0'),
+                    road: allRoads[i - 1]?.name || '长虹路',
+                    time: '2026-05-0' + (i % 8 + 1) + ' 02:00',
+                    trigger: i <= 8 ? '自动' : '手动',
+                    operator: i <= 8 ? '' : '管理员',
+                    score: (70 + Math.random() * 25).toFixed(1),
+                    level: ['完全开放', '条件开放', '限制开放'][Math.floor(Math.random() * 3)],
+                });
+            }
+
+            // 当前页面状态
+            let currentPage = 'list';
+            let currentTablePage = 1;
+            let pageSize = 10;
+            let currentLogPage = 1;
+
+            // 打开弹窗
+            function openModal(title, html, wide = false) {
+                document.getElementById('modalHeader').innerHTML = '<span>' + title +
+                    '</span><button class="btn btn-sm btn-outline" onclick="closeModal()">✕ 关闭</button>';
+                document.getElementById('modalBody').innerHTML = html;
+                document.getElementById('modalDialog').className = wide ? 'modal modal-wide' : 'modal';
+                document.getElementById('modalMask').classList.add('show');
+            }
+            window.closeModal = function() { document.getElementById('modalMask').classList.remove('show'); };
+            document.getElementById('modalMask').addEventListener('click', function(e) { if (e.target === this)
+                    closeModal(); });
+
+            // 获取等级标签
+            function levelTag(lv) {
+                const map = { '高': 'tag-red', '中': 'tag-orange', '低': 'tag-green', '完全开放': 'tag-green',
+                    '条件开放': 'tag-orange', '限制开放': 'tag-red', '禁止开放': 'tag-gray' };
+                return '<span class="tag ' + (map[lv] || 'tag-blue') + '">' + lv + '</span>';
+            }
+
+            // ==================== 评估结果列表 ====================
+            function renderListPage() {
+                const html = `
+                <div class="page-title">评估结果列表</div>
+                <div class="page-subtitle">开放道路多模型综合评估结果 · 支持详情查看、历史版本对比与重新评估</div>
+                <div class="query-bar">
+                    <div class="form-group"><label>道路名称/编号</label><input placeholder="模糊匹配" id="filterRoad"></div>
+                    <div class="form-group"><label>所属区域</label><select id="filterDistrict"><option>全部</option>${districts.map(d=>'<option>'+d+'</option>').join('')}</select></div>
+                    <div class="form-group"><label>建议开放等级</label><select id="filterOpenLevel"><option>全部</option><option>完全开放</option><option>条件开放</option><option>限制开放</option><option>禁止开放</option></select></div>
+                    <div class="form-group"><label>风险等级</label><select id="filterRisk"><option>全部</option><option>低</option><option>中</option><option>高</option></select></div>
+                    <div class="form-group"><label>复杂度等级</label><select id="filterComplexity"><option>全部</option><option>低</option><option>中</option><option>高</option></select></div>
+                    <div class="form-group"><label>评估时间</label><input type="date"> - <input type="date"></div>
+                    <button class="btn btn-primary" onclick="refreshList()">🔍 查询</button>
+                    <button class="btn btn-outline" onclick="showToast('导出成功')">📥 导出Excel</button>
+                </div>
+                <div class="card">
+                    <div class="card-header">评估结果 <span style="font-weight:400;font-size:11px;">共 ${allRoads.length} 条</span></div>
+                    <div class="table-wrap"><table><thead><tr><th>道路编号</th><th>道路名称</th><th>所属区域</th><th>复杂度等级</th><th>风险等级</th><th>最佳适配场景</th><th>建议开放等级</th><th>综合得分</th><th>评估时间</th><th>操作</th></tr></thead><tbody id="listTableBody"></tbody></table></div>
+                    <div class="pagination-bar">
+                        <span>共 <b>${allRoads.length}</b> 条</span>
+                        <select id="listPageSize" onchange="changeListPageSize()"><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
+                        <span>条/页</span>
+                        <button class="btn btn-sm btn-outline" onclick="prevListPage()">上一页</button>
+                        <span>第 <b id="listCurrPage">1</b> / <b id="listTotalPage">${Math.ceil(allRoads.length/10)}</b> 页</span>
+                        <button class="btn btn-sm btn-outline" onclick="nextListPage()">下一页</button>
+                    </div>
+                </div>`;
+                document.getElementById('mainContent').innerHTML = html;
+                renderListTable(1);
+            }
+
+            function renderListTable(page) {
+                currentTablePage = page;
+                const start = (page - 1) * pageSize;
+                const end = Math.min(start + pageSize, allRoads.length);
+                const data = allRoads.slice(start, end);
+                document.getElementById('listTableBody').innerHTML = data.map(r => `<tr>
+                    <td>${r.code}</td><td><strong>${r.name}</strong></td><td>${r.district}</td>
+                    <td>${levelTag(r.complexity)}</td><td>${levelTag(r.risk)}</td><td>${r.scene}</td>
+                    <td>${levelTag(r.openLevel)}</td><td><strong>${r.score}</strong></td>
+                    <td>${r.time}</td>
+                    <td><button class="btn-link btn-sm" onclick="openDetailModal('${r.code}')">查看详情</button>
+                    <button class="btn-link btn-sm" onclick="openHistoryModal('${r.code}')">历史版本</button>
+                    <button class="btn-link btn-sm" onclick="showToast('已触发重新评估')">重新评估</button></td>
+                </tr>`).join('');
+                document.getElementById('listCurrPage').textContent = page;
+                document.getElementById('listTotalPage').textContent = Math.ceil(allRoads.length / pageSize);
+            }
+            window.changeListPageSize = function() { pageSize = parseInt(document.getElementById('listPageSize').value);
+                renderListTable(1); };
+            window.prevListPage = function() { if (currentTablePage > 1) renderListTable(currentTablePage - 1); };
+            window.nextListPage = function() { const t = Math.ceil(allRoads.length / pageSize); if (currentTablePage < t)
+                    renderListTable(currentTablePage + 1); };
+            window.refreshList = function() { renderListTable(1);
+                showToast('列表已刷新'); };
+
+            // ==================== 详情弹窗 ====================
+            window.openDetailModal = function(code) {
+                const r = allRoads.find(rd => rd.code === code) || allRoads[0];
+                let html = '<div class="detail-tabs" id="detailTabs">';
+                ['评估总览', '复杂度分析', '风险分析', '场景适配', '决策追溯'].forEach((t, i) => { html +=
+                        '<button class="detail-tab' + (i === 0 ? ' active' : '') + '" data-tab="tab' + i + '">' + t +
+                        '</button>'; });
+                html += '</div>';
+                // Tab1
+                html += '<div class="detail-tab-content active" id="tab0"><div style="text-align:center;margin:10px 0;">' +
+                    levelTag(r.openLevel) + ' <span style="font-size:28px;font-weight:700;margin:0 8px;">' + r.openLevel +
+                    '</span></div><div class="score-circle" id="gaugeChart"></div><p style="text-align:center;font-size:18px;font-weight:700;">综合得分：' +
+                    r.score + '</p><p><b>适用自动驾驶等级：</b>' + r.autoLevel +
+                    '</p><p><b>允许测试类型：</b>' + r.testTypes + '</p><p><b>限制时段：</b>' + r.limitTime +
+                    '</p><p><b>管控说明：</b>' + r.control + '</p><p><b>评估时间：</b>' + r.time +
+                    ' | <b>触发方式：</b>定时重评</p></div>';
+                // Tab2
+                html += '<div class="detail-tab-content" id="tab1"><p>复杂度指数：<b>' + r.clScore +
+                    '</b> ' + levelTag(r.complexity) +
+                    '</p><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:' + r.clScore +
+                    '%;background:#1890ff;"></div></div><div class="row-2" style="margin-top:8px;"><div class="card"><b>车道复杂度</b><br>得分: ' +
+                    Math.floor(r.clScore * 0.3) + ' / 权重:0.3</div><div class="card"><b>交叉口复杂度</b><br>得分: ' + Math.floor(r
+                        .clScore * 0.25) + ' / 权重:0.25</div><div class="card"><b>混合交通复杂度</b><br>得分: ' + Math.floor(r
+                        .clScore * 0.2) + ' / 权重:0.2</div><div class="card"><b>坡度/曲率</b><br>得分: ' + Math.floor(r.clScore *
+                        0.15) + ' / 权重:0.15</div><div class="card"><b>信号灯完整度</b><br>得分: ' + Math.floor(r.clScore * 0.1) +
+                    ' / 权重:0.1</div></div><div class="chart-container" id="radarComplexity" style="height:280px;"></div></div>';
+                // Tab3
+                html += '<div class="detail-tab-content" id="tab2"><p>风险指数：<b>' + r.rlScore +
+                    '</b> ' + levelTag(r.risk) +
+                    '</p><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:' + r.rlScore +
+                    '%;background:#f5222d;"></div></div><p>概率维度（事故频率）：' + Math.floor(r.rlScore * 0.5) +
+                    ' / 权重:0.5</p><p>严重度维度（伤亡权重）：' + Math.floor(r.rlScore * 0.5) +
+                    ' / 权重:0.5</p><div class="chart-container" id="riskTrendChart" style="height:240px;"></div></div>';
+                // Tab4
+                html += '<div class="detail-tab-content" id="tab3"><table><thead><tr><th>场景名称</th><th>适配状态</th><th>适配度得分</th><th>适配阈值</th></tr></thead><tbody>';
+                (r.scenes || []).forEach(s => {
+                    html += '<tr><td>' + s.name + '</td><td>' + (s.fit === '适用' ?
+                        '<span class="tag tag-green">适用</span>' : '<span class="tag tag-red">不适用</span>') +
+                        '</td><td>' + s.score + '</td><td>' + s.threshold + '</td></tr>';
+                });
+                html += '</tbody></table><p style="margin-top:8px;"><b>最佳场景：</b>' + r.scene + '</p></div>';
+                // Tab5
+                html += '<div class="detail-tab-content" id="tab4"><table><thead><tr><th>规则名称</th><th>条件描述</th><th>动作</th><th>优先级</th></tr></thead><tbody>';
+                (r.rules || []).forEach(ru => {
+                    html += '<tr><td>' + ru.name + '</td><td>' + ru.cond + '</td><td>' + ru.action +
+                        '</td><td>' + ru.priority + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                openModal('评估详情 - ' + r.name + ' (' + r.code + ')', html, true);
+                // 初始化图表
+                setTimeout(() => {
+                    const gDom = document.getElementById('gaugeChart');
+                    if (gDom) {
+                        const gc = echarts.init(gDom);
+                        gc.setOption({
+                            series: [{ type: 'gauge', startAngle: 210, endAngle: -30, center: ['50%',
+                                    '55%'
+                                ], radius: '85%', min: 0, max: 100, splitNumber: 10, axisLine: {
+                                    lineStyle: { width: 12, color: [
+                                            [0.3, '#52c41a'], [0.7,
+                                                '#fa8c16'
+                                            ], [1, '#f5222d']
+                                        ] }
+                                }, pointer: { length: '60%', width: 6 }, detail: { fontSize: 22,
+                                    fontWeight: 'bold', offsetCenter: [0, '70%'],
+                                formatter: '{value}' }, data: [{ value: r.score }] }],
+                        });
+                        chartInstances['gaugeChart'] = gc;
+                    }
+                    const rDom = document.getElementById('radarComplexity');
+                    if (rDom) {
+                        const rc = echarts.init(rDom);
+                        rc.setOption({
+                            radar: { indicator: [{ name: '车道', max: 100 }, { name: '交叉口',
+                                    max: 100 }, { name: '混合交通', max: 100 }, { name: '坡度曲率',
+                                    max: 100 }, { name: '信号灯', max: 100 }], center: ['50%',
+                                    '55%'
+                                ], radius: '65%' },
+                            series: [{ type: 'radar', data: [{ value: [Math.floor(r.clScore *
+                                        0.3 * 100 / 30), Math.floor(r.clScore * 0.25 * 100 /
+                                        25), Math.floor(r.clScore * 0.2 * 100 / 20), Math.floor(
+                                        r.clScore * 0.15 * 100 / 15), Math.floor(r.clScore * 0.1 *
+                                        100 / 10)], name: '复杂度' }],
+                                areaStyle: { color: 'rgba(24,144,255,0.2)' } }],
+                        });
+                        chartInstances['radarComplexity'] = rc;
+                    }
+                    const tDom = document.getElementById('riskTrendChart');
+                    if (tDom) {
+                        const tc = echarts.init(tDom);
+                        tc.setOption({
+                            tooltip: {},
+                            xAxis: { data: ['12月', '1月', '2月', '3月', '4月', '5月'] },
+                            yAxis: { name: '事件数' },
+                            series: [{ type: 'line', data: [8, 12, 10, 15, 13, 18],
+                                lineStyle: { color: '#f5222d' },
+                                areaStyle: { color: 'rgba(245,34,45,0.1)' },
+                            smooth: true }],
+                            grid: { left: 40, right: 20, top: 10, bottom: 30 },
+                        });
+                        chartInstances['riskTrendChart'] = tc;
+                    }
+                    // Tab切换
+                    document.querySelectorAll('#detailTabs .detail-tab').forEach(tab => {
+                        tab.addEventListener('click', function() {
+                            document.querySelectorAll('#detailTabs .detail-tab').forEach(t =>
+                                t.classList.remove('active'));
+                            this.classList.add('active');
+                            document.querySelectorAll('.detail-tab-content').forEach(c => c
+                                .classList.remove('active'));
+                            document.getElementById(this.dataset.tab).classList.add(
+                                'active');
+                            setTimeout(resizeAll, 150);
+                        });
+                    });
+                }, 250);
+            };
+
+            // ==================== 历史版本对比 ====================
+            window.openHistoryModal = function(code) {
+                const r = allRoads.find(rd => rd.code === code) || allRoads[0];
+                let html = '<p><b>道路：</b>' + r.name + ' (' + r.code +
+                    ')</p><div class="row-2"><div><b>历史版本列表</b><table><thead><tr><th>版本</th><th>评估时间</th><th>综合得分</th><th>开放等级</th><th>选择</th></tr></thead><tbody>';
+                historyVersions.forEach((v, i) => { html += '<tr><td>' + v.ver + '</td><td>' + v.time + '</td><td>' + v
+                        .score + '</td><td>' + levelTag(v.level) +
+                        '</td><td><input type="radio" name="histA" ' + (i === 0 ? 'checked' : '') +
+                        '> A <input type="radio" name="histB" ' + (i === 1 ? 'checked' : '') + '> B</td></tr>'; });
+                html +=
+                    '</tbody></table><button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="showDiff()">对比差异</button></div><div id="diffResult"><p style="color:var(--text-tertiary);">请选择两个版本后点击对比</p></div></div>';
+                openModal('历史版本对比 - ' + r.name, html, true);
+                window.showDiff = function() {
+                    const a = document.querySelector('input[name="histA"]:checked');
+                    const b = document.querySelector('input[name="histB"]:checked');
+                    if (!a || !b) return;
+                    const idxA = Array.from(document.querySelectorAll('input[name="histA"]')).indexOf(a);
+                    const idxB = Array.from(document.querySelectorAll('input[name="histB"]')).indexOf(b);
+                    if (idxA === idxB) { document.getElementById('diffResult').innerHTML =
+                            '<p style="color:#f5222d;">请选择两个不同版本</p>'; return; }
+                    const va = historyVersions[idxA];
+                    const vb = historyVersions[idxB];
+                    const diffHtml = '<table class="diff-table"><thead><tr><th>指标</th><th>版本A (' + va.ver +
+                        ')</th><th>版本B (' + vb.ver + ')</th><th>变化</th></tr></thead><tbody>' +
+                        '<tr><td>复杂度指数</td><td>' + va.complexity + '</td><td>' + vb.complexity + '</td><td class="' +
+                        (vb.complexity > va.complexity ? 'diff-up' : 'diff-down') + '">' + (vb.complexity > va
+                            .complexity ? '↑' : '↓') + Math.abs(vb.complexity - va.complexity) + '</td></tr>' +
+                        '<tr><td>风险指数</td><td>' + va.risk + '</td><td>' + vb.risk + '</td><td class="' + (vb.risk >
+                            va.risk ? 'diff-up' : 'diff-down') + '">' + (vb.risk > va.risk ? '↑' : '↓') + Math.abs(vb
+                            .risk - va.risk) + '</td></tr>' +
+                        '<tr><td>场景适配得分</td><td>' + va.sceneScore + '</td><td>' + vb.sceneScore +
+                        '</td><td class="' + (vb.sceneScore > va.sceneScore ? 'diff-down' : 'diff-up') + '">' + (vb
+                            .sceneScore > va.sceneScore ? '↑' : '↓') + Math.abs(vb.sceneScore - va.sceneScore) +
+                        '</td></tr>' +
+                        '<tr><td>开放等级</td><td>' + va.level + '</td><td>' + vb.level + '</td><td>' + (va.level === vb
+                            .level ? '无变化' : '<span class="diff-up">' + va.level + '→' + vb.level + '</span>') +
+                        '</td></tr></tbody></table>';
+                    document.getElementById('diffResult').innerHTML = diffHtml;
+                };
+            };
+
+            // ==================== 指标配置页面 ====================
+            function renderConfigPage() {
+                const html = `
+                <div class="page-title">评估指标配置</div><div class="page-subtitle">复杂度模型、风险模型、场景适配模型、融合模型及映射关系表配置</div>
+                <div class="card"><div class="config-tabs" id="configTabs">
+                    <button class="config-tab active" data-ctab="cfg0">复杂度模型</button>
+                    <button class="config-tab" data-ctab="cfg1">风险模型</button>
+                    <button class="config-tab" data-ctab="cfg2">场景适配模型</button>
+                    <button class="config-tab" data-ctab="cfg3">融合模型</button>
+                    <button class="config-tab" data-ctab="cfg4">映射关系表</button>
+                </div>
+                <div class="config-tab-content active" id="cfg0">
+                    <table><thead><tr><th>指标</th><th>权重(0-1)</th><th>当前值</th></tr></thead>
+                    <tbody><tr><td>车道数</td><td><input type="number" value="0.25" step="0.01" style="width:80px;"></td><td>0.25</td></tr>
+                    <tr><td>交叉口密度</td><td><input type="number" value="0.25" step="0.01" style="width:80px;"></td><td>0.25</td></tr>
+                    <tr><td>混合交通比例</td><td><input type="number" value="0.20" step="0.01" style="width:80px;"></td><td>0.20</td></tr>
+                    <tr><td>坡度/曲率</td><td><input type="number" value="0.15" step="0.01" style="width:80px;"></td><td>0.15</td></tr>
+                    <tr><td>信号灯完整度</td><td><input type="number" value="0.15" step="0.01" style="width:80px;"></td><td>0.15</td></tr></tbody></table>
+                    <p style="margin-top:8px;">分级阈值：低 &lt; <input type="number" value="40" style="width:60px;"> ，中 <input type="number" value="40" style="width:60px;">-<input type="number" value="69" style="width:60px;"> ，高 ≥ <input type="number" value="70" style="width:60px;"></p>
+                </div>
+                <div class="config-tab-content" id="cfg1">
+                    <table><thead><tr><th>指标</th><th>权重</th><th>当前值</th></tr></thead>
+                    <tbody><tr><td>事故频率</td><td><input type="number" value="0.35" style="width:80px;"></td><td>0.35</td></tr>
+                    <tr><td>事故严重度</td><td><input type="number" value="0.35" style="width:80px;"></td><td>0.35</td></tr>
+                    <tr><td>交通事件频率</td><td><input type="number" value="0.20" style="width:80px;"></td><td>0.20</td></tr>
+                    <tr><td>流量修正系数</td><td><input type="number" value="0.10" style="width:80px;"></td><td>0.10</td></tr></tbody></table>
+                    <p>时间窗：使用近 <input type="number" value="6" style="width:60px;"> 个月内数据</p>
+                </div>
+                <div class="config-tab-content" id="cfg2"><table><thead><tr><th>场景名称</th><th>最低车道数</th><th>允许机非混行</th><th>最低照明等级</th><th>允许最大坡度</th></tr></thead>
+                <tbody><tr><td>城区道路</td><td>4</td><td>否</td><td>2</td><td>8%</td></tr><tr><td>园区道路</td><td>2</td><td>是</td><td>1</td><td>12%</td></tr><tr><td>环卫作业</td><td>2</td><td>是</td><td>1</td><td>10%</td></tr><tr><td>物流配送</td><td>2</td><td>否</td><td>2</td><td>8%</td></tr><tr><td>公交运营</td><td>4</td><td>否</td><td>3</td><td>6%</td></tr></tbody></table><p>适配阈值：<input type="number" value="60" style="width:60px;"> 分以上判定为适用</p></div>
+                <div class="config-tab-content" id="cfg3"><p>子模型权重：复杂度 <input type="number" value="0.33" style="width:60px;"> | 风险 <input type="number" value="0.34" style="width:60px;"> | 场景 <input type="number" value="0.33" style="width:60px;"></p>
+                <table><thead><tr><th>优先级</th><th>条件</th><th>动作</th><th>状态</th></tr></thead>
+                <tbody><tr><td>1</td><td>风险等级=高</td><td>禁止开放</td><td><span class="tag tag-green">启用</span></td></tr>
+                <tr><td>2</td><td>复杂度=高 AND 风险=高</td><td>限制开放</td><td><span class="tag tag-green">启用</span></td></tr>
+                <tr><td>3</td><td>复杂度=中</td><td>条件开放</td><td><span class="tag tag-green">启用</span></td></tr></tbody></table>
+                <p style="margin-top:8px;"><label><input type="checkbox" checked> 全局禁止条件：风险等级=高时直接"禁止开放"</label></p></div>
+                <div class="config-tab-content" id="cfg4"><table><thead><tr><th>开放等级</th><th>适用自动驾驶等级</th><th>允许测试类型</th><th>限制时段</th><th>管控要求</th></tr></thead>
+                <tbody><tr><td>完全开放</td><td>L2/L3/L4</td><td>载人、载货、环卫、物流</td><td>无限制</td><td>无特殊要求</td></tr>
+                <tr><td>条件开放</td><td>L3/L4</td><td>载货、环卫、物流</td><td>06:00-22:00</td><td>需额外提交安全评估</td></tr>
+                <tr><td>限制开放</td><td>L4</td><td>环卫、物流</td><td>09:00-17:00</td><td>需安全员全程监控</td></tr>
+                <tr><td>禁止开放</td><td>---</td><td>---</td><td>---</td><td>禁止任何测试活动</td></tr></tbody></table></div>
+                <button class="btn btn-primary" style="margin-top:12px;" onclick="showToast('配置已保存，新版本号：V3.3')">💾 保存配置</button></div>`;
+                document.getElementById('mainContent').innerHTML = html;
+                // 配置Tab切换
+                document.querySelectorAll('#configTabs .config-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('#configTabs .config-tab').forEach(t => t
+                            .classList.remove('active'));
+                        this.classList.add('active');
+                        document.querySelectorAll('.config-tab-content').forEach(c => c.classList
+                            .remove('active'));
+                        document.getElementById(this.dataset.ctab).classList.add('active');
+                    });
+                });
+            }
+
+            // ==================== 日志管理页面 ====================
+            function renderLogPage() {
+                const html = `
+                <div class="page-title">评估日志管理</div><div class="page-subtitle">记录每次评估的触发方式、操作人及结果快照</div>
+                <div class="query-bar">
+                    <div class="form-group"><label>道路名称/编号</label><input placeholder="模糊匹配"></div>
+                    <div class="form-group"><label>评估时间</label><input type="date"> - <input type="date"></div>
+                    <div class="form-group"><label>触发方式</label><select><option>全部</option><option>自动</option><option>手动</option></select></div>
+                    <button class="btn btn-primary">🔍 查询</button>
+                </div>
+                <div class="card"><div class="card-header">日志列表 <span style="font-weight:400;font-size:11px;">共 ${logs.length} 条</span></div>
+                <div class="table-wrap"><table><thead><tr><th>日志ID</th><th>道路名称</th><th>评估时间</th><th>触发方式</th><th>操作人</th><th>综合得分</th><th>建议开放等级</th><th>操作</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
+                <div class="pagination-bar">
+                    <span>共 <b>${logs.length}</b> 条</span><select id="logPageSize" onchange="changeLogPageSize()"><option value="10" selected>10</option><option value="20">20</option></select>
+                    <span>条/页</span><button class="btn btn-sm btn-outline" onclick="prevLogPage()">上一页</button>
+                    <span>第 <b id="logCurrPage">1</b> / <b>${Math.ceil(logs.length/10)}</b> 页</span>
+                    <button class="btn btn-sm btn-outline" onclick="nextLogPage()">下一页</button>
+                </div></div>`;
+                document.getElementById('mainContent').innerHTML = html;
+                renderLogTable(1);
+            }
+
+            function renderLogTable(page) {
+                currentLogPage = page;
+                const start = (page - 1) * 10;
+                const end = Math.min(start + 10, logs.length);
+                document.getElementById('logTableBody').innerHTML = logs.slice(start, end).map(l => `<tr>
+                    <td>${l.id}</td><td>${l.road}</td><td>${l.time}</td><td>${l.trigger}</td>
+                    <td>${l.operator||'-'}</td><td>${l.score}</td><td>${levelTag(l.level)}</td>
+                    <td><button class="btn-link btn-sm" onclick="openLogDetail('${l.id}')">查看详情</button></td></tr>`)
+                    .join('');
+                document.getElementById('logCurrPage').textContent = page;
+            }
+            window.changeLogPageSize = function() { renderLogTable(1); };
+            window.prevLogPage = function() { if (currentLogPage > 1) renderLogTable(currentLogPage - 1); };
+            window.nextLogPage = function() { const t = Math.ceil(logs.length / 10); if (currentLogPage < t)
+                    renderLogTable(currentLogPage + 1); };
+            window.openLogDetail = function(id) {
+                const l = logs.find(lo => lo.id === id) || logs[0];
+                const html =
+                    '<p><b>日志ID：</b>' + l.id + '</p><p><b>道路：</b>' + l.road + '</p><p><b>评估时间：</b>' + l.time +
+                    '</p><p><b>触发方式：</b>' + l.trigger + '</p><p><b>操作人：</b>' + (l.operator || '-') +
+                    '</p><p><b>综合得分：</b>' + l.score + '</p><p><b>开放等级：</b>' + l.level +
+                    '</p><p><b>配置版本：</b>V3.2（只读快照）</p><p><b>各子模型输入参数：</b>已归档，只读不可修改</p>';
+                openModal('日志详情 - ' + l.id, html);
+            };
+
+            // ==================== Toast ====================
+            window.showToast = function(msg) {
+                const t = document.createElement('div');
+                t.style.cssText =
+                    'position:fixed;top:20px;right:20px;z-index:999;background:#fff;padding:12px 20px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.1);font-size:13px;border-left:3px solid #1890ff;';
+                t.textContent = '✅ ' + msg;
+                document.body.appendChild(t);
+                setTimeout(() => { t.style.opacity = '0';
+                    t.style.transition = '0.3s';
+                    setTimeout(() => t.remove(), 300); }, 2000);
+            };
+
+            // ==================== 导航切换 ====================
+            document.querySelectorAll('#sideMenu .menu-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('#sideMenu .menu-item').forEach(m => m.classList
+                        .remove('active'));
+                    this.classList.add('active');
+                    currentPage = this.dataset.page;
+                    if (currentPage === 'list') renderListPage();
+                    else if (currentPage === 'config') renderConfigPage();
+                    else if (currentPage === 'log') renderLogPage();
+                });
+            });
+
+            // 初始加载
+            renderListPage();
+        })();
+    </script>
+</body>
+</html>

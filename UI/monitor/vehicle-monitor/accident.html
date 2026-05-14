@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事故数据上报 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .page-header h2{font-size:20px;font-weight:600;color:#000000d9}
+    .filter-bar{background:#fff;padding:16px 24px;border-radius:8px;margin-bottom:16px}
+    .filter-row{display:flex;flex-wrap:wrap;gap:20px 24px;align-items:center}
+    .filter-item{display:inline-flex;flex-direction:row;align-items:center;gap:8px}
+    .filter-item label{font-size:14px;color:#000000d9;font-weight:normal;white-space:nowrap}
+    .ant-table-wrapper{background:#fff;border-radius:8px;overflow:hidden}
+    .ant-table{width:100%;border-collapse:collapse}
+    .ant-table thead th{background:#fafafa;padding:12px 16px;font-weight:600;font-size:14px;color:#000000d9;text-align:left;border-bottom:1px solid #f0f0f0;white-space:nowrap}
+    .ant-table tbody td{padding:12px 16px;font-size:14px;color:#000000d9;border-bottom:1px solid #f0f0f0}
+    .ant-table tbody tr:hover{background:#fafafa}
+    .ant-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:normal}
+    .ant-tag-error{background:#fff2f0;color:#ff4d4f;border-color:#ffccc7}
+    .ant-tag-warning{background:#fffbe6;color:#faad14;border-color:#ffe58f}
+    .ant-tag-success{background:#f6ffed;color:#52c41a;border-color:#b7eb8f}
+    .ant-tag-processing{background:#e6f7ff;color:#1890ff;border-color:#91caff}
+    .ant-btn{display:inline-flex;align-items:center;justify-content:center;padding:4px 15px;border-radius:4px;font-size:14px;border:1px solid #d9d9d9;background:#fff;color:#000000d9;cursor:pointer}
+    .ant-btn:hover{border-color:#1677ff;color:#1677ff}
+    .ant-btn-primary{background:#1677ff;border-color:#1677ff;color:#fff}
+    .ant-btn-danger{background:#ff4d4f;border-color:#ff4d4f;color:#fff}
+    .ant-btn-sm{padding:2px 8px;font-size:12px}
+    .ant-btn-link{background:none;border:none;color:#1677ff;padding:0}
+    .ant-input{padding:4px 11px;border:1px solid #d9d9d9;border-radius:4px;font-size:14px}
+    .ant-select{padding:4px 11px;border:1px solid #d9d9d9;border-radius:4px;font-size:14px;background:#fff;cursor:pointer}
+    .ant-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000}
+    .ant-modal-content{padding:24px}
+    .ant-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .ant-modal-title{font-size:16px;font-weight:600}
+    .ant-modal-body{max-height:60vh;overflow-y:auto}
+    .ant-modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:24px;padding-top:16px;border-top:1px solid #f0f0f0}
+    .ant-form-item{margin-bottom:16px}
+    .ant-form-label{display:block;margin-bottom:8px;font-size:14px;color:#000000d9}
+    .ant-form-control{display:block}
+    .ant-descriptions{font-size:14px}
+    .ant-descriptions-row{display:flex;margin-bottom:12px}
+    .ant-descriptions-label{width:120px;color:#00000073}
+    .ant-descriptions-value{flex:1;color:#000000d9}
+    .required{color:#ff4d4f;margin-right:4px}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header">
+        <h2>事故数据上报</h2>
+        <div class="flex gap-2">
+          <button class="ant-btn ant-btn-danger" onclick="openReportModal()">上报事故信息</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>事故类型</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>当前审批节点</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>事故发生日期</label><input class="ant-input" type="date"></div>
+          <div class="flex gap-2 items-end">
+            <button class="ant-btn ant-btn-primary">查询</button>
+            <button class="ant-btn">重置</button>
+          </div>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead>
+              <tr>
+                <th>事故编号</th>
+                <th>测试主体</th>
+                <th>VIN码</th>
+                <th>临牌号码</th>
+                <th>事故类型</th>
+                <th>事故地点</th>
+                <th>事故保险</th>
+                <th>当前审批节点</th>
+                <th>审核状态</th>
+                <th>车辆状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ACC20260427001</td>
+                <td>华为技术有限公司</td>
+                <td>LHGCR28X0NY******</td>
+                <td>鄂F·C007</td>
+                <td><span class="ant-tag ant-tag-error">碰撞</span></td>
+                <td>樊城区卧龙大道与长征路交叉口+500</td>
+                <td><span class="ant-tag ant-tag-success">有</span></td>
+                <td><span class="ant-tag">事故上报审核</span></td>
+                <td><span class="ant-tag ant-tag-processing">待审核</span></td>
+                <td><span class="ant-tag ant-tag-error">已停运</span></td>
+                <td>
+                  <button class="ant-btn-link" onclick="openAccDetail('ACC20260427001')">详情</button>
+                  <button class="ant-btn-link" style="color:#faad14">撤回</button>
+                </td>
+              </tr>
+              <tr>
+                <td>ACC20260425001</td>
+                <td>襄阳智行科技有限公司</td>
+                <td>LHGCR28X0NY******</td>
+                <td>鄂F·A001</td>
+                <td><span class="ant-tag ant-tag-warning">剐蹭</span></td>
+                <td>襄城区环城路K5+200</td>
+                <td><span class="ant-tag ant-tag-success">有</span></td>
+                <td><span class="ant-tag">已完成</span></td>
+                <td><span class="ant-tag ant-tag-success">已确认</span></td>
+                <td><span class="ant-tag ant-tag-success">已恢复</span></td>
+                <td><button class="ant-btn-link" onclick="openAccDetail('ACC20260425001')">详情</button></td>
+              </tr>
+              <tr>
+                <td>ACC20260420001</td>
+                <td>东风汽车股份有限公司</td>
+                <td>LHGCR28X0NY******</td>
+                <td>鄂F·B003</td>
+                <td><span class="ant-tag ant-tag-error">碰撞</span></td>
+                <td>东风试验场内部道路+100</td>
+                <td><span class="ant-tag ant-tag-success">有</span></td>
+                <td><span class="ant-tag">省厅上报</span></td>
+                <td><span class="ant-tag ant-tag-success">省厅已上报</span></td>
+                <td><span class="ant-tag ant-tag-success">已恢复</span></td>
+                <td><button class="ant-btn-link" onclick="openAccDetail('ACC20260420001')">详情</button></td>
+              </tr>
+              <tr>
+                <td>ACC20260415001</td>
+                <td>百度Apollo智能驾驶有限公司</td>
+                <td>LHGCR28X0NY******</td>
+                <td>鄂F·D010</td>
+                <td><span class="ant-tag ant-tag-warning">侧翻</span></td>
+                <td>高新区某停车场内</td>
+                <td><span class="ant-tag">无</span></td>
+                <td><span class="ant-tag">事故分析报告-联席审核</span></td>
+                <td><span class="ant-tag ant-tag-processing">联席审核中</span></td>
+                <td><span class="ant-tag ant-tag-error">已停运</span></td>
+                <td><button class="ant-btn-link" onclick="openAccDetail('ACC20260415001')">详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='accident';
+function openReportModal(){
+  const content = `
+    <div class="bg-[#fff2f0] border border-[#ffccc7] rounded-lg p-4 mb-4">
+      <div class="flex items-start gap-2">
+        <span class="text-[#ff4d4f] text-lg">🚨</span>
+        <div>
+          <p class="text-sm font-medium text-[#000000d9]">事故信息上报注意事项</p>
+          <p class="text-xs text-[#00000073] mt-1">请确保所有必填项均已填写完整，特别是VIN码、测试主体、临牌号码、事故类型、事故地点等关键信息。上传的事故现场照片将作为重要证据材料。</p>
+        </div>
+      </div>
+    </div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>VIN码</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入完整的车辆识别代码"></div></div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>测试主体</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>临牌号码</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入临时牌照号码"></div></div>
+    <div class="ant-form-item">
+      <div class="ant-form-label"><span class="required">*</span>事故保险</div>
+      <div class="ant-form-control">
+        <label style="margin-right:20px"><input type="radio" name="insurance" value="yes" checked onclick="toggleInsuranceFields(true)"> 有</label>
+        <label><input type="radio" name="insurance" value="no" onclick="toggleInsuranceFields(false)"> 无</label>
+      </div>
+    </div>
+    <div id="insuranceFields">
+      <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>保险名称</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入保险名称"></div></div>
+      <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>保险到期时间</div><div class="ant-form-control"><input class="ant-input" type="date"></div></div>
+    </div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>事故类型</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>事故发生时间</div><div class="ant-form-control"><input class="ant-input" type="datetime-local"></div></div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>事故发生地点</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入详细地址或桩号"></div></div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>伤亡情况</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入伤亡情况描述"></div></div>
+    <div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>事故经过</div><div class="ant-form-control"><textarea class="ant-input" style="height:100px;padding:8px 12px" placeholder="请详细描述事故发生的经过、原因等情况"></textarea></div></div>
+    <div class="ant-form-item"><div class="ant-form-label">佐证材料上传</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">选择材料上传</button><div class="text-xs text-[#00000073] mt-1">支持JPG/PNG/PDF格式，建议上传现场照片、视频等材料</div></div></div>
+  `;
+  openModal('上报事故信息', content, {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-danger" onclick="closeModal()">提交事故信息上报'});
+  setTimeout(function(){document.getElementById("insuranceFields").style.display="block";}, 100);
+}
+function toggleInsuranceFields(show){
+  var el = document.getElementById("insuranceFields");
+  if(el) el.style.display = show ? "block" : "none";
+}
+function openAccDetail(accId){
+  var isPending = accId === 'ACC20260427001';
+  var isReviewing = accId === 'ACC20260415001';
+  var isConfirmed = accId === 'ACC20260425001';
+  var isReported = accId === 'ACC20260420001';
+  var hasInsurance = accId !== 'ACC20260415001';
+  
+  var content = `
+    <div class="ant-descriptions">
+      <div class="ant-descriptions-row"><div class="ant-descriptions-label">事故编号</div><div class="ant-descriptions-value">${accId}</div><div class="ant-descriptions-label">事故类型</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-error">碰撞</span></div></div>
+      <div class="ant-descriptions-row"><div class="ant-descriptions-label">测试主体</div><div class="ant-descriptions-value">华为技术有限公司</div><div class="ant-descriptions-label">VIN码</div><div class="ant-descriptions-value">LHGCR28X0NY******</div></div>
+      <div class="ant-descriptions-row"><div class="ant-descriptions-label">临牌号码</div><div class="ant-descriptions-value">鄂F·C007</div><div class="ant-descriptions-label">事故保险</div><div class="ant-descriptions-value">${hasInsurance?'<span class="ant-tag ant-tag-success">有</span>':'<span class="ant-tag">无</span>'}</div></div>
+      ${hasInsurance?'<div class="ant-descriptions-row"><div class="ant-descriptions-label">保险名称</div><div class="ant-descriptions-value">交强险+商业险</div><div class="ant-descriptions-label">保险到期时间</div><div class="ant-descriptions-value">2026-12-31</div></div>':''}
+      <div class="ant-descriptions-row"><div class="ant-descriptions-label">事故发生地点</div><div class="ant-descriptions-value">樊城区卧龙大道与长征路交叉口+500</div><div class="ant-descriptions-label">事故发生时间</div><div class="ant-descriptions-value">2026-04-27 13:45</div></div>
+      <div class="ant-descriptions-row"><div class="ant-descriptions-label">当前审批节点</div><div class="ant-descriptions-value">${isPending?'<span class="ant-tag">事故上报审核</span>':isReviewing?'<span class="ant-tag">事故分析报告-联席审核</span>':isConfirmed?'<span class="ant-tag">已完成</span>':'<span class="ant-tag">省厅上报</span>'}</div><div class="ant-descriptions-label">审核状态</div><div class="ant-descriptions-value">${isPending?'<span class="ant-tag ant-tag-processing">待审核</span>':isReviewing?'<span class="ant-tag ant-tag-processing">联席审核中</span>':isConfirmed?'<span class="ant-tag ant-tag-success">已确认</span>':'<span class="ant-tag ant-tag-success">省厅已上报</span>'}</div></div>
+      <div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆状态</div><div class="ant-descriptions-value">${isPending||isReviewing?'<span class="ant-tag ant-tag-error">已停运</span>':'<span class="ant-tag ant-tag-success">已恢复</span>'}</div><div class="ant-descriptions-label">事故上报时间</div><div class="ant-descriptions-value">2026-04-27 14:00</div></div>
+    </div>
+    <h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">事故描述</h4>
+    <p class="text-sm text-[#000000d9]">车辆在自动驾驶模式下行驶至樊城区卧龙大道与长征路交叉口附近（约K3+500处）时，因前方障碍物突然出现导致自动紧急制动系统触发，造成后方车辆追尾。经初步勘察，事故造成本车前保险杠受损，后车左侧车门凹陷。现场无人员伤亡。事故发生后安全员立即接管车辆并停靠至安全区域，同时启动应急响应流程并通知相关部门。</p>
+    <h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">事故报告管理</h4>
+    <div class="mt-4 p-3 bg-[#f5f5f5] rounded-lg">
+      <div class="space-y-3">
+        <div class="flex items-center justify-between p-2 bg-white rounded"><div><div class="text-sm font-medium">交通事故报告</div><div class="text-xs text-[#00000073]">事故发生3个工作日内上报，仅需第三方服务机构审核</div></div><button class="ant-btn ant-btn-sm" onclick="openTrafficReportModal()">${isPending?'📝 上报':'✓ 已提交'}</button></div>
+        <div class="flex items-center justify-between p-2 bg-white rounded"><div><div class="text-sm font-medium">事故分析报告</div><div class="text-xs text-[#00000073]">事故认定5个工作日内上报，需第三方初审+联席小组审核</div></div><button class="ant-btn ant-btn-sm" onclick="openAnalysisReportModal()">${isReviewing?'📝 补材料':isConfirmed||isReported?'✓ 已审核':'📝 上报'}</button></div>
+        <div class="flex items-center justify-between p-2 bg-white rounded"><div><div class="text-sm font-medium">省厅上报</div><div class="text-xs text-[#00000073]">审核通过后可上报至省厅相关平台</div></div><button class="ant-btn ant-btn-sm" ${!isReported&&isConfirmed?'':'disabled'} onclick="reportToProvince()">${isReported?'✓ 已上报省厅':isConfirmed?'📤 上报省厅':'等待审核完成'}</button></div>
+      </div>
+    </div>
+  `;
+  openModal('事故详情 - '+accId, content+makeAccidentFlowLog(accId), {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openTrafficReportModal(){
+  openModal('上报交通事故报告',
+    '<div class="bg-[#fffbe6] border border-[#ffe58f] rounded-lg p-4 mb-4"><div class="flex items-start gap-2"><span class="text-[#faad14] text-lg">⚠️</span><div><p class="text-sm font-medium text-[#000000d9]">请注意填写完整性</p><p class="text-xs text-[#00000073] mt-1">交通事故报告相关信息必须真实准确，该报告仅需第三方服务机构审核</p></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>事故原因简述</div><div class="ant-form-control"><textarea class="ant-input" style="height:80px;padding:8px 12px" placeholder="请简要描述事故原因"></textarea></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>责任认定结果</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入责任认定结论"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">附件材料上传</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">选择材料上传</button><div class="text-xs text-[#00000073] mt-1">支持PDF/Word格式文档上传（行车记录视频、现场照片等）</div></div></div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">确认提交</button>'});
+}
+function openAnalysisReportModal(){
+  openModal('上报事故分析报告',
+    '<div class="bg-[#fffbe6] border border-[#ffe58f] rounded-lg p-4 mb-4"><div class="flex items-start gap-2"><span class="text-[#faad14] text-lg">⚠️</span><div><p class="text-sm font-medium text-[#000000d9]">请注意填写完整性</p><p class="text-xs text-[#00000073] mt-1">事故分析报告包含事故原因、责任认定结果、完整事故分析报告等材料，需第三方服务机构初审、联席小组审核</p></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>事故原因分析</div><div class="ant-form-control"><textarea class="ant-input" style="height:80px;padding:8px 12px" placeholder="请输入事故原因分析结论"></textarea></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>责任认定结果</div><div class="ant-form-control"><textarea class="ant-input" style="height:80px;padding:8px 12px" placeholder="请输入责任认定结果"></textarea></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>完整事故分析报告</div><div class="ant-form-control"><textarea class="ant-input" style="height:120px;padding:8px 12px" placeholder="请详细描述完整的事故分析报告内容"></textarea></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">附件材料上传</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">选择材料上传</button><div class="text-xs text-[#00000073] mt-1">支持PDF/Word格式文档上传（现场勘查报告、行车记录视频等）</div></div></div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">确认提交</button>'});
+}
+function reportToProvince(){
+  openModal('上报至省厅平台',
+    '<div class="bg-[#e6f4ff] border border-[#91caff] rounded-lg p-4 mb-4"><div class="flex items-start gap-2"><span class="text-[#1677ff] text-lg">ℹ️</span><div><p class="text-sm font-medium text-[#000000d9]">省级事故信息上报</p><p class="text-xs text-[#00000073] mt-1">上报成功后，相关事故信息将被同步至省级智能网联汽车管理平台数据库中</p></div></div></div>' +
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">事故编号</div><div class="ant-descriptions-value">ACC20260425001</div><div class="ant-descriptions-label">临牌号码</div><div class="ant-descriptions-value">鄂F·A001</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">事故类型</div><div class="ant-descriptions-value">剐蹭</div><div class="ant-descriptions-label">事故发生时间</div><div class="ant-descriptions-value">2026-04-25 09:30</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">审核状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-success">已确认</span></div><div class="ant-descriptions-label">车辆状态</div><div class="ant-descriptions-value"><span class="ant-tag ant-tag-success">已恢复</span></div></div>' +
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal();alert(\'事故信息已成功上报至省级平台\')">确认上报至省级平台</button>'});
+}
+function makeAccidentFlowLog(accId){
+  var nodes=[];
+  if(accId==='ACC20260427001'){
+    nodes=[
+      {title:'事故上报',handler:'王工（华为技术有限公司）',time:'2026-04-27 14:00',opinion:'提交事故基本信息报告，包含VIN码、临牌号码、事故发生地点/时间、事故经过等完整信息。',nextNode:'交通事故报告审核',status:'已处理',attach:'现场照片.jpg、行车记录.mp4'},
+      {title:'交通事故报告审核',handler:'李四（第三方服务机构A）',time:'-',opinion:'',nextNode:'事故分析报告-第三方初审',status:'待处理'},
+      {title:'事故分析报告-第三方初审',handler:'-',time:'-',opinion:'',nextNode:'事故分析报告-联席审核',status:'待处理'},
+      {title:'事故分析报告-联席审核',handler:'-',time:'-',opinion:'',nextNode:'省厅上报',status:'待处理'},
+      {title:'省厅上报',handler:'-',time:'-',opinion:'',nextNode:'-',status:'待处理'}
+    ];
+  }else if(accId==='ACC20260425001'){
+    nodes=[
+      {title:'事故上报',handler:'王工（华为技术有限公司）',time:'2026-04-25 10:30',opinion:'提交事故基本信息报告，包含VIN码、临牌号码、事故发生地点/时间、事故经过等完整信息。',nextNode:'交通事故报告审核',status:'已处理',attach:'现场照片.jpg、行车记录.mp4'},
+      {title:'交通事故报告审核',handler:'李四（第三方服务机构A）',time:'2026-04-28 09:00 - 2026-04-28 16:30',opinion:'审核结论：通过\n审核意见：交通事故报告内容完整，事故原因和责任认定清晰，现场材料齐全，符合上报要求。',nextNode:'事故分析报告-第三方初审',status:'已处理',attach:'交通事故报告.pdf'},
+      {title:'事故分析报告-第三方初审',handler:'张三（第三方服务机构B）',time:'2026-05-03 10:00 - 2026-05-05 14:00',opinion:'审核结论：通过\n审核意见：事故分析报告数据来源可靠，结论合理有据，符合平台事故分析标准要求。建议通过初审。',nextNode:'事故分析报告-联席审核',status:'已处理',attach:'事故分析初稿.pdf'},
+      {title:'事故分析报告-联席审核',handler:'王主任（联席小组）',time:'2026-05-06 09:30 - 2026-05-07 11:00',opinion:'审核结论：通过\n审核意见：第三方初审意见合理，经联席小组审议，认定事故系自动驾驶系统在紧急制动场景下未完全预判后车距离所致。建议企业加强制动系统的安全冗余设计。',nextNode:'省厅上报',status:'已处理',attach:'事故分析终稿.pdf'},
+      {title:'省厅上报',handler:'赵工（管理平台）',time:'2026-05-07 15:00',opinion:'已完成省级平台数据同步',nextNode:'-',status:'已处理',attach:'省厅上报回执.pdf'}
+    ];
+  }else if(accId==='ACC20260420001'){
+    nodes=[
+      {title:'事故上报',handler:'陈工（东风汽车股份有限公司）',time:'2026-04-20 09:15',opinion:'提交事故基本信息报告。',nextNode:'交通事故报告审核',status:'已处理',attach:'现场照片.jpg'},
+      {title:'交通事故报告审核',handler:'李四（第三方服务机构A）',time:'2026-04-23 10:00 - 2026-04-23 17:00',opinion:'审核结论：通过\n审核意见：交通事故报告内容完整，予以审核通过。',nextNode:'事故分析报告-第三方初审',status:'已处理',attach:'交通事故报告.pdf'},
+      {title:'事故分析报告-第三方初审',handler:'赵五（第三方服务机构C）',time:'2026-04-30 09:00 - 2026-05-02 11:00',opinion:'审核结论：通过\n审核意见：事故分析逻辑清晰，结论合理。',nextNode:'事故分析报告-联席审核',status:'已处理',attach:'事故分析报告_v1.pdf'},
+      {title:'事故分析报告-联席审核',handler:'李主任（联席小组）',time:'2026-05-03 10:00 - 2026-05-05 16:00',opinion:'审核结论：通过\n审核意见：经联席审议，一致认可事故分析结论。同意上报省厅。',nextNode:'省厅上报',status:'已处理'},
+      {title:'省厅上报',handler:'赵工（管理平台）',time:'2026-05-06 10:00',opinion:'已完成省级平台数据同步，回执编号 PROV-2026-0452。',nextNode:'-',status:'已处理',attach:'省厅上报回执.pdf'}
+    ];
+  }else if(accId==='ACC20260415001'){
+    nodes=[
+      {title:'事故上报',handler:'李工（百度Apollo智能驾驶有限公司）',time:'2026-04-15 08:45',opinion:'提交事故基本信息报告。',nextNode:'交通事故报告审核',status:'已处理',attach:'现场照片.jpg'},
+      {title:'交通事故报告审核',handler:'张三（第三方服务机构B）',time:'2026-04-18 09:00 - 2026-04-19 14:00',opinion:'审核结论：退回\n审核意见：事故原因描述不够详细，缺少完整的行车记录数据，请补充后重新提报。',nextNode:'事故分析报告-第三方初审',status:'已退回'},
+      {title:'事故分析报告-第三方初审',handler:'-',time:'-',opinion:'',nextNode:'事故分析报告-联席审核',status:'待处理'},
+      {title:'事故分析报告-联席审核',handler:'-',time:'-',opinion:'',nextNode:'省厅上报',status:'待处理'},
+      {title:'省厅上报',handler:'-',time:'-',opinion:'',nextNode:'-',status:'待处理'}
+    ];
+  }
+  var h='<h4 class="text-sm font-semibold text-[#000000d9] mb-4 mt-6 pb-2 border-b border-[#f0f0f0]">审批日志</h4><div class="space-y-3">';
+  for(var i=0;i<nodes.length;i++){var n=nodes[i];var hasNext=i<nodes.length-1&&nodes[i+1];
+    var sc=n.status==='已处理'?'ant-tag-success':n.status==='处理中'?'ant-tag-processing':n.status==='已退回'?'ant-tag-error':'ant-tag-default';
+    var colorMap={'已处理':'#52c41a','处理中':'#1677ff','已退回':'#ff4d4f','待处理':'#d9d9d9'};
+    var dotMap={'已处理':'&#x2713;','处理中':'&#x25CF;','已退回':'&#x2717;','待处理':'&#x25CB;'};
+    var nColor=colorMap[n.status]||'#d9d9d9';
+    var nDot=dotMap[n.status]||'&#x25CB;';
+    var bs=hasNext?'border-left:2px solid '+nColor+';margin-left:5px;padding-left:12px':'margin-left:17px;padding-left:0';
+    h+='<div class="relative pb-3" style="'+bs+'"><div class="absolute w-3 h-3 rounded-full flex items-center justify-center text-[8px] text-white font-bold mt-1" style="left:-7px;top:0;background:'+nColor+'">'+nDot+'</div>';
+    h+='<div class="min-w-0"><div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-[#000000d9]">'+n.title+'</span><span class="ant-tag '+sc+' text-[10px]">'+n.status+'</span></div><div class="text-xs text-[#00000073] space-y-1">';
+    h+='<div><span class="text-[#00000040]">处理人：</span>'+n.handler+'</div><div><span class="text-[#00000040]">处理时间：</span>'+n.time+'</div>';
+    if(n.opinion)h+='<div class="whitespace-pre-line mt-1.5 p-2 bg-[#fafafa] rounded"><span class="text-[#00000040]">处理意见：</span>'+n.opinion+'</div>';
+    if(n.nextNode!=='-')h+='<div><span class="text-[#00000040]">下一节点：</span>'+n.nextNode+'</div>';
+    if(n.attach)h+='<div class="flex items-center gap-1 mt-1.5"><span class="text-[#00000040]">附件：</span><button class="ant-btn-link text-xs">'+n.attach+'</button></div>';
+    h+='</div></div></div>';}
+  return h;
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

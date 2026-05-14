@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运行状态分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+            --shadow-card: 0 1px 2px -2px rgba(0, 0, 0, 0.08), 0 3px 6px 0 rgba(0, 0, 0, 0.06);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-header {
+            background: #001529;
+            color: #fff;
+            padding: 0 32px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .app-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .app-header .logo .icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius);
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .app-body {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px 28px 40px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 18px;
+        }
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 16px 22px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 14px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 130px;
+        }
+        .form-group label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        select,
+        input {
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: var(--font);
+            color: var(--text-primary);
+            background: #fff;
+            outline: none;
+            min-width: 120px;
+        }
+        select[multiple] {
+            height: auto;
+            min-height: 34px;
+            padding: 6px 8px;
+        }
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.12);
+        }
+        .btn {
+            height: 34px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.35);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary-bg);
+        }
+        .btn-sm {
+            height: 28px;
+            padding: 0 12px;
+            font-size: 12px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 4px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        /* 维度切换Tab */
+        .dimension-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            width: fit-content;
+        }
+        .dimension-tab {
+            padding: 8px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-radius: var(--radius);
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .dimension-tab:hover {
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+        .dimension-tab.active {
+            color: #fff;
+            background: var(--primary);
+            box-shadow: 0 2px 6px rgba(24, 144, 255, 0.35);
+            font-weight: 600;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .stat-card:hover {
+            box-shadow: var(--shadow-card);
+            transform: translateY(-1px);
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+        .stat-card .stat-sub {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+        .stat-card.accent-blue {
+            border-left: 3px solid var(--primary);
+        }
+        .stat-card.accent-green {
+            border-left: 3px solid var(--success);
+        }
+        .stat-card.accent-orange {
+            border-left: 3px solid var(--warning);
+        }
+
+        .card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 16px;
+        }
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.3px;
+        }
+        .chart-container {
+            min-height: 300px;
+        }
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .row-1 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            background: #fafafa;
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f5f5f5;
+            color: var(--text-primary);
+        }
+        tbody tr {
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        tbody tr:hover {
+            background: #fafafa;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-yellow {
+            background: #fffbe6;
+            color: #d4b106;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .tag-purple {
+            background: #f9f0ff;
+            color: #722ed1;
+        }
+
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .pagination-bar select {
+            width: 80px;
+            height: 30px;
+        }
+        .pagination-bar .page-info {
+            font-weight: 500;
+        }
+        .pagination-bar .btn-sm {
+            height: 30px;
+        }
+
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 8px;
+            width: 680px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+            font-size: 13px;
+            line-height: 2;
+        }
+        .modal-body .detail-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 20px;
+        }
+        .modal-body .detail-row .dl {
+            color: var(--text-tertiary);
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .modal-body .detail-row .dv {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 1200px) {
+            .stat-cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .row-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            .stat-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .query-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="logo">
+            <span class="icon">📡</span>
+            <span>运行状态分析</span>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <div class="page-title">运行状态分析</div>
+        <div class="page-subtitle">智能网联汽车道路测试 · 里程、时长、速度、数据质量多维度分析</div>
+
+        <!-- 筛选条件 -->
+        <div class="query-bar">
+            <div class="form-group">
+                <label>时间范围</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <input type="date" value="2026-04-01" style="min-width:130px;">
+                    <span style="color:var(--text-tertiary);">—</span>
+                    <input type="date" value="2026-05-08" style="min-width:130px;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>企业</label>
+                <select multiple>
+                    <option selected>全部</option>
+                    <option>襄阳智行科技</option>
+                    <option>汉江出行</option>
+                    <option>顺捷科技</option>
+                    <option>东风出行</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>行政区域</label>
+                <select>
+                    <option>全部</option>
+                    <option>樊城区</option>
+                    <option>襄城区</option>
+                    <option>襄州区</option>
+                    <option>南漳县</option>
+                    <option>谷城县</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>运行模式</label>
+                <select>
+                    <option>全部</option>
+                    <option>自动驾驶</option>
+                    <option>人工驾驶</option>
+                    <option>远程接管</option>
+                </select>
+            </div>
+            <button class="btn btn-primary">🔍 查询</button>
+            <button class="btn btn-outline">📥 导出Excel</button>
+        </div>
+
+        <!-- 维度切换Tab -->
+        <div class="dimension-tabs" id="dimensionTabs">
+            <button class="dimension-tab active" data-dim="company">按企业</button>
+            <button class="dimension-tab" data-dim="vehicleType">按车型</button>
+            <button class="dimension-tab" data-dim="district">按行政区域</button>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stat-cards">
+            <div class="stat-card accent-blue">
+                <span class="stat-label">总测试里程</span>
+                <span class="stat-value" id="statMileage">186.5<span style="font-size:14px;font-weight:500;"> 万km</span></span>
+                <span class="stat-sub">统计周期内累计</span>
+            </div>
+            <div class="stat-card accent-green">
+                <span class="stat-label">总测试时长</span>
+                <span class="stat-value" id="statDuration">4.8<span style="font-size:14px;font-weight:500;"> 万小时</span></span>
+                <span class="stat-sub">自动驾驶占比 72%</span>
+            </div>
+            <div class="stat-card accent-orange">
+                <span class="stat-label">平均速度</span>
+                <span class="stat-value" id="statAvgSpeed">38.6<span style="font-size:14px;font-weight:500;"> km/h</span></span>
+                <span class="stat-sub">自动驾驶模式均值</span>
+            </div>
+            <div class="stat-card accent-green">
+                <span class="stat-label">数据完整率</span>
+                <span class="stat-value" style="color:#52c41a;" id="statCompleteness">96.8<span style="font-size:14px;font-weight:500;">%</span></span>
+                <span class="stat-sub">同比 ↑ 1.2%</span>
+            </div>
+            <div class="stat-card accent-blue">
+                <span class="stat-label">在线车辆数</span>
+                <span class="stat-value" id="statOnlineVehicles">328<span style="font-size:14px;font-weight:500;"> 辆</span></span>
+                <span class="stat-sub">当前正在测试</span>
+            </div>
+        </div>
+
+        <!-- 图表区第一行 -->
+        <div class="row-2">
+            <div class="card">
+                <div class="card-header" id="chartMileageTitle">各企业测试里程对比</div>
+                <div class="chart-container" id="chartMileageBar"></div>
+            </div>
+            <div class="card">
+                <div class="card-header" id="chartDurationTitle">各企业测试时长分布</div>
+                <div class="chart-container" id="chartDurationPie"></div>
+            </div>
+        </div>
+
+        <!-- 图表区第二行 -->
+        <div class="row-2">
+            <div class="card">
+                <div class="card-header">速度区间分布（车辆数）</div>
+                <div class="chart-container" id="chartSpeedDist"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">数据完整率趋势（近30天）</div>
+                <div class="chart-container" id="chartQualityTrend"></div>
+            </div>
+        </div>
+
+        <!-- 数据采集质量表格 -->
+        <div class="card">
+            <div class="card-header">数据采集质量明细</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>车牌号</th>
+                            <th>VIN码</th>
+                            <th>所属企业</th>
+                            <th>最后上报时间</th>
+                            <th>数据完整率</th>
+                            <th>缺失字段</th>
+                            <th>数据延迟</th>
+                            <th>当日里程</th>
+                            <th>运行模式</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="qualityTableBody"></tbody>
+                </table>
+            </div>
+            <div class="pagination-bar">
+                <span>共 <b id="totalCount">328</b> 条</span>
+                <select id="pageSizeSelect">
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span>条/页</span>
+                <button class="btn btn-sm btn-outline" id="prevBtn">上一页</button>
+                <span class="page-info">第 <b id="currPage">1</b> / <b id="totalPage">33</b> 页</span>
+                <button class="btn btn-sm btn-outline" id="nextBtn">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div class="modal-mask" id="modalMask">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="modalTitle">车辆运行详情</span>
+                <button class="btn btn-sm btn-outline" onclick="closeModal()">✕ 关闭</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== 维度切换逻辑 ====================
+            let currentDimension = 'company';
+            const dimensionTabs = document.querySelectorAll('.dimension-tab');
+            dimensionTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    dimensionTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentDimension = this.dataset.dim;
+                    updateChartTitles();
+                    updateChartsByDimension();
+                });
+            });
+
+            function updateChartTitles() {
+                const titleMap = {
+                    company: ['各企业测试里程对比', '各企业测试时长分布'],
+                    vehicleType: ['各车型测试里程对比', '各车型测试时长分布'],
+                    district: ['各行政区域测试里程对比', '各行政区域测试时长分布'],
+                };
+                const titles = titleMap[currentDimension] || titleMap.company;
+                document.getElementById('chartMileageTitle').textContent = titles[0];
+                document.getElementById('chartDurationTitle').textContent = titles[1];
+            }
+
+            // ==================== 模拟数据生成 ====================
+            const companies = ['襄阳智行科技', '汉江出行', '顺捷科技', '东风出行', '百度Apollo', '滴滴自动驾驶', '小马智行', '文远知行',
+            'AutoX', '元戎启行'];
+            const vehicleTypes = ['轿车', 'SUV', 'MPV', '微面', '轻卡', '公交'];
+            const districts = ['樊城区', '襄城区', '襄州区', '南漳县', '谷城县'];
+            const plates = [
+                '鄂F·A1234', '鄂F·B5678', '鄂F·C3456', '鄂F·D7890', '鄂F·E9012',
+                '鄂F·F4567', '鄂F·G8901', '鄂F·H2345', '鄂F·I6789', '鄂F·J0123',
+                '鄂F·K3456', '鄂F·L7890', '鄂F·M1234', '鄂F·N5678', '鄂F·O9012'
+            ];
+            const vins = [
+                'LSVAA4189N2000001', 'LSVAA4189N2000002', 'LSVAA4189N2000003',
+                'LSVAA4189N2000004', 'LSVAA4189N2000005', 'LSVAA4189N2000006',
+                'LSVAA4189N2000007', 'LSVAA4189N2000008', 'LSVAA4189N2000009',
+                'LSVAA4189N2000010', 'LSVAA4189N2000011', 'LSVAA4189N2000012',
+                'LSVAA4189N2000013', 'LSVAA4189N2000014', 'LSVAA4189N2000015'
+            ];
+            const modes = ['自动驾驶', '人工驾驶', '远程接管'];
+
+            function randomEl(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+            function generateQualityData(count = 328) {
+                const arr = [];
+                for (let i = 0; i < count; i++) {
+                    const date = new Date(2026, 4, 8);
+                    date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), Math.floor(Math
+                        .random() * 60));
+                    const completeness = 85 + Math.random() * 14.8;
+                    const plateIdx = Math.floor(Math.random() * plates.length);
+                    arr.push({
+                        plate: plates[plateIdx],
+                        vin: vins[plateIdx],
+                        company: randomEl(companies),
+                        lastReportTime: date.toISOString().replace('T', ' ').substring(0, 19),
+                        completeness: completeness,
+                        missingFields: Math.floor(Math.random() * 6),
+                        dataDelay: Math.floor(20 + Math.random() * 180),
+                        dailyMileage: Math.floor(30 + Math.random() * 250),
+                        mode: randomEl(modes),
+                        vehicleType: randomEl(vehicleTypes),
+                        district: randomEl(districts),
+                    });
+                }
+                arr.sort((a, b) => b.lastReportTime.localeCompare(a.lastReportTime));
+                return arr;
+            }
+
+            const allQualityData = generateQualityData(328);
+            let currentPage = 1;
+            let pageSize = 10;
+
+            function renderTable(page = 1) {
+                const tbody = document.getElementById('qualityTableBody');
+                const start = (page - 1) * pageSize;
+                const end = Math.min(start + pageSize, allQualityData.length);
+                const pageData = allQualityData.slice(start, end);
+
+                tbody.innerHTML = pageData.map(d => {
+                    const compTag = d.completeness >= 95 ? 'tag-green' : d.completeness >= 90 ?
+                        'tag-yellow' : 'tag-red';
+                    const delayTag = d.dataDelay <= 50 ? 'tag-green' : d.dataDelay <= 120 ?
+                        'tag-orange' : 'tag-red';
+                    const modeTag = d.mode === '自动驾驶' ? 'tag-blue' : d.mode === '人工驾驶' ?
+                        'tag-green' : 'tag-purple';
+                    return `<tr onclick="openDetail('${d.plate}')" style="cursor:pointer;">
+                        <td><strong>${d.plate}</strong></td>
+                        <td style="font-family:monospace;font-size:11px;">${d.vin}</td>
+                        <td>${d.company}</td>
+                        <td>${d.lastReportTime}</td>
+                        <td><span class="tag ${compTag}">${d.completeness.toFixed(1)}%</span></td>
+                        <td>${d.missingFields} 个</td>
+                        <td><span class="tag ${delayTag}">${d.dataDelay}ms</span></td>
+                        <td>${d.dailyMileage} km</td>
+                        <td><span class="tag ${modeTag}">${d.mode}</span></td>
+                        <td><button class="btn-link btn-sm" onclick="event.stopPropagation();openDetail('${d.plate}')">详情</button></td>
+                    </tr>`;
+                }).join('');
+
+                document.getElementById('totalCount').textContent = allQualityData.length;
+                document.getElementById('currPage').textContent = page;
+                document.getElementById('totalPage').textContent = Math.ceil(allQualityData.length / pageSize);
+            }
+
+            document.getElementById('prevBtn').addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--;
+                    renderTable(currentPage); }
+            });
+            document.getElementById('nextBtn').addEventListener('click', () => {
+                const totalPages = Math.ceil(allQualityData.length / pageSize);
+                if (currentPage < totalPages) { currentPage++;
+                    renderTable(currentPage); }
+            });
+            document.getElementById('pageSizeSelect').addEventListener('change', function() {
+                pageSize = parseInt(this.value);
+                currentPage = 1;
+                renderTable(currentPage);
+            });
+
+            window.openDetail = function(plate) {
+                const d = allQualityData.find(item => item.plate === plate) || allQualityData[0];
+                const html = `
+                    <div class="detail-row">
+                        <div><span class="dl">车牌号</span><br><span class="dv">${d.plate}</span></div>
+                        <div><span class="dl">VIN码</span><br><span class="dv" style="font-family:monospace;">${d.vin}</span></div>
+                        <div><span class="dl">所属企业</span><br><span class="dv">${d.company}</span></div>
+                        <div><span class="dl">车型</span><br><span class="dv">${d.vehicleType}</span></div>
+                        <div><span class="dl">行政区域</span><br><span class="dv">${d.district}</span></div>
+                        <div><span class="dl">最后上报时间</span><br><span class="dv">${d.lastReportTime}</span></div>
+                        <div><span class="dl">数据完整率</span><br><span class="dv">${d.completeness.toFixed(1)}%</span></div>
+                        <div><span class="dl">缺失字段数</span><br><span class="dv">${d.missingFields} 个</span></div>
+                        <div><span class="dl">数据延迟</span><br><span class="dv">${d.dataDelay} ms</span></div>
+                        <div><span class="dl">当日里程</span><br><span class="dv">${d.dailyMileage} km</span></div>
+                        <div><span class="dl">运行模式</span><br><span class="dv">${d.mode}</span></div>
+                    </div>
+                    <hr style="margin:14px 0;border-color:var(--border-light);">
+                    <p style="font-weight:600;">近7日数据质量趋势</p>
+                    <div id="detailTrendChart" style="height:180px;"></div>
+                `;
+                document.getElementById('modalTitle').textContent = '车辆运行详情 - ' + d.plate;
+                document.getElementById('modalBody').innerHTML = html;
+                document.getElementById('modalMask').classList.add('show');
+                setTimeout(() => {
+                    const trendDom = document.getElementById('detailTrendChart');
+                    if (trendDom) {
+                        const chart = echarts.init(trendDom);
+                        const days = ['5/2', '5/3', '5/4', '5/5', '5/6', '5/7', '5/8'];
+                        chart.setOption({
+                            tooltip: { trigger: 'axis' },
+                            grid: { left: 45, right: 20, top: 10, bottom: 25 },
+                            xAxis: { data: days },
+                            yAxis: { name: '%', min: 80, max: 100 },
+                            series: [{
+                                type: 'line',
+                                data: [94.5, 95.2, 93.8, 96.1, 95.5, 97.0, 96.8],
+                                lineStyle: { color: '#1890ff' },
+                                areaStyle: { color: 'rgba(24,144,255,0.15)' },
+                                smooth: true,
+                            }],
+                        });
+                    }
+                }, 200);
+            };
+            window.closeModal = function() { document.getElementById('modalMask').classList.remove('show'); };
+            document.getElementById('modalMask').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            // ==================== ECharts 图表管理 ====================
+            const chartInstances = {};
+
+            function initChart(id) {
+                const dom = document.getElementById(id);
+                if (!dom) return null;
+                if (chartInstances[id]) chartInstances[id].dispose();
+                const chart = echarts.init(dom);
+                chartInstances[id] = chart;
+                return chart;
+            }
+
+            function updateChartsByDimension() {
+                const mileageChart = chartInstances['chartMileageBar'];
+                if (mileageChart && !mileageChart.isDisposed()) {
+                    let categories, data;
+                    if (currentDimension === 'company') {
+                        categories = companies.slice(0, 8);
+                        data = [42.5, 35.8, 28.2, 22.1, 18.6, 15.3, 12.9, 10.5];
+                    } else if (currentDimension === 'vehicleType') {
+                        categories = vehicleTypes;
+                        data = [58.2, 45.6, 32.1, 22.8, 16.5, 11.3];
+                    } else {
+                        categories = districts;
+                        data = [68.5, 52.3, 35.6, 20.2, 9.9];
+                    }
+                    mileageChart.setOption({
+                        yAxis: { type: 'category', data: categories.reverse(), inverse: true,
+                            axisLabel: { fontSize: 11 } },
+                        xAxis: { type: 'value', name: '里程(万km)' },
+                        series: [{ type: 'bar', data: data.reverse(), barWidth: '55%',
+                            itemStyle: { color: '#1890ff',
+                                borderRadius: [0, 4, 4, 0] },
+                            label: { show: true, position: 'right', fontSize: 11,
+                                formatter: '{c} 万km' } }],
+                        grid: { left: 85, right: 70, top: 10, bottom: 20 },
+                    });
+                }
+
+                const durationChart = chartInstances['chartDurationPie'];
+                if (durationChart && !durationChart.isDisposed()) {
+                    let pieData;
+                    if (currentDimension === 'company') {
+                        pieData = [
+                            { value: 12000, name: '襄阳智行科技' }, { value: 9800, name: '汉江出行' },
+                            { value: 7500, name: '顺捷科技' }, { value: 6200, name: '东风出行' },
+                            { value: 5100, name: '百度Apollo' }, { value: 4200, name: '滴滴自动驾驶' },
+                            { value: 3500, name: '小马智行' }, { value: 2800, name: '文远知行' },
+                        ];
+                    } else if (currentDimension === 'vehicleType') {
+                        pieData = [
+                            { value: 16000, name: '轿车' }, { value: 12000, name: 'SUV' },
+                            { value: 8500, name: 'MPV' }, { value: 5500, name: '微面' },
+                            { value: 3800, name: '轻卡' }, { value: 2800, name: '公交' },
+                        ];
+                    } else {
+                        pieData = [
+                            { value: 18000, name: '樊城区' }, { value: 14000, name: '襄城区' },
+                            { value: 9500, name: '襄州区' }, { value: 5200, name: '南漳县' },
+                            { value: 3100, name: '谷城县' },
+                        ];
+                    }
+                    durationChart.setOption({
+                        tooltip: { trigger: 'item', formatter: '{b}: {c} 小时 ({d}%)' },
+                        legend: { bottom: 0, textStyle: { fontSize: 10 } },
+                        series: [{
+                            type: 'pie',
+                            radius: ['48%', '72%'],
+                            center: ['50%', '44%'],
+                            itemStyle: { borderRadius: 4, borderColor: '#fff',
+                            borderWidth: 2 },
+                            label: { formatter: '{b}\n{d}%', fontSize: 10 },
+                            data: pieData,
+                        }],
+                    });
+                }
+
+                const statData = {
+                    company: { mileage: '186.5', duration: '4.8', avgSpeed: '38.6', completeness: '96.8',
+                    online: '328' },
+                    vehicleType: { mileage: '192.3', duration: '5.1', avgSpeed: '36.2', completeness: '95.4',
+                        online: '312' },
+                    district: { mileage: '178.9', duration: '4.5', avgSpeed: '40.1', completeness: '97.3',
+                        online: '335' },
+                };
+                const sd = statData[currentDimension] || statData.company;
+                document.getElementById('statMileage').innerHTML = sd.mileage +
+                    '<span style="font-size:14px;font-weight:500;"> 万km</span>';
+                document.getElementById('statDuration').innerHTML = sd.duration +
+                    '<span style="font-size:14px;font-weight:500;"> 万小时</span>';
+                document.getElementById('statAvgSpeed').innerHTML = sd.avgSpeed +
+                    '<span style="font-size:14px;font-weight:500;"> km/h</span>';
+                document.getElementById('statCompleteness').innerHTML = sd.completeness +
+                    '<span style="font-size:14px;font-weight:500;">%</span>';
+                document.getElementById('statOnlineVehicles').innerHTML = sd.online +
+                    '<span style="font-size:14px;font-weight:500;"> 辆</span>';
+            }
+
+            // 初始化里程对比柱状图
+            const chartMileageBar = initChart('chartMileageBar');
+            chartMileageBar.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 85, right: 70, top: 10, bottom: 20 },
+                yAxis: { type: 'category', data: companies.slice(0, 8).reverse(), inverse: true,
+                    axisLabel: { fontSize: 11 } },
+                xAxis: { type: 'value', name: '里程(万km)' },
+                series: [{
+                    type: 'bar',
+                    data: [42.5, 35.8, 28.2, 22.1, 18.6, 15.3, 12.9, 10.5].reverse(),
+                    barWidth: '55%',
+                    itemStyle: { color: '#1890ff', borderRadius: [0, 4, 4, 0] },
+                    label: { show: true, position: 'right', fontSize: 11, formatter: '{c} 万km' },
+                }],
+            });
+
+            // 初始化时长分布饼图
+            const chartDurationPie = initChart('chartDurationPie');
+            chartDurationPie.setOption({
+                tooltip: { trigger: 'item', formatter: '{b}: {c} 小时 ({d}%)' },
+                legend: { bottom: 0, textStyle: { fontSize: 10 } },
+                series: [{
+                    type: 'pie',
+                    radius: ['48%', '72%'],
+                    center: ['50%', '44%'],
+                    itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+                    label: { formatter: '{b}\n{d}%', fontSize: 10 },
+                    data: [
+                        { value: 12000, name: '襄阳智行科技' }, { value: 9800, name: '汉江出行' },
+                        { value: 7500, name: '顺捷科技' }, { value: 6200, name: '东风出行' },
+                        { value: 5100, name: '百度Apollo' }, { value: 4200, name: '滴滴自动驾驶' },
+                        { value: 3500, name: '小马智行' }, { value: 2800, name: '文远知行' },
+                    ],
+                }],
+            });
+
+            // 速度区间分布柱状图
+            const chartSpeedDist = initChart('chartSpeedDist');
+            chartSpeedDist.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 50, right: 30, top: 10, bottom: 30 },
+                xAxis: {
+                    type: 'category',
+                    data: ['0-15', '15-25', '25-35', '35-45', '45-55', '55-65', '65+'],
+                    axisLabel: { fontSize: 11, formatter: '{value} km/h' },
+                },
+                yAxis: { type: 'value', name: '车辆数' },
+                series: [{
+                    type: 'bar',
+                    data: [48, 72, 95, 62, 35, 18, 8],
+                    barWidth: '55%',
+                    itemStyle: {
+                        color: function(p) {
+                            const colors = ['#52c41a', '#73d13d', '#1890ff', '#fa8c16', '#ff7a45',
+                                '#f5222d', '#cf1322'
+                            ];
+                            return colors[p.dataIndex];
+                        },
+                        borderRadius: [4, 4, 0, 0],
+                    },
+                    label: { show: true, position: 'top', fontSize: 12, fontWeight: 500 },
+                }],
+            });
+
+            // 数据质量趋势折线图
+            const chartQualityTrend = initChart('chartQualityTrend');
+            const qualityDays = [];
+            const qualityData = [];
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date(2026, 4, 8);
+                d.setDate(d.getDate() - i);
+                qualityDays.push((d.getMonth() + 1) + '/' + d.getDate());
+                qualityData.push(94 + Math.random() * 5);
+            }
+            chartQualityTrend.setOption({
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(p) { return p[0].name + '<br/>数据完整率：<b>' + p[0].value.toFixed(1) +
+                            '%</b>'; }
+                },
+                grid: { left: 50, right: 20, top: 10, bottom: 35 },
+                xAxis: { type: 'category', data: qualityDays, axisLabel: { rotate: 45, fontSize: 10 } },
+                yAxis: { type: 'value', name: '%', min: 90, max: 100 },
+                series: [{
+                    type: 'line',
+                    data: qualityData,
+                    lineStyle: { color: '#1890ff', width: 2 },
+                    itemStyle: { color: '#1890ff' },
+                    smooth: true,
+                    areaStyle: { color: 'rgba(24,144,255,0.12)' },
+                    markLine: {
+                        silent: true,
+                        data: [{ yAxis: 96.8, lineStyle: { color: '#52c41a', type: 'dashed' },
+                            label: { formatter: '均值 96.8%' } }],
+                    },
+                }],
+            });
+
+            function resizeAllCharts() {
+                Object.values(chartInstances).forEach(c => {
+                    if (c && !c.isDisposed()) c.resize();
+                });
+            }
+            window.addEventListener('resize', () => {
+                clearTimeout(window._resizeTimer);
+                window._resizeTimer = setTimeout(resizeAllCharts, 200);
+            });
+
+            // 初始渲染
+            renderTable(1);
+        })();
+    </script>
+</body>
+</html>

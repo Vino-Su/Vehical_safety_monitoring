@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>产业发展分析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    window.tailwindConfig = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#1677ff', hover: '#4096ff', disabled: '#85a5cc' }
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    .collapse-toggle{cursor:pointer;color:#1677ff;font-size:12px;font-weight:500;user-select:none;display:inline-flex;align-items:center;gap:4px;transition:color .2s}
+    .collapse-toggle:hover{color:#4096ff}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>产业发展分析</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openExportReport()">导出报告</button></div></div>
+
+      <!-- 筛选条件 -->
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            <label style="font-size:12px;color:#00000073;">时间范围</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="date" value="2026-01-01" style="height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;width:130px;background:#fff;outline:none;">
+              <span style="color:#8c8c8c;">至</span>
+              <input type="date" value="2026-12-31" style="height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;width:130px;background:#fff;outline:none;">
+            </div>
+          </div>
+          <div class="filter-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            <label style="font-size:12px;color:#00000073;">行政区域</label>
+            <select style="height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;min-width:120px;background:#fff;outline:none;">
+              <option>全部</option><option>樊城区</option><option>襄城区</option><option>襄州区</option><option>南漳县</option><option>谷城县</option>
+            </select>
+          </div>
+          <div class="filter-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            <label style="font-size:12px;color:#00000073;">企业类型</label>
+            <select style="height:32px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;min-width:120px;background:#fff;outline:none;">
+              <option>全部</option><option>整车企业</option><option>科技公司</option><option>出行平台</option>
+            </select>
+          </div>
+          <div class="flex gap-2 items-end">
+            <button class="ant-btn ant-btn-primary" onclick="handleQuery()">查询</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 核心指标卡片 -->
+      <div class="grid grid-cols-5 gap-4 mb-6">
+        <div class="stat-card" style="border-left:3px solid #1890ff;">
+          <div class="stat-info">
+            <div class="stat-value">48 <span style="font-size:14px;font-weight:500;">家</span></div>
+            <div class="stat-label">累计接入企业数</div>
+            <div style="font-size:11px;color:#8c8c8c;">同比 ↑ 14.3%</div>
+          </div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #52c41a;">
+          <div class="stat-info">
+            <div class="stat-value">1,285 <span style="font-size:14px;font-weight:500;">辆</span></div>
+            <div class="stat-label">累计测试车辆数</div>
+            <div style="font-size:11px;color:#8c8c8c;">同比 ↑ 22.6%</div>
+          </div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #faad14;">
+          <div class="stat-info">
+            <div class="stat-value">186.5 <span style="font-size:14px;font-weight:500;">万km</span></div>
+            <div class="stat-label">累计测试里程</div>
+            <div style="font-size:11px;color:#8c8c8c;">同比 ↑ 31.2%</div>
+          </div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #722ed1;">
+          <div class="stat-info">
+            <div class="stat-value">83.3 <span style="font-size:14px;font-weight:500;">%</span></div>
+            <div class="stat-label">场景覆盖率</div>
+            <div style="font-size:11px;color:#8c8c8c;">6大场景已覆盖5类</div>
+          </div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #f5222d;">
+          <div class="stat-info">
+            <div class="stat-value" style="color:#f5222d;">3 <span style="font-size:14px;font-weight:500;">家</span></div>
+            <div class="stat-label">本月新增企业数</div>
+            <div style="font-size:11px;color:#8c8c8c;">2026年5月新增</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第一行图表 -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="card">
+          <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+            企业规模增长趋势
+            <span class="collapse-toggle" id="collapseScaleToggle" onclick="toggleCollapse('collapseScale')">展开数据表 ▾</span>
+          </div>
+          <div id="chartScaleTrend" style="height:320px;width:100%;"></div>
+          <div id="collapseScale" style="display:none;margin-top:16px;">
+            <table class="ant-table"><thead><tr><th>月份</th><th>累计接入企业数</th><th>当年新增企业数</th></tr></thead><tbody id="scaleTableBody"></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+            测试规模趋势
+            <span class="collapse-toggle" id="collapseTestScaleToggle" onclick="toggleCollapse('collapseTestScale')">展开数据表 ▾</span>
+          </div>
+          <div id="chartTestScale" style="height:320px;width:100%;"></div>
+          <div id="collapseTestScale" style="display:none;margin-top:16px;">
+            <table class="ant-table"><thead><tr><th>月份</th><th>测试企业数</th><th>测试车辆数</th><th>测试里程(万km)</th></tr></thead><tbody id="testScaleTableBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第二行：场景渗透率分析 -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="card">
+          <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;">场景渗透率分析（按自动驾驶等级堆叠）</div>
+          <div id="chartSceneStack" style="height:340px;width:100%;"></div>
+        </div>
+        <div class="card">
+          <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;">各场景车辆数占比</div>
+          <div id="chartScenePie" style="height:340px;width:100%;"></div>
+        </div>
+      </div>
+
+      <!-- 场景渗透率明细表 -->
+      <div class="card mb-4">
+        <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;">场景渗透率明细表</div>
+        <div class="overflow-x-auto">
+          <table class="ant-table"><thead><tr><th>场景类型</th><th>L2车辆数</th><th>L3车辆数</th><th>L4车辆数</th><th>总车辆数</th><th>占比</th></tr></thead><tbody id="sceneTableBody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 第三行：测试主体贡献排名 -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="card">
+          <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;">测试主体贡献排名 Top10</div>
+          <div id="chartContribution" style="height:380px;width:100%;"></div>
+        </div>
+        <div class="card">
+          <div class="card-header" style="font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+            贡献排名明细表
+            <span style="font-weight:400;font-size:11px;color:#8c8c8c;">默认展示10条</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="ant-table"><thead><tr><th>排名</th><th>企业名称</th><th>测试里程(km)</th><th>里程占比</th><th>投入车辆数</th><th>主要测试场景</th></tr></thead><tbody id="contributionTableBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+var PAGE_ID = 'industry-analysis';
+
+// ==================== 模拟数据 ====================
+var months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+var cumulativeCompanies = [26,28,30,32,35,37,40,42,44,46,47,48];
+var newCompaniesMonthly = [2,2,2,2,3,2,3,2,2,2,1,1];
+var testCompanies = [18,20,22,24,27,28,30,31,33,35,36,38];
+var testVehicles = [380,420,480,550,620,680,750,820,900,980,1080,1285];
+var testMileage = [32.5,38.2,45.8,55.1,65.3,76.8,89.5,103.2,118.6,135.0,155.5,186.5];
+
+var sceneData = [
+  {scene:'城区道路',l2:180,l3:220,l4:150},
+  {scene:'园区道路',l2:120,l3:160,l4:100},
+  {scene:'环卫作业',l2:45,l3:55,l4:30},
+  {scene:'物流配送',l2:60,l3:80,l4:55},
+  {scene:'公交运营',l2:35,l3:50,l4:40},
+  {scene:'出租运营',l2:0,l3:0,l4:0}
+];
+
+var contributionData = [
+  {name:'襄阳智行科技',mileage:425000,ratio:'22.8%',vehicles:185,scene:'城区道路、园区道路'},
+  {name:'汉江出行',mileage:358000,ratio:'19.2%',vehicles:152,scene:'城区道路、物流配送'},
+  {name:'东风出行',mileage:282000,ratio:'15.1%',vehicles:128,scene:'城区道路、公交运营'},
+  {name:'百度Apollo',mileage:221000,ratio:'11.8%',vehicles:105,scene:'园区道路、城区道路'},
+  {name:'顺捷科技',mileage:186000,ratio:'10.0%',vehicles:92,scene:'环卫作业、城区道路'},
+  {name:'滴滴自动驾驶',mileage:153000,ratio:'8.2%',vehicles:78,scene:'出租运营、城区道路'},
+  {name:'小马智行',mileage:129000,ratio:'6.9%',vehicles:65,scene:'城区道路、物流配送'},
+  {name:'文远知行',mileage:98000,ratio:'5.3%',vehicles:48,scene:'园区道路、环卫作业'},
+  {name:'AutoX',mileage:85000,ratio:'4.6%',vehicles:42,scene:'城区道路'},
+  {name:'元戎启行',mileage:72000,ratio:'3.9%',vehicles:38,scene:'园区道路'}
+];
+
+// ==================== 表格填充 ====================
+function fillScaleTable(){
+  var tbody=document.getElementById('scaleTableBody');
+  var html='';
+  for(var i=0;i<months.length;i++){
+    html+='<tr><td>'+months[i]+'</td><td>'+cumulativeCompanies[i]+' 家</td><td>'+newCompaniesMonthly[i]+' 家</td></tr>';
+  }
+  tbody.innerHTML=html;
+}
+
+function fillTestScaleTable(){
+  var tbody=document.getElementById('testScaleTableBody');
+  var html='';
+  for(var i=0;i<months.length;i++){
+    html+='<tr><td>'+months[i]+'</td><td>'+testCompanies[i]+' 家</td><td>'+testVehicles[i]+' 辆</td><td>'+testMileage[i].toFixed(1)+' 万km</td></tr>';
+  }
+  tbody.innerHTML=html;
+}
+
+function fillSceneTable(){
+  var tbody=document.getElementById('sceneTableBody');
+  var total=0;
+  for(var j=0;j<sceneData.length;j++){total+=sceneData[j].l2+sceneData[j].l3+sceneData[j].l4;}
+  var html='';
+  for(var k=0;k<sceneData.length;k++){
+    var d=sceneData[k];
+    var subTotal=d.l2+d.l3+d.l4;
+    var pct=total>0?(subTotal/total*100).toFixed(1):'0.0';
+    html+='<tr><td><strong>'+d.scene+'</strong></td><td>'+d.l2+'</td><td>'+d.l3+'</td><td>'+d.l4+'</td><td>'+subTotal+'</td><td>'+pct+'%</td></tr>';
+  }
+  tbody.innerHTML=html;
+}
+
+function fillContributionTable(){
+  var tbody=document.getElementById('contributionTableBody');
+  var html='';
+  for(var m=0;m<contributionData.length;m++){
+    var d=contributionData[m];
+    html+='<tr><td><strong>'+(m+1)+'</strong></td><td>'+d.name+'</td><td>'+d.mileage.toLocaleString()+'</td><td>'+d.ratio+'</td><td>'+d.vehicles+' 辆</td><td>'+d.scene+'</td></tr>';
+  }
+  tbody.innerHTML=html;
+}
+
+// ==================== 折叠切换 ====================
+window.toggleCollapse=function(id){
+  var el=document.getElementById(id);
+  var toggleId=(id==='collapseScale')?'collapseScaleToggle':'collapseTestScaleToggle';
+  var toggle=document.getElementById(toggleId);
+  if(el.style.display==='none'||el.style.display===''){
+    el.style.display='block';
+    if(toggle)toggle.textContent='收起数据表 ▴';
+  }else{
+    el.style.display='none';
+    if(toggle)toggle.textContent='展开数据表 ▾';
+  }
+};
+
+// ==================== ECharts 图表 ====================
+var chartInstances={};
+
+function initChart(id){
+  var dom=document.getElementById(id);
+  if(!dom)return null;
+  if(chartInstances[id]){try{chartInstances[id].dispose();}catch(e){}}
+  var chart=echarts.init(dom,null,{renderer:'canvas'});
+  chartInstances[id]=chart;
+  return chart;
+}
+
+function renderScaleTrend(){
+  var chart=initChart('chartScaleTrend');
+  if(!chart)return;
+  chart.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['累计接入企业数','当年新增企业数'],bottom:0,textStyle:{fontSize:10}},
+    grid:{left:50,right:50,top:15,bottom:40,containLabel:false},
+    xAxis:{type:'category',data:months,axisLabel:{fontSize:10}},
+    yAxis:[
+      {type:'value',name:'累计企业数',axisLabel:{fontSize:10}},
+      {type:'value',name:'新增企业数',axisLabel:{fontSize:10}}
+    ],
+    series:[
+      {name:'累计接入企业数',type:'bar',data:cumulativeCompanies,itemStyle:{color:'#1890ff',borderRadius:[4,4,0,0]},barWidth:'50%',yAxisIndex:0},
+      {name:'当年新增企业数',type:'line',data:newCompaniesMonthly,lineStyle:{color:'#f5222d',width:2},itemStyle:{color:'#f5222d'},symbol:'circle',symbolSize:6,yAxisIndex:1}
+    ]
+  });
+}
+
+function renderTestScale(){
+  var chart=initChart('chartTestScale');
+  if(!chart)return;
+  chart.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['测试企业数','测试车辆数','测试里程(万km)'],bottom:0,textStyle:{fontSize:10}},
+    grid:{left:55,right:55,top:15,bottom:40,containLabel:false},
+    xAxis:{type:'category',data:months,axisLabel:{fontSize:10}},
+    yAxis:[
+      {type:'value',name:'数量',axisLabel:{fontSize:10}},
+      {type:'value',name:'万km',axisLabel:{fontSize:10}}
+    ],
+    series:[
+      {name:'测试企业数',type:'line',data:testCompanies,smooth:true,lineStyle:{color:'#1890ff',width:2},symbol:'circle',symbolSize:5,yAxisIndex:0},
+      {name:'测试车辆数',type:'line',data:testVehicles,smooth:true,lineStyle:{color:'#52c41a',width:2},symbol:'diamond',symbolSize:5,yAxisIndex:0},
+      {name:'测试里程(万km)',type:'line',data:testMileage,smooth:true,lineStyle:{color:'#f5222d',width:2.5,type:'dashed'},symbol:'triangle',symbolSize:6,yAxisIndex:1}
+    ]
+  });
+}
+
+function renderSceneStack(){
+  var chart=initChart('chartSceneStack');
+  if(!chart)return;
+  var scenes=[],l2Data=[],l3Data=[],l4Data=[];
+  for(var i=sceneData.length-1;i>=0;i--){scenes.push(sceneData[i].scene);l2Data.push(sceneData[i].l2);l3Data.push(sceneData[i].l3);l4Data.push(sceneData[i].l4);}
+  chart.setOption({
+    tooltip:{trigger:'axis',
+      formatter:function(p){
+        var items=[];
+        for(var t=0;t<p.length;t++){items.push(p[t].seriesName+'：'+p[t].value+' 辆');}
+        return items.join('<br/>');
+      }
+    },
+    legend:{data:['L2','L3','L4'],bottom:0,textStyle:{fontSize:10}},
+    grid:{left:90,right:40,top:10,bottom:35,containLabel:false},
+    yAxis:{type:'category',data:scenes,inverse:true,axisLabel:{fontSize:10}},
+    xAxis:{type:'value',name:'车辆数'},
+    series:[
+      {name:'L2',type:'bar',data:l2Data,stack:'total',itemStyle:{color:'#1890ff',borderRadius:0},barWidth:'45%',label:{show:true,position:'inside',fontSize:9,color:'#fff'}},
+      {name:'L3',type:'bar',data:l3Data,stack:'total',itemStyle:{color:'#fa8c16'},label:{show:true,position:'inside',fontSize:9,color:'#fff'}},
+      {name:'L4',type:'bar',data:l4Data,stack:'total',itemStyle:{color:'#52c41a',borderRadius:[0,4,4,0]},label:{show:true,position:'inside',fontSize:9,color:'#fff'}}
+    ]
+  });
+}
+
+function renderScenePie(){
+  var chart=initChart('chartScenePie');
+  if(!chart)return;
+  var pieData=[],colors=['#1890ff','#52c41a','#faad14','#722ed1','#13c2c2','#eb2f96'];
+  for(var i=0;i<sceneData.length;i++){
+    var d=sceneData[i],val=d.l2+d.l3+d.l4;
+    if(val>0)pieData.push({name:d.scene,value:val,itemStyle:{color:colors[i]}});
+  }
+  chart.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c} 辆 ({d}%)'},
+    legend:{bottom:0,textStyle:{fontSize:10}},
+    series:[{
+      type:'pie',radius:['50%','75%'],center:['50%','44%'],
+      itemStyle:{borderRadius:5,borderColor:'#fff',borderWidth:2},
+      label:{formatter:'{b}\n{d}%',fontSize:10},
+      data:pieData
+    }]
+  });
+}
+
+function renderContribution(){
+  var chart=initChart('chartContribution');
+  if(!chart)return;
+  var names=[],mileages=[],barColors=['#f5222d','#fa8c16','#faad14','#1890ff','#52c41a','#722ed1','#13c2c2','#eb2f96','#a0d911','#2f54eb'];
+  for(var i=contributionData.length-1;i>=0;i--){names.push(contributionData[i].name);mileages.push(contributionData[i].mileage);}
+  chart.setOption({
+    tooltip:{trigger:'axis',formatter:function(p){return p[0].name+'<br/>测试里程：<b>'+p[0].value.toLocaleString()+' km</b>';}},
+    grid:{left:100,right:60,top:10,bottom:20,containLabel:false},
+    yAxis:{type:'category',data:names,inverse:true,axisLabel:{fontSize:10}},
+    xAxis:{type:'value',name:'里程(km)',axisLabel:{formatter:function(v){return(v/10000).toFixed(1)+'万';}}},
+    series:[{
+      type:'bar',data:mileages,barWidth:'55%',
+      itemStyle:{
+        color:function(p){return barColors[p.dataIndex]||'#1890ff';},
+        borderRadius:[0,4,4,0]
+      },
+      label:{show:true,position:'right',fontSize:10,formatter:function(p){return(p.value/10000).toFixed(1)+'万km';}}
+    }]
+  });
+}
+
+// ==================== 查询/导出 ====================
+function handleQuery(){alert('查询功能：根据筛选条件重新加载数据（演示交互）');}
+
+function openExportReport(){
+  openModal(
+    '导出产业发展报告',
+    '<div class="ant-form-item"><div class="ant-form-label">选择报告模板</div><div class="ant-form-control"><div class="ant-select" style="width:100%">智能网联汽车安全监测平台产业发展分析报告模板</div></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">导出文件格式</div><div class="ant-form-control"><div class="flex gap-3"><label class="flex items-center gap-2 text-sm"><input type="radio" name="format" checked> PDF</label><label class="flex items-center gap-2 text-sm"><input type="radio" name="format"> Word</label></div></div></div>',
+    {footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal();alert(\'产业发展报告已生成\')">确认导出</button>'}
+  );
+}
+
+// ==================== 响应式调整 ====================
+function resizeAllCharts(){
+  var ids=Object.keys(chartInstances);
+  for(var i=0;i<ids.length;i++){
+    try{
+      var c=chartInstances[ids[i]];
+      if(c&&typeof c.isDisposed==='function'&&!c.isDisposed())c.resize();
+    }catch(e){}
+  }
+}
+window.addEventListener('resize',function(){
+  clearTimeout(window._resizeTimer);
+  window._resizeTimer=setTimeout(resizeAllCharts,200);
+});
+
+// 使用 MutationObserver 监听容器可见性变化后 resize
+function setupResizeObserver(){
+  if(typeof ResizeObserver!=='undefined'){
+    var observer=new ResizeObserver(function(entries){
+      for(var j=0;j<entries.length;j++)resizeAllCharts();
+    });
+    setTimeout(function(){
+      var mainEl=document.querySelector('main');
+      if(mainEl)observer.observe(mainEl);
+    },500);
+  }
+}
+
+// ==================== 初始化 ====================
+function initAll(){
+  fillScaleTable();
+  fillTestScaleTable();
+  fillSceneTable();
+  fillContributionTable();
+  renderScaleTrend();
+  renderTestScale();
+  renderSceneStack();
+  renderScenePie();
+  renderContribution();
+  setupResizeObserver();
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',initAll);
+}else{
+  initAll();
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

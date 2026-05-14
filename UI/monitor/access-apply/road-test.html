@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>道路测试准入申请 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>道路测试准入申请</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openApplyModal()">+ 新增申请</button></div></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>申请编号</label><input class="ant-input" placeholder="请输入"></div>
+          <div class="filter-item"><label>申请类型</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>申请状态</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th><input type="checkbox" class="ant-checkbox"></th><th>申请编号</th><th>申请类型</th><th>申请主体</th><th>测试车辆数</th><th>测试路段数</th><th>申请状态</th><th>申请时间</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>RT202604001</td><td><span class="ant-tag ant-tag-default">新增申请</span></td><td>襄阳智行科技</td><td>2</td><td>3</td><td><span class="ant-tag ant-tag-processing">第三方初审中</span></td><td>2026-04-10</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal('RT202604001')">查看</button><button class="ant-btn-link">编辑</button></td></tr>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>RT202604002</td><td><span class="ant-tag ant-tag-default">续期申请</span></td><td>东风汽车</td><td>1</td><td>2</td><td><span class="ant-tag ant-tag-success">已通过</span></td><td>2026-04-05</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal('RT202604002')">查看</button></td></tr>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>RT202604003</td><td><span class="ant-tag ant-tag-default">变更申请</span></td><td>华为MDC</td><td>1</td><td>1</td><td><span class="ant-tag ant-tag-error">已退回</span></td><td>2026-04-08</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal('RT202604003')">查看</button><button class="ant-btn-link">重新提交</button></td></tr>
+              <tr><td><input type="checkbox" class="ant-checkbox"></td><td>RT202604004</td><td><span class="ant-tag ant-tag-default">新增车辆相同配置</span></td><td>襄阳智行科技</td><td>1</td><td>2</td><td><span class="ant-tag ant-tag-success">已通过</span></td><td>2026-04-12</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal('RT202604004')">查看</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 15 条</span>
+          <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='road-test';
+var roadData=[
+  {name:'襄阳市区道路',type:'城市道路',status:'开放'},
+  {name:'东风汽车专用测试道路',type:'专用测试道路',status:'开放'},
+  {name:'华为MDC专属测试路线',type:'专用测试道路',status:'开放'},
+  {name:'高新区环线路',type:'城市道路',status:'开放'},
+  {name:'东津新区测试路段',type:'城市道路',status:'暂停'},
+  {name:'襄阳经开区主干道',type:'城市道路',status:'开放'},
+  {name:'襄阳机场路测试段',type:'高速公路',status:'开放'}
+];
+var vehicleData=[
+  {vin:'LSVAU2180N2012345',brand:'比亚迪',model:'Model 3',level:'L3'},
+  {vin:'LSVAU2180N2012346',brand:'比亚迪',model:'Model Y',level:'L3'},
+  {vin:'LSVAU2180N2012347',brand:'蔚来',model:'ES6',level:'L4'},
+  {vin:'LSVAU2180N2012348',brand:'极狐',model:'阿尔法T',level:'L3'},
+  {vin:'LSVAU2180N2012349',brand:'金龙',model:'T5',level:'L4'},
+  {vin:'LSVAU2180N2012350',brand:'小鹏',model:'P7',level:'L3'}
+];
+var selectedRoads=[];
+var selectedVehicles=[];
+function openRoadSelectModal(){
+  var html='<div style="max-height:400px;overflow-y:auto"><table class="ant-table" style="width:100%"><thead><tr><th><input type="checkbox" class="ant-checkbox" onclick="toggleAllRoads(this)"></th><th>道路名称</th><th>道路类型</th><th>道路状态</th></tr></thead><tbody>';
+  for(var i=0;i<roadData.length;i++){
+    var checked=selectedRoads.indexOf(i)>-1?'checked':'';
+    html+='<tr><td><input type="checkbox" class="ant-checkbox road-cb" data-idx="'+i+'" '+checked+'></td><td>'+roadData[i].name+'</td><td>'+roadData[i].type+'</td><td><span class="ant-tag '+(roadData[i].status==='开放'?'ant-tag-success':'ant-tag-default')+'">'+roadData[i].status+'</span></td></tr>';
+  }
+  html+='</tbody></table></div>';
+  openModal('选择测试路段',html,{footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="confirmRoadSelect()">确认选择</button>'});
+}
+function toggleAllRoads(el){
+  var cbs=document.querySelectorAll('.road-cb');
+  for(var i=0;i<cbs.length;i++) cbs[i].checked=el.checked;
+}
+function confirmRoadSelect(){
+  selectedRoads=[];
+  var cbs=document.querySelectorAll('.road-cb');
+  for(var i=0;i<cbs.length;i++){if(cbs[i].checked) selectedRoads.push(parseInt(cbs[i].dataset.idx));}
+  closeModal();
+  renderRoadTable();
+}
+function renderRoadTable(){
+  var el=document.getElementById('roadTableBody');
+  if(!el) return;
+  if(selectedRoads.length===0){el.innerHTML='<tr><td colspan="4" style="text-align:center;color:#00000073;padding:24px">暂未选择测试路段，请点击"添加路段"按钮选择</td></tr>';return;}
+  var h='';
+  for(var i=0;i<selectedRoads.length;i++){
+    var r=roadData[selectedRoads[i]];
+    h+='<tr><td>'+(i+1)+'</td><td>'+r.name+'</td><td>'+r.type+'</td><td><span class="ant-tag '+(r.status==='开放'?'ant-tag-success':'ant-tag-default')+'">'+r.status+'</span></td><td><button class="ant-btn-link danger" onclick="removeRoad('+i+')">删除</button></td></tr>';
+  }
+  el.innerHTML=h;
+}
+function removeRoad(idx){selectedRoads.splice(idx,1);renderRoadTable();}
+function openVehicleSelectModal(){
+  var html='<div style="max-height:400px;overflow-y:auto"><table class="ant-table" style="width:100%"><thead><tr><th><input type="checkbox" class="ant-checkbox" onclick="toggleAllVehicles(this)"></th><th>VIN码</th><th>产品商标</th><th>产品型号</th><th>自动驾驶等级</th></tr></thead><tbody>';
+  for(var i=0;i<vehicleData.length;i++){
+    var checked=selectedVehicles.indexOf(i)>-1?'checked':'';
+    html+='<tr><td><input type="checkbox" class="ant-checkbox vehicle-cb" data-idx="'+i+'" '+checked+'></td><td>'+vehicleData[i].vin+'</td><td>'+vehicleData[i].brand+'</td><td>'+vehicleData[i].model+'</td><td>'+vehicleData[i].level+'</td></tr>';
+  }
+  html+='</tbody></table></div>';
+  openModal('选择测试车辆',html,{footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="confirmVehicleSelect()">确认选择</button>'});
+}
+function toggleAllVehicles(el){
+  var cbs=document.querySelectorAll('.vehicle-cb');
+  for(var i=0;i<cbs.length;i++) cbs[i].checked=el.checked;
+}
+function confirmVehicleSelect(){
+  selectedVehicles=[];
+  var cbs=document.querySelectorAll('.vehicle-cb');
+  for(var i=0;i<cbs.length;i++){if(cbs[i].checked) selectedVehicles.push(parseInt(cbs[i].dataset.idx));}
+  closeModal();
+  renderVehicleTable();
+}
+function renderVehicleTable(){
+  var el=document.getElementById('vehicleTableBody');
+  if(!el) return;
+  if(selectedVehicles.length===0){el.innerHTML='<tr><td colspan="5" style="text-align:center;color:#00000073;padding:24px">暂未选择测试车辆，请点击"添加车辆"按钮选择</td></tr>';return;}
+  var h='';
+  for(var i=0;i<selectedVehicles.length;i++){
+    var v=vehicleData[selectedVehicles[i]];
+    h+='<tr><td>'+(i+1)+'</td><td>'+v.vin+'</td><td>'+v.brand+'</td><td>'+v.model+'</td><td>'+v.level+'</td><td><button class="ant-btn-link danger" onclick="removeVehicle('+i+')">删除</button></td></tr>';
+  }
+  el.innerHTML=h;
+}
+function removeVehicle(idx){selectedVehicles.splice(idx,1);renderVehicleTable();}
+function openApplyModal(){
+  selectedRoads=[];selectedVehicles=[];
+  openModal('新增道路测试准入申请',
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>申请类型</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择申请类型 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div><div class="text-xs text-[#00000073] mt-1">新增申请、续期申请、变更申请、新增车辆相同配置</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>申请主体</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择申请主体 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>测试日期</div><div class="ant-form-control"><input class="ant-input" type="date" placeholder="请选择测试日期范围"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>测试路段</div><div class="ant-form-control"><div><button class="ant-btn ant-btn-sm ant-btn-primary" onclick="openRoadSelectModal()">+ 添加路段</button></div><div style="overflow-x:auto;margin-top:8px"><table class="ant-table" style="width:100%;font-size:13px"><thead><tr><th>序号</th><th>道路名称</th><th>道路类型</th><th>道路状态</th><th>操作</th></tr></thead><tbody id="roadTableBody"><tr><td colspan="4" style="text-align:center;color:#00000073;padding:24px">暂未选择测试路段，请点击"添加路段"按钮选择</td></tr></tbody></table></div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>测试车辆</div><div class="ant-form-control"><div><button class="ant-btn ant-btn-sm ant-btn-primary" onclick="openVehicleSelectModal()">+ 添加车辆</button></div><div style="overflow-x:auto;margin-top:8px"><table class="ant-table" style="width:100%;font-size:13px"><thead><tr><th>序号</th><th>VIN码</th><th>产品商标</th><th>产品型号</th><th>自动驾驶等级</th><th>操作</th></tr></thead><tbody id="vehicleTableBody"><tr><td colspan="5" style="text-align:center;color:#00000073;padding:24px">暂未选择测试车辆，请点击"添加车辆"按钮选择</td></tr></tbody></table></div></div></div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">申请材料</h4>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>安全性自我声明</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#ff4d4f] mt-1">未上传文件</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>自动驾驶功能说明</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#ff4d4f] mt-1">未上传文件</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>测试方案</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#ff4d4f] mt-1">未上传文件</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>交通安全性自我声明材料</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#ff4d4f] mt-1">未上传文件</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>车辆出厂合格证明材料</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#ff4d4f] mt-1">未上传文件</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>第三方检测机构安全性能检测报告</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#ff4d4f] mt-1">未上传文件</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>交强险及交通事故责任保险凭证</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#ff4d4f] mt-1">未上传文件</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">变更说明</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#00000073] mt-1">仅变更申请时需上传</div></div></div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">附加材料</h4>' +
+    '<div class="ant-form-item"><div class="ant-form-label">车辆改装情况说明</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#00000073] mt-1">续期申请及新增申请无需上传</div></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">变更后车辆测试方案</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="变更后道路测试申请说明"></textarea></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">未通过审批材料补充</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">上传文件</button><div class="text-xs text-[#00000073] mt-1">新增车辆相同配置无需上传</div></div></div>',
+    {wide:true});
+  renderRoadTable();renderVehicleTable();
+}
+function makeFlowLog(appId){
+  var nodes=[];
+  if(appId==='RT202604001'){
+    nodes=[{title:'提交申请',handler:'王工（襄阳智行科技）',time:'2026-04-10 09:30',opinion:'提交道路测试准入申请',nextNode:'第三方初审',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'第三方初审',handler:'张三（第三方服务机构A）',time:'2026-04-10 - 审批中',opinion:'',nextNode:'联席小组审批',status:'处理中',color:'#1677ff',dot:'\u25CF'},
+    {title:'联席小组审批',handler:'-',time:'-',opinion:'',nextNode:'临牌回传',status:'待处理',color:'#d9d9d9',dot:'\u25CB'},
+    {title:'临牌回传',handler:'-',time:'-',opinion:'',nextNode:'-',status:'待处理',color:'#d9d9d9',dot:'\u25CB'}];
+  }else if(appId==='RT202604002'){
+    nodes=[{title:'提交申请',handler:'赵工（东风汽车）',time:'2026-04-05 11:00',opinion:'提交道路测试续期申请',nextNode:'第三方初审',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'第三方初审',handler:'李四（第三方服务机构B）',time:'2026-04-06 09:00 - 2026-04-07 10:00',opinion:'审核结论：通过\n审核意见：上阶段测试完成，续期必要性明确',nextNode:'联席小组审批',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'联席小组审批',handler:'王主任（联席小组）',time:'2026-04-07 14:00 - 2026-04-08 09:00',opinion:'审核结论：通过\n审核意见：同意续期',nextNode:'临牌回传',status:'已处理',color:'#52c41a',dot:'\u2713',attach:'approval_roadtest.pdf'},
+    {title:'临牌回传',handler:'李警官（市交管部门）',time:'2026-04-08 11:00',opinion:'临时牌照已续期：鄂F·B003，有效期至2026-10-05',nextNode:'-',status:'已处理',color:'#52c41a',dot:'\u2713'}];
+  }else if(appId==='RT202604003'){
+    nodes=[{title:'提交申请',handler:'陈工（华为MDC）',time:'2026-04-08 15:30',opinion:'提交道路测试变更申请',nextNode:'第三方初审',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'第三方初审',handler:'张三（第三方服务机构A）',time:'2026-04-09 10:00 - 2026-04-10 14:00',opinion:'审核结论：通过\n审核意见：变更方案可行',nextNode:'联席小组审批',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'联席小组审批',handler:'陈主任（联席小组）',time:'2026-04-11 09:30 - 2026-04-12 11:00',opinion:'审核结论：退回\n审核意见：变更路线需补充交通安全评估材料',nextNode:'退回申请人',status:'已退回',color:'#ff4d4f',dot:'\u2715'},
+    {title:'临牌回传',handler:'-',time:'-',opinion:'',nextNode:'-',status:'待处理',color:'#d9d9d9',dot:'\u25CB'}];
+  }else if(appId==='RT202604004'){
+    nodes=[{title:'提交申请',handler:'王工（襄阳智行科技）',time:'2026-04-12 08:30',opinion:'提交新增相同配置车辆申请',nextNode:'第三方初审',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'第三方初审',handler:'张三（第三方服务机构A）',time:'2026-04-13 09:00 - 2026-04-14 10:00',opinion:'审核结论：通过\n审核意见：新增车辆与原批次配置一致，同意',nextNode:'联席小组审批',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'联席小组审批',handler:'王主任（联席小组）',time:'2026-04-14 14:00 - 2026-04-15 09:00',opinion:'审核结论：通过\n审核意见：确认新增车辆符合要求',nextNode:'临牌回传',status:'已处理',color:'#52c41a',dot:'\u2713'},
+    {title:'临牌回传',handler:'王警官（市交管部门）',time:'2026-04-15 10:30',opinion:'临时牌照已发放：鄂F·A005',nextNode:'-',status:'已处理',color:'#52c41a',dot:'\u2713'}];
+  }
+  var h='<h4 class="text-sm font-semibold text-[#000000d9] mb-4 mt-6 pb-2 border-b border-[#f0f0f0]">流程日志</h4><div class="space-y-3">';
+  for(var i=0;i<nodes.length;i++){
+    var n=nodes[i];var hasNext=i<nodes.length-1&&nodes[i+1];
+    var sc=n.status==='已处理'?'ant-tag-success':n.status==='处理中'?'ant-tag-processing':n.status==='已退回'?'ant-tag-error':'ant-tag-default';
+    var borderStyle=hasNext?'border-left:2px solid '+n.color+';margin-left:5px;padding-left:12px':'margin-left:17px;padding-left:0';
+    h+='<div class="relative pb-3" style="'+borderStyle+'">';
+    h+='<div class="absolute flex-shrink-0 w-3 h-3 rounded-full flex items-center justify-center text-[8px] text-white font-bold mt-1" style="left:-7px;top:0;background:'+n.color+'">'+n.dot+'</div>';
+    h+='<div class="flex-1 min-w-0"><div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-[#000000d9]">'+n.title+'</span><span class="ant-tag '+sc+' text-[10px]">'+n.status+'</span></div>';
+    h+='<div class="text-xs text-[#00000073] space-y-1"><div><span class="text-[#00000040]">处理人：</span>'+n.handler+'</div><div><span class="text-[#00000040]">处理时间：</span>'+n.time+'</div>';
+    if(n.opinion)h+='<div class="whitespace-pre-line mt-1.5 p-2 bg-[#f5f5f5] rounded"><span class="text-[#00000040]">处理意见：</span>'+n.opinion+'</div>';
+    if(n.nextNode!=='-')h+='<div><span class="text-[#00000040]">下一节点：</span>'+n.nextNode+'</div>';
+    if(n.attach)h+='<div class="flex items-center gap-1 mt-1.5"><span class="text-[#00000040]">附件：</span><button class="ant-btn-link text-xs">'+n.attach+' <svg viewBox="0 0 24 24" width="10" height="10" fill="#1677ff"><path d="M12 16l-6-6h4V4h4v6h4l-6 6zM4 18h16v2H4v-2z"/></svg></button></div>';
+    h+='</div></div></div>';
+  }
+  return h+'</div>';
+}
+function getDetailInfo(appId){
+  if(appId==='RT202604001')return {no:'RT202604001',type:'新增申请',company:'襄阳智行科技',testDate:'2026-04-15 至 2026-10-15',roads:[{name:'襄阳市区道路',type:'城市道路',status:'开放'},{name:'高新区环线路',type:'城市道路',status:'开放'},{name:'襄阳经开区主干道',type:'城市道路',status:'开放'}],vehicles:[{vin:'LSVAU2180N2012345',brand:'比亚迪',model:'Model 3',level:'L3'},{vin:'LSVAU2180N2012346',brand:'比亚迪',model:'Model Y',level:'L3'}],status:'第三方初审中',stTag:'<span class="ant-tag ant-tag-processing">第三方初审中</span>',time:'2026-04-10 09:30'};
+  if(appId==='RT202604002')return {no:'RT202604002',type:'续期申请',company:'东风汽车',testDate:'2026-05-01 至 2026-10-05',roads:[{name:'东风汽车专用测试道路',type:'专用测试道路',status:'开放'},{name:'襄阳市区道路',type:'城市道路',status:'开放'}],vehicles:[{vin:'LSVAU2180N2012347',brand:'蔚来',model:'ES6',level:'L4'}],status:'已通过',stTag:'<span class="ant-tag ant-tag-success">已通过</span>',time:'2026-04-05 11:00'};
+  if(appId==='RT202604003')return {no:'RT202604003',type:'变更申请',company:'华为MDC',testDate:'2026-05-01 至 2026-11-01',roads:[{name:'华为MDC专属测试路线',type:'专用测试道路',status:'开放'}],vehicles:[{vin:'LSVAU2180N2012348',brand:'极狐',model:'阿尔法T',level:'L3'}],status:'已退回',stTag:'<span class="ant-tag ant-tag-error">已退回</span>',time:'2026-04-08 15:30'};
+  return {no:'RT202604004',type:'新增车辆相同配置',company:'襄阳智行科技',testDate:'2026-04-20 至 2026-10-20',roads:[{name:'襄阳市区道路',type:'城市道路',status:'开放'},{name:'高新区环线路',type:'城市道路',status:'开放'}],vehicles:[{vin:'LSVAU2180N2012349',brand:'金龙',model:'T5',level:'L4'}],status:'已通过',stTag:'<span class="ant-tag ant-tag-success">已通过</span>',time:'2026-04-12 08:30'};
+}
+function getStepStyle(status){
+  if(status==='已通过')return{sc1:'#52c41a',sc2:'#52c41a',sc3:'#52c41a',sc4:'#52c41a',l1:'#52c41a',l2:'#52c41a',l3:'#52c41a',d1:'\u2713',d2:'\u2713',d3:'\u2713',d4:'\u2713'};
+  if(status==='已退回')return{sc1:'#52c41a',sc2:'#52c41a',sc3:'#ff4d4f',sc4:'#d9d9d9',l1:'#52c41a',l2:'#52c41a',l3:'#d9d9d9',d1:'\u2713',d2:'\u2713',d3:'\u2715',d4:'\u25CB'};
+  return{sc1:'#52c41a',sc2:'#1677ff',sc3:'#d9d9d9',sc4:'#d9d9d9',l1:'#52c41a',l2:'#d9d9d9',l3:'#d9d9d9',d1:'\u2713',d2:'\u25CF',d3:'\u25CB',d4:'\u25CB'};
+}
+function openDetailModal(appId){
+  appId=appId||'RT202604001';var d=getDetailInfo(appId);var s=getStepStyle(d.status);
+  var roadHtml='<div style="overflow-x:auto"><table class="ant-table" style="width:100%;font-size:13px"><thead><tr><th>序号</th><th>道路名称</th><th>道路类型</th><th>道路状态</th></tr></thead><tbody>';
+  for(var i=0;i<d.roads.length;i++){var r=d.roads[i];roadHtml+='<tr><td>'+(i+1)+'</td><td>'+r.name+'</td><td>'+r.type+'</td><td><span class="ant-tag '+(r.status==='开放'?'ant-tag-success':'ant-tag-default')+'">'+r.status+'</span></td></tr>';}
+  roadHtml+='</tbody></table></div>';
+  var vehicleHtml='<div style="overflow-x:auto"><table class="ant-table" style="width:100%;font-size:13px"><thead><tr><th>序号</th><th>VIN码</th><th>产品商标</th><th>产品型号</th><th>自动驾驶等级</th></tr></thead><tbody>';
+  for(var j=0;j<d.vehicles.length;j++){var v=d.vehicles[j];vehicleHtml+='<tr><td>'+(j+1)+'</td><td>'+v.vin+'</td><td>'+v.brand+'</td><td>'+v.model+'</td><td>'+v.level+'</td></tr>';}
+  vehicleHtml+='</tbody></table></div>';
+  openModal('申请详情 - '+appId,
+    '<div>' +
+    '<div class="ant-descriptions">' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请编号</div><div class="ant-descriptions-value">'+d.no+'</div><div class="ant-descriptions-label">申请类型</div><div class="ant-descriptions-value">'+d.type+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请主体</div><div class="ant-descriptions-value">'+d.company+'</div><div class="ant-descriptions-label">测试日期</div><div class="ant-descriptions-value">'+d.testDate+'</div></div>' +
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请状态</div><div class="ant-descriptions-value">'+d.stTag+'</div><div class="ant-descriptions-label">申请时间</div><div class="ant-descriptions-value">'+d.time+'</div></div>' +
+    '</div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">测试路段（'+d.roads.length+'条）</h4>'+roadHtml +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">测试车辆（'+d.vehicles.length+'辆）</h4>'+vehicleHtml +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">申请材料</h4>' +
+    '<div class="space-y-2 text-sm">' +
+      '<div class="flex items-center gap-2"><span class="text-[#52c41a]">\u2713</span>安全性自我声明 <button class="ant-btn-link ant-btn-sm">预览</button><button class="ant-btn-link ant-btn-sm">下载</button></div>' +
+      '<div class="flex items-center gap-2"><span class="text-[#52c41a]">\u2713</span>自动驾驶功能说明 <button class="ant-btn-link ant-btn-sm">预览</button><button class="ant-btn-link ant-btn-sm">下载</button></div>' +
+      '<div class="flex items-center gap-2"><span class="text-[#52c41a]">\u2713</span>测试方案 <button class="ant-btn-link ant-btn-sm">预览</button><button class="ant-btn-link ant-btn-sm">下载</button></div>' +
+      '<div class="flex items-center gap-2"><span class="text-[#52c41a]">\u2713</span>交通安全性自我声明材料 <button class="ant-btn-link ant-btn-sm">预览</button><button class="ant-btn-link ant-btn-sm">下载</button></div>' +
+      '<div class="flex items-center gap-2"><span class="text-[#52c41a]">\u2713</span>车辆出厂合格证明材料 <button class="ant-btn-link ant-btn-sm">预览</button><button class="ant-btn-link ant-btn-sm">下载</button></div>' +
+      '<div class="flex items-center gap-2"><span class="text-[#52c41a]">\u2713</span>第三方检测机构安全性能检测报告 <button class="ant-btn-link ant-btn-sm">预览</button><button class="ant-btn-link ant-btn-sm">下载</button></div>' +
+      '<div class="flex items-center gap-2"><span class="text-[#52c41a]">\u2713</span>交强险及交通事故责任保险凭证 <button class="ant-btn-link ant-btn-sm">预览</button><button class="ant-btn-link ant-btn-sm">下载</button></div>' +
+    '</div>' +
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">审批流程进度</h4>' +
+    '<div class="flex items-center gap-0 text-xs">' +
+      '<div class="flex items-center"><div class="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs" style="background:'+s.sc1+'">'+s.d1+'</div><span class="ml-1">提交申请</span></div>' +
+      '<div class="w-12 h-0.5" style="background:'+s.l1+'"></div>' +
+      '<div class="flex items-center"><div class="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs" style="background:'+s.sc2+'">'+s.d2+'</div><span class="ml-1">第三方初审</span></div>' +
+      '<div class="w-12 h-0.5" style="background:'+s.l2+'"></div>' +
+      '<div class="flex items-center"><div class="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs" style="background:'+s.sc3+'">'+s.d3+'</div><span class="ml-1">联席小组审批</span></div>' +
+      '<div class="w-12 h-0.5" style="background:'+s.l3+'"></div>' +
+      '<div class="flex items-center"><div class="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs" style="background:'+s.sc4+'">'+s.d4+'</div><span class="ml-1 text-[#00000040]">临牌回传</span></div>' +
+    '</div>' +
+    ''+makeFlowLog(appId)+'</div>',{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

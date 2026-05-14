@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>异常状态告警 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .page-header h2{font-size:20px;font-weight:600;color:#000000d9}
+    .ant-tabs{display:flex;border-bottom:1px solid #f0f0f0;margin-bottom:16px}
+    .ant-tabs-tab{padding:8px 24px;font-size:14px;color:#00000073;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+    .ant-tabs-tab.active{color:#1677ff;border-bottom-color:#1677ff}
+    .stat-card{background:#fff;border-radius:8px;padding:20px;display:flex;align-items:center;gap:16px}
+    .stat-card .stat-icon{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px}
+    .stat-card .stat-info .stat-value{font-size:24px;font-weight:600;color:#000000d9}
+    .stat-card .stat-info .stat-label{font-size:14px;color:#00000073}
+    .filter-bar{background:#fff;padding:16px 24px;border-radius:8px;margin-bottom:16px}
+    .filter-row{display:flex;flex-wrap:wrap;gap:20px 24px;align-items:center}
+    .filter-item{display:inline-flex;flex-direction:row;align-items:center;gap:8px}
+    .filter-item label{font-size:14px;color:#000000d9;font-weight:normal;white-space:nowrap}
+    .ant-table-wrapper{background:#fff;border-radius:8px;overflow:hidden}
+    .ant-table{width:100%;border-collapse:collapse}
+    .ant-table thead th{background:#fafafa;padding:12px 16px;font-weight:600;font-size:14px;color:#000000d9;text-align:left;border-bottom:1px solid #f0f0f0}
+    .ant-table tbody td{padding:12px 16px;font-size:14px;color:#000000d9;border-bottom:1px solid #f0f0f0}
+    .ant-table tbody tr:hover{background:#fafafa}
+    .ant-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:normal}
+    .ant-tag-error{background:#fff2f0;color:#ff4d4f;border-color:#ffccc7}
+    .ant-tag-warning{background:#fffbe6;color:#faad14;border-color:#ffe58f}
+    .ant-tag-success{background:#f6ffed;color:#52c41a;border-color:#b7eb8f}
+    .ant-tag-processing{background:#e6f7ff;color:#1890ff;border-color:#91caff}
+    .ant-tag-default{background:#f5f5f5;color:#00000073;border-color:#d9d9d9}
+    .ant-btn{display:inline-flex;align-items:center;justify-content:center;padding:4px 15px;border-radius:4px;font-size:14px;border:1px solid #d9d9d9;background:#fff;color:#000000d9;cursor:pointer}
+    .ant-btn-primary{background:#1677ff;border-color:#1677ff;color:#fff}
+    .ant-select{padding:4px 11px;border:1px solid #d9d9d9;border-radius:4px;font-size:14px;background:#fff;cursor:pointer}
+    .ant-input{padding:4px 11px;border:1px solid #d9d9d9;border-radius:4px;font-size:14px}
+    .ant-pagination{display:flex;align-items:center;gap:4px}
+    .ant-pagination .page-item{padding:4px 12px;border-radius:4px;border:1px solid #d9d9d9;cursor:pointer}
+    .ant-pagination .page-item.active{background:#1677ff;color:#fff;border-color:#1677ff}
+    .ant-pagination .page-item:hover{border-color:#1677ff;color:#1677ff}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header">
+        <h2>异常状态告警</h2>
+      </div>
+      <div class="grid grid-cols-4 gap-4 mb-4">
+        <div class="stat-card"><div class="stat-icon bg-[#fff2f0] text-[#ff4d4f]">🔴</div><div class="stat-info"><div class="stat-value">12</div><div class="stat-label">未处理告警数(今日)</div></div></div>
+        <div class="stat-card"><div class="stat-icon bg-[#e6f7ff] text-[#1890ff]">⚠️</div><div class="stat-info"><div class="stat-value">5</div><div class="stat-label">正在处理告警数</div></div></div>
+        <div class="stat-card"><div class="stat-icon bg-[#f6ffed] text-[#52c41a]">✅</div><div class="stat-info"><div class="stat-value">48</div><div class="stat-label">已处理告警数(今日)</div></div></div>
+        <div class="stat-card"><div class="stat-icon bg-[#f5f5f5] text-[#00000073]">📊</div><div class="stat-info"><div class="stat-value">75</div><div class="stat-label">累计告警总数</div></div></div>
+      </div>
+      <div class="ant-tabs">
+        <span class="ant-tabs-tab active" onclick="switchTab(this,'tab-vehicle')">车辆状态告警</span>
+        <span class="ant-tabs-tab" onclick="switchTab(this,'tab-plate')">临牌有效期预警</span>
+        <span class="ant-tabs-tab" onclick="switchTab(this,'tab-fence')">电子围栏越界预警</span>
+        <span class="ant-tabs-tab" onclick="switchTab(this,'tab-time')">测试时段合规性预警</span>
+        <span class="ant-tabs-tab" onclick="switchTab(this,'tab-safety')">测试时段合规性预警</span>
+      </div>
+      <div id="tab-vehicle" class="alarm-tab-content">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>告警类型</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>车辆号牌/VIN</label><input class="ant-input" placeholder="请输入号牌或VIN搜索" style="width:150px"></div>
+            <div class="filter-item"><label>处理状态</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>发生日期</label><input class="ant-input" type="date"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>告警编号</th><th>车辆号牌/VIN</th><th>告警内容描述</th><th>告警详情</th><th>发生时间</th><th>处理状态</th></tr></thead>
+              <tbody>
+                <tr class="bg-[#fff2f0]"><td>ALM20260427001</td><td>鄂F·A001</td><td>车速超限01</td><td>当前速度62km/h，限速50km/h</td><td>14:28:30</td><td><span class="ant-tag ant-tag-warning">待处理</span></td></tr>
+                <tr class="bg-[#fff2f0]"><td>ALM20260427003</td><td>鄂F·C007</td><td>自动驾驶系统异常</td><td>路径规划模块异常，可能与高精地图数据不一致有关</td><td>13:45:10</td><td><span class="ant-tag ant-tag-processing">处理中</span></td></tr>
+                <tr><td>ALM20260427004</td><td>鄂F·D010</td><td>传感器数据异常</td><td>激光雷达离线，距离前方障碍物约200m</td><td>14:05:18</td><td><span class="ant-tag ant-tag-warning">待处理</span></td></tr>
+                <tr><td>ALM20260427005</td><td>鄂F·B003</td><td>电池电量低</td><td>SOC低于20%(当前18.5%)</td><td>13:22:10</td><td><span class="ant-tag ant-tag-warning">待处理</span></td></tr>
+                <tr><td>ALM20260427009</td><td>鄂F·E005</td><td>通信中断</td><td>车辆离线超过30分钟</td><td>11:20:30</td><td><span class="ant-tag ant-tag-success">已确认</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 5 条</span>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-plate" class="alarm-tab-content" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>车辆号牌/VIN</label><input class="ant-input" placeholder="请输入号牌或VIN搜索" style="width:150px"></div>
+            <div class="filter-item"><label>处理状态</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>故障类型</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>告警编号</th><th>车辆号牌/VIN</th><th>告警内容描述</th><th>告警详情</th><th>发生时间</th><th>处理状态</th></tr></thead>
+              <tbody>
+                <tr><td>ALM20260427006</td><td>鄂F·C007</td><td>车辆牌照识别系统故障/异常</td><td>摄像头图像模糊，无法识别车牌</td><td>08:00:00</td><td><span class="ant-tag ant-tag-warning">待处理</span></td></tr>
+                <tr><td>ALM20260426001</td><td>鄂F·A001</td><td>车辆牌照识别系统故障/异常</td><td>摄像头图像模糊，无法识别车牌</td><td>08:00:00</td><td><span class="ant-tag ant-tag-success">已确认</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 2 条</span>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-fence" class="alarm-tab-content" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>越界方向</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>车辆号牌/VIN</label><input class="ant-input" placeholder="请输入号牌或VIN搜索" style="width:150px"></div>
+            <div class="filter-item"><label>处理状态</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>告警编号</th><th>车辆号牌/VIN</th><th>告警内容描述</th><th>告警详情</th><th>发生时间</th><th>处理状态</th></tr></thead>
+              <tbody>
+                <tr class="bg-[#fff2f0]"><td>ALM20260427002</td><td>鄂F·B003</td><td>电子围栏越界报警信息</td><td>车辆驶出指定测试区域，位置：高新区边界附近</td><td>14:15:22</td><td><span class="ant-tag ant-tag-warning">待处理</span></td></tr>
+                <tr><td>ALM20260425001</td><td>鄂F·D010</td><td>电子围栏越界报警信息</td><td>车辆驶入禁止区域，位置：襄城区老城区</td><td>15:30:00</td><td><span class="ant-tag ant-tag-success">已确认</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 2 条</span>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-time" class="alarm-tab-content" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>车辆号牌/VIN</label><input class="ant-input" placeholder="请输入号牌或VIN搜索" style="width:150px"></div>
+            <div class="filter-item"><label>处理状态</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>发生日期</label><input class="ant-input" type="date"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>告警编号</th><th>车辆号牌/VIN</th><th>告警内容描述</th><th>告警详情</th><th>发生时间</th><th>处理状态</th></tr></thead>
+              <tbody>
+                <tr><td>ALM20260427008</td><td>鄂F·B003</td><td>测试时间范围外行驶/作业告警</td><td>车辆在非规定时间段内进行测试作业(06:00前)，需核实原因</td><td>06:15:00</td><td><span class="ant-tag ant-tag-success">已确认</span></td></tr>
+                <tr><td>ALM20260424001</td><td>鄂F·A002</td><td>测试时间范围外行驶/作业告警</td><td>车辆在非规定时间段内进行测试作业(22:00后)，需核实原因</td><td>22:45:00</td><td><span class="ant-tag ant-tag-success">已确认</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 2 条</span>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-safety" class="alarm-tab-content" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>车辆号牌/VIN</label><input class="ant-input" placeholder="请输入号牌或VIN搜索" style="width:150px"></div>
+            <div class="filter-item"><label>处理状态</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>发生日期</label><input class="ant-input" type="date"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>告警编号</th><th>车辆号牌/VIN</th><th>告警内容描述</th><th>告警详情</th><th>发生时间</th><th>处理状态</th></tr></thead>
+              <tbody>
+                <tr><td>ALM20260427007</td><td>鄂F·B003</td><td>安全员状态监测异常告警(如疲劳驾驶等)</td><td>安全员状态异常检测：驾驶员闭眼持续时间超过3秒，可能存在疲劳驾驶风险</td><td>12:30:45</td><td><span class="ant-tag ant-tag-success">已确认</span></td></tr>
+                <tr><td>ALM20260423001</td><td>鄂F·A001</td><td>安全员状态监测异常告警(如疲劳驾驶等)</td><td>安全员状态异常检测：驾驶员闭眼持续时间超过3秒，可能存在疲劳驾驶风险</td><td>09:15:30</td><td><span class="ant-tag ant-tag-success">已确认</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 2 条</span>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='alarm';
+function switchTab(el, id){
+  document.querySelectorAll('.ant-tabs-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.alarm-tab-content').forEach(t=>t.style.display='none');
+  document.getElementById(id).style.display='block';
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

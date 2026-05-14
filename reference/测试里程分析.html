@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试里程分析</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+            --shadow-card: 0 1px 2px -2px rgba(0, 0, 0, 0.08), 0 3px 6px 0 rgba(0, 0, 0, 0.06);
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei',
+                sans-serif;
+            --sider-width: 220px;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-header {
+            background: #001529;
+            color: #fff;
+            padding: 0 28px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 110;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .app-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .app-header .logo .icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius);
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 56px);
+        }
+        .app-sider {
+            width: var(--sider-width);
+            background: #001529;
+            color: #fff;
+            padding-top: 12px;
+            flex-shrink: 0;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+        }
+        .sider-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sider-menu li {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.65);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 3px solid transparent;
+            letter-spacing: 0.3px;
+        }
+        .sider-menu li:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .sider-menu li.active {
+            color: #fff;
+            background: var(--primary);
+            border-left-color: #fff;
+            font-weight: 500;
+        }
+        .app-main {
+            flex: 1;
+            overflow-x: auto;
+        }
+        .app-body {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 20px 24px 40px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 18px;
+        }
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 14px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 120px;
+        }
+        .form-group label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        select,
+        input {
+            height: 32px;
+            padding: 0 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: var(--font);
+            color: var(--text-primary);
+            background: #fff;
+            outline: none;
+            min-width: 100px;
+        }
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.12);
+        }
+        .btn {
+            height: 32px;
+            padding: 0 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary-bg);
+        }
+        .btn-sm {
+            height: 26px;
+            padding: 0 10px;
+            font-size: 11px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 3px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 11px;
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        .dimension-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            width: fit-content;
+        }
+        .dimension-tab {
+            padding: 8px 22px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-radius: var(--radius);
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .dimension-tab:hover {
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+        .dimension-tab.active {
+            color: #fff;
+            background: var(--primary);
+            box-shadow: 0 2px 6px rgba(24, 144, 255, 0.35);
+            font-weight: 600;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: 0.2s;
+        }
+        .stat-card:hover {
+            box-shadow: var(--shadow-card);
+            transform: translateY(-1px);
+        }
+        .stat-card .stat-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        .stat-card .stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+        .stat-card .stat-sub {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+        .stat-card.accent-blue {
+            border-left: 3px solid var(--primary);
+        }
+        .stat-card.accent-green {
+            border-left: 3px solid var(--success);
+        }
+        .stat-card.accent-orange {
+            border-left: 3px solid var(--warning);
+        }
+        .stat-card.accent-red {
+            border-left: 3px solid var(--error);
+        }
+
+        .card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 16px;
+        }
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.3px;
+        }
+        .chart-container {
+            min-height: 300px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th {
+            background: #fafafa;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            user-select: none;
+        }
+        th:hover {
+            background: #f0f0f0;
+        }
+        th .sort-icon {
+            margin-left: 4px;
+            font-size: 10px;
+        }
+        td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #f5f5f5;
+            color: var(--text-primary);
+        }
+        tbody tr {
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        tbody tr:hover {
+            background: #fafafa;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .pagination-bar select {
+            width: 70px;
+            height: 28px;
+        }
+        .pagination-bar .page-info {
+            font-weight: 500;
+        }
+        .pagination-bar .btn-sm {
+            height: 28px;
+        }
+
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 8px;
+            width: 750px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        @media (max-width: 1200px) {
+            .stat-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .app-sider {
+                width: 60px;
+            }
+            .sider-menu li span {
+                display: none;
+            }
+        }
+        @media (max-width: 768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            .app-sider {
+                width: 100%;
+                height: auto;
+            }
+            .sider-menu {
+                display: flex;
+                overflow-x: auto;
+            }
+            .sider-menu li {
+                flex-shrink: 0;
+            }
+            .stat-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="logo">
+            <span class="icon">📊</span>
+            <span>测试数据分析与管理</span>
+        </div>
+    </header>
+
+    <div class="app-layout">
+        <!-- 左侧导航栏 -->
+        <aside class="app-sider">
+            <ul class="sider-menu" id="siderMenu">
+                <li data-page="overview"><span>📋</span> <span>测试数据总览</span></li>
+                <li data-page="alert"><span>⚠️</span> <span>异常告警情况统计</span></li>
+                <li data-page="accident"><span>🚨</span> <span>违法事故统计</span></li>
+                <li data-page="status"><span>📡</span> <span>运行状态分析</span></li>
+                <li data-page="event"><span>⚡</span> <span>预警事件分析</span></li>
+                <li data-page="mileage" class="active"><span>🛣️</span> <span>测试里程分析</span></li>
+                <li data-page="industry"><span>🏭</span> <span>产业发展分析</span></li>
+            </ul>
+        </aside>
+
+        <!-- 右侧内容区 -->
+        <main class="app-main">
+            <div class="app-body">
+                <div class="page-title">测试里程分析</div>
+                <div class="page-subtitle">智能网联汽车道路测试 · 单车/企业/区域多维度里程对比与趋势</div>
+
+                <!-- 筛选条件 -->
+                <div class="query-bar">
+                    <div class="form-group">
+                        <label>时间范围</label>
+                        <div style="display:flex;gap:4px;align-items:center;">
+                            <input type="date" value="2026-01-01" style="min-width:120px;">
+                            <span style="color:var(--text-tertiary);">—</span>
+                            <input type="date" value="2026-05-08" style="min-width:120px;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>运行模式</label>
+                        <select>
+                            <option>全部</option><option>自动驾驶</option><option>人工驾驶</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary">🔍 查询</button>
+                </div>
+
+                <!-- 统计卡片 -->
+                <div class="stat-cards">
+                    <div class="stat-card accent-blue">
+                        <span class="stat-label">总测试里程</span>
+                        <span class="stat-value" id="statTotalMileage">186.5<span style="font-size:13px;font-weight:500;"> 万km</span></span>
+                        <span class="stat-sub">统计周期内累计</span>
+                    </div>
+                    <div class="stat-card accent-green">
+                        <span class="stat-label">总测试时长</span>
+                        <span class="stat-value" id="statTotalDuration">4.8<span style="font-size:13px;font-weight:500;"> 万小时</span></span>
+                        <span class="stat-sub">自动驾驶占比 72%</span>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <span class="stat-label">测试车辆数</span>
+                        <span class="stat-value" id="statVehicles">328<span style="font-size:13px;font-weight:500;"> 辆</span></span>
+                        <span class="stat-sub">当前活跃测试</span>
+                    </div>
+                    <div class="stat-card accent-red">
+                        <span class="stat-label">自动驾驶里程占比</span>
+                        <span class="stat-value" style="color:#f5222d;" id="statAutoRatio">72.3<span style="font-size:13px;font-weight:500;">%</span></span>
+                        <span class="stat-sub">同比 ↑ 5.8%</span>
+                    </div>
+                </div>
+
+                <!-- 维度切换Tab -->
+                <div class="dimension-tabs" id="dimensionTabs">
+                    <button class="dimension-tab active" data-dim="vehicle">单车</button>
+                    <button class="dimension-tab" data-dim="company">企业</button>
+                    <button class="dimension-tab" data-dim="district">区域</button>
+                </div>
+
+                <!-- 维度内容容器 -->
+                <div id="dimContent">
+                    <!-- 单车维度（仅保留车辆里程列表） -->
+                    <div id="panel-vehicle" class="dim-panel">
+                        <div class="card">
+                            <div class="card-header">车辆里程列表 <span style="font-weight:400;font-size:11px;color:var(--text-tertiary);">点击表头可排序</span></div>
+                            <div class="table-wrap">
+                                <table id="vehicleTable">
+                                    <thead>
+                                        <tr>
+                                            <th data-sort="plate">车牌号 <span class="sort-icon">↕</span></th>
+                                            <th data-sort="vin">VIN码 <span class="sort-icon">↕</span></th>
+                                            <th data-sort="company">所属企业 <span class="sort-icon">↕</span></th>
+                                            <th data-sort="mileage">测试里程(km) <span class="sort-icon">↕</span></th>
+                                            <th data-sort="duration">测试时长(h) <span class="sort-icon">↕</span></th>
+                                            <th data-sort="avgSpeed">平均速度(km/h) <span class="sort-icon">↕</span></th>
+                                            <th data-sort="autoRatio">自动驾驶占比 <span class="sort-icon">↕</span></th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="vehicleTableBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination-bar">
+                                <span>共 <b id="vTotalCount">328</b> 条</span>
+                                <select id="vPageSize"><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select>
+                                <span>条/页</span>
+                                <button class="btn btn-sm btn-outline" id="vPrevBtn">上一页</button>
+                                <span class="page-info">第 <b id="vCurrPage">1</b> / <b id="vTotalPage">33</b> 页</span>
+                                <button class="btn btn-sm btn-outline" id="vNextBtn">下一页</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 企业维度 -->
+                    <div id="panel-company" class="dim-panel" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">企业总里程对比 <span style="font-weight:400;font-size:11px;color:var(--text-tertiary);">点击柱体下钻查看企业车辆列表</span></div>
+                            <div class="chart-container" id="chartCompanyBar"></div>
+                        </div>
+                    </div>
+
+                    <!-- 区域维度（删除地图，仅保留表格） -->
+                    <div id="panel-district" class="dim-panel" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">区域里程统计</div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead><tr><th>行政区域</th><th>测试里程(万km)</th><th>占比</th><th>车辆数</th><th>里程密度</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>樊城区</td><td><strong>68.5</strong></td><td>36.7%</td><td>118</td><td><span class="tag tag-red">高</span></td></tr>
+                                        <tr><td>襄城区</td><td><strong>52.3</strong></td><td>28.0%</td><td>92</td><td><span class="tag tag-orange">中高</span></td></tr>
+                                        <tr><td>襄州区</td><td><strong>35.6</strong></td><td>19.1%</td><td>65</td><td><span class="tag tag-orange">中</span></td></tr>
+                                        <tr><td>南漳县</td><td><strong>20.2</strong></td><td>10.8%</td><td>35</td><td><span class="tag tag-blue">中低</span></td></tr>
+                                        <tr><td>谷城县</td><td><strong>9.9</strong></td><td>5.3%</td><td>18</td><td><span class="tag tag-green">低</span></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 里程增长趋势 -->
+                <div class="card">
+                    <div class="card-header">里程增长趋势 <span style="font-weight:400;font-size:11px;color:var(--text-tertiary);">月度里程增量 · 按所选维度聚合</span></div>
+                    <div class="chart-container" id="chartTrend" style="height:340px;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 企业下钻弹窗 -->
+    <div class="modal-mask" id="drillModalMask">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="drillModalTitle">企业车辆列表</span>
+                <button class="btn btn-sm btn-outline" onclick="closeDrillModal()">✕ 关闭</button>
+            </div>
+            <div class="modal-body" id="drillModalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // 左侧导航点击切换（仅演示，当前页不可跳转）
+            document.querySelectorAll('#siderMenu li').forEach(li => {
+                li.addEventListener('click', function() {
+                    const page = this.dataset.page;
+                    if (page === 'mileage') return; // 当前页
+                    // 实际项目中此处可跳转，这里仅给出提示
+                    alert('演示模式：跳转至“' + this.textContent.trim() + '”页面（功能待实现）');
+                });
+            });
+
+            // 维度切换、表格、图表等逻辑（与之前相同，略做调整以确保区域维度不再渲染地图）
+            // 模拟数据
+            const companies = ['襄阳智行科技', '汉江出行', '顺捷科技', '东风出行', '百度Apollo', '滴滴自动驾驶', '小马智行', '文远知行', 'AutoX',
+            '元戎启行'];
+            const plates = [
+                '鄂F·A1234', '鄂F·B5678', '鄂F·C3456', '鄂F·D7890', '鄂F·E9012',
+                '鄂F·F4567', '鄂F·G8901', '鄂F·H2345', '鄂F·I6789', '鄂F·J0123',
+                '鄂F·K3456', '鄂F·L7890', '鄂F·M1234', '鄂F·N5678', '鄂F·O9012'
+            ];
+            const vins = [
+                'LSVAA4189N2000001', 'LSVAA4189N2000002', 'LSVAA4189N2000003',
+                'LSVAA4189N2000004', 'LSVAA4189N2000005', 'LSVAA4189N2000006',
+                'LSVAA4189N2000007', 'LSVAA4189N2000008', 'LSVAA4189N2000009',
+                'LSVAA4189N2000010', 'LSVAA4189N2000011', 'LSVAA4189N2000012',
+                'LSVAA4189N2000013', 'LSVAA4189N2000014', 'LSVAA4189N2000015'
+            ];
+
+            function randomEl(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+            function generateVehicleData(count = 328) {
+                const arr = [];
+                for (let i = 0; i < count; i++) {
+                    const plateIdx = Math.floor(Math.random() * plates.length);
+                    const mileage = Math.floor(800 + Math.random() * 15000);
+                    const duration = Math.floor(mileage / (25 + Math.random() * 30));
+                    const avgSpeed = +(mileage / duration).toFixed(1);
+                    const autoMileage = mileage * (0.5 + Math.random() * 0.45);
+                    arr.push({
+                        plate: plates[plateIdx],
+                        vin: vins[plateIdx],
+                        company: randomEl(companies),
+                        mileage: mileage,
+                        duration: duration,
+                        avgSpeed: avgSpeed,
+                        autoRatio: +(autoMileage / mileage * 100).toFixed(1),
+                    });
+                }
+                return arr;
+            }
+
+            const allVehicleData = generateVehicleData(328);
+            let vCurrentPage = 1;
+            let vPageSize = 10;
+            let vSortField = 'mileage';
+            let vSortOrder = 'desc';
+
+            function sortVehicleData(data, field, order) {
+                return [...data].sort((a, b) => {
+                    let valA = a[field];
+                    let valB = b[field];
+                    if (typeof valA === 'string') valA = valA.toLowerCase();
+                    if (typeof valB === 'string') valB = valB.toLowerCase();
+                    if (valA < valB) return order === 'asc' ? -1 : 1;
+                    if (valA > valB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            function renderVehicleTable() {
+                const sorted = sortVehicleData(allVehicleData, vSortField, vSortOrder);
+                const start = (vCurrentPage - 1) * vPageSize;
+                const end = Math.min(start + vPageSize, sorted.length);
+                const pageData = sorted.slice(start, end);
+                const tbody = document.getElementById('vehicleTableBody');
+                tbody.innerHTML = pageData.map(d => {
+                    const ratioTag = d.autoRatio >= 80 ? 'tag-green' : d.autoRatio >= 60 ? 'tag-blue' :
+                        'tag-orange';
+                    return `<tr>
+                        <td><strong>${d.plate}</strong></td>
+                        <td style="font-family:monospace;font-size:10px;">${d.vin}</td>
+                        <td>${d.company}</td>
+                        <td>${d.mileage.toLocaleString()} km</td>
+                        <td>${d.duration.toLocaleString()} h</td>
+                        <td>${d.avgSpeed} km/h</td>
+                        <td><span class="tag ${ratioTag}">${d.autoRatio}%</span></td>
+                        <td><button class="btn-link btn-sm" onclick="showVehicleDetail('${d.plate}')">详情</button></td>
+                    </tr>`;
+                }).join('');
+                document.getElementById('vTotalCount').textContent = sorted.length;
+                document.getElementById('vCurrPage').textContent = vCurrentPage;
+                document.getElementById('vTotalPage').textContent = Math.ceil(sorted.length / vPageSize);
+            }
+
+            document.querySelectorAll('#vehicleTable th[data-sort]').forEach(th => {
+                th.addEventListener('click', function() {
+                    const field = this.dataset.sort;
+                    if (vSortField === field) {
+                        vSortOrder = vSortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        vSortField = field;
+                        vSortOrder = 'desc';
+                    }
+                    vCurrentPage = 1;
+                    renderVehicleTable();
+                });
+            });
+
+            document.getElementById('vPrevBtn').addEventListener('click', () => {
+                if (vCurrentPage > 1) { vCurrentPage--;
+                    renderVehicleTable(); }
+            });
+            document.getElementById('vNextBtn').addEventListener('click', () => {
+                const total = Math.ceil(allVehicleData.length / vPageSize);
+                if (vCurrentPage < total) { vCurrentPage++;
+                    renderVehicleTable(); }
+            });
+            document.getElementById('vPageSize').addEventListener('change', function() {
+                vPageSize = parseInt(this.value);
+                vCurrentPage = 1;
+                renderVehicleTable();
+            });
+
+            window.showVehicleDetail = function(plate) {
+                const d = allVehicleData.find(v => v.plate === plate) || allVehicleData[0];
+                alert('车辆详情：' + d.plate + '\nVIN：' + d.vin + '\n企业：' + d.company + '\n里程：' + d.mileage +
+                    ' km\n自动驾驶占比：' + d.autoRatio + '%');
+            };
+
+            // 维度切换
+            let currentDim = 'vehicle';
+            const dimTabs = document.querySelectorAll('.dimension-tab');
+            const dimPanels = document.querySelectorAll('.dim-panel');
+            dimTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    dimTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentDim = this.dataset.dim;
+                    dimPanels.forEach(p => p.style.display = 'none');
+                    document.getElementById('panel-' + currentDim).style.display = 'block';
+                    updateTrendChart();
+                    if (currentDim === 'company') {
+                        setTimeout(() => {
+                            if (chartInstances['chartCompanyBar']) chartInstances[
+                                'chartCompanyBar'].resize();
+                        }, 150);
+                    }
+                });
+            });
+
+            // ECharts
+            const chartInstances = {};
+            function initChart(id) {
+                const dom = document.getElementById(id);
+                if (!dom) return null;
+                if (chartInstances[id]) chartInstances[id].dispose();
+                const chart = echarts.init(dom);
+                chartInstances[id] = chart;
+                return chart;
+            }
+
+            function renderCompanyBar() {
+                const chart = initChart('chartCompanyBar');
+                const data = companies.map(c => ({
+                    name: c,
+                    value: Math.floor(15000 + Math.random() * 60000),
+                })).sort((a, b) => b.value - a.value);
+                chart.setOption({
+                    tooltip: { trigger: 'axis', formatter: function(p) { return p[0].name + '<br/>总里程：<b>' +
+                                p[0].value.toLocaleString() + ' km</b>'; } },
+                    grid: { left: 110, right: 60, top: 10, bottom: 20 },
+                    yAxis: { type: 'category', data: data.map(d => d.name).reverse(), inverse: true,
+                        axisLabel: { fontSize: 11 } },
+                    xAxis: { type: 'value', name: '里程(km)', axisLabel: { formatter: v => (v / 10000).toFixed(
+                            1) + '万' } },
+                    series: [{
+                        type: 'bar',
+                        data: data.map(d => d.value).reverse(),
+                        barWidth: '55%',
+                        itemStyle: { color: '#1890ff', borderRadius: [0, 4, 4, 0] },
+                        label: { show: true, position: 'right', fontSize: 10,
+                            formatter: p => (p.value / 10000).toFixed(1) + '万km' },
+                    }],
+                });
+                chart.off('click');
+                chart.on('click', function(params) {
+                    if (params.componentType === 'series') {
+                        openDrillModal(params.name);
+                    }
+                });
+            }
+
+            function openDrillModal(companyName) {
+                const vehicles = allVehicleData.filter(v => v.company === companyName);
+                const html = `
+                    <p style="margin-bottom:8px;">企业：<b>${companyName}</b> | 车辆数：<b>${vehicles.length}</b> 辆 | 总里程：<b>${vehicles.reduce((s,v)=>s+v.mileage,0).toLocaleString()} km</b></p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>车牌号</th><th>VIN码</th><th>所属企业</th><th>测试里程(km)</th><th>测试时长(h)</th><th>自动驾驶占比</th></tr></thead>
+                            <tbody>${vehicles.slice(0,10).map(v=>`<tr>
+                                <td><strong>${v.plate}</strong></td>
+                                <td style="font-family:monospace;font-size:10px;">${v.vin}</td>
+                                <td>${v.company}</td>
+                                <td>${v.mileage.toLocaleString()}</td>
+                                <td>${v.duration.toLocaleString()}</td>
+                                <td>${v.autoRatio}%</td>
+                            </tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                    ${vehicles.length > 10 ? `<p style="margin-top:8px;color:var(--text-tertiary);font-size:11px;">仅展示前10条，共${vehicles.length}条记录</p>` : ''}
+                `;
+                document.getElementById('drillModalTitle').textContent = companyName + ' - 车辆列表';
+                document.getElementById('drillModalBody').innerHTML = html;
+                document.getElementById('drillModalMask').classList.add('show');
+            }
+            window.closeDrillModal = function() { document.getElementById('drillModalMask').classList.remove(
+            'show'); };
+            document.getElementById('drillModalMask').addEventListener('click', function(e) {
+                if (e.target === this) closeDrillModal();
+            });
+
+            function updateTrendChart() {
+                const chart = chartInstances['chartTrend'];
+                if (!chart || chart.isDisposed()) return;
+                const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+                let seriesData;
+                if (currentDim === 'company') {
+                    seriesData = companies.slice(0, 5).map(c => ({
+                        name: c,
+                        type: 'line',
+                        data: Array.from({ length: 12 }, () => Math.floor(8000 + Math.random() * 25000)),
+                        smooth: true,
+                    }));
+                } else if (currentDim === 'district') {
+                    const districts = ['樊城区', '襄城区', '襄州区', '南漳县', '谷城县'];
+                    seriesData = districts.map(d => ({
+                        name: d,
+                        type: 'line',
+                        data: Array.from({ length: 12 }, () => Math.floor(5000 + Math.random() * 30000)),
+                        smooth: true,
+                    }));
+                } else {
+                    seriesData = [{
+                        name: '总里程增量',
+                        type: 'line',
+                        data: [12800, 13500, 14200, 15500, 16800, 17200, 18000, 18500, 17800, 17000,
+                            16500, 16000
+                        ],
+                        smooth: true,
+                        lineStyle: { width: 2.5, color: '#1890ff' },
+                        areaStyle: { color: 'rgba(24,144,255,0.12)' },
+                    }];
+                }
+                chart.setOption({
+                    tooltip: { trigger: 'axis' },
+                    legend: { bottom: 0, textStyle: { fontSize: 10 } },
+                    grid: { left: 55, right: 25, top: 15, bottom: 40 },
+                    xAxis: { type: 'category', data: months },
+                    yAxis: { type: 'value', name: '里程增量(km)', axisLabel: { formatter: v => (v / 10000).toFixed(
+                            1) + '万' } },
+                    series: seriesData,
+                });
+            }
+
+            function initTrendChart() {
+                const chart = initChart('chartTrend');
+                const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+                chart.setOption({
+                    tooltip: { trigger: 'axis' },
+                    legend: { bottom: 0, textStyle: { fontSize: 10 } },
+                    grid: { left: 55, right: 25, top: 15, bottom: 40 },
+                    xAxis: { type: 'category', data: months },
+                    yAxis: { type: 'value', name: '里程增量(km)', axisLabel: { formatter: v => (v / 10000).toFixed(
+                            1) + '万' } },
+                    series: [{
+                        name: '总里程增量',
+                        type: 'line',
+                        data: [12800, 13500, 14200, 15500, 16800, 17200, 18000, 18500, 17800, 17000,
+                            16500, 16000
+                        ],
+                        smooth: true,
+                        lineStyle: { width: 2.5, color: '#1890ff' },
+                        areaStyle: { color: 'rgba(24,144,255,0.12)' },
+                    }],
+                });
+            }
+
+            function resizeAll() {
+                Object.values(chartInstances).forEach(c => { if (c && !c.isDisposed()) c.resize(); });
+            }
+            window.addEventListener('resize', () => {
+                clearTimeout(window._rt);
+                window._rt = setTimeout(resizeAll, 200);
+            });
+
+            function initAll() {
+                renderVehicleTable();
+                renderCompanyBar();
+                initTrendChart();
+            }
+            initAll();
+        })();
+    </script>
+</body>
+</html>

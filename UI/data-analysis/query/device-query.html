@@ -1,0 +1,73 @@
+﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设备数据查询 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>设备数据查询</h2></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>时间范围</label><div style="display:flex;gap:4px;align-items:center;"><input class="ant-input" type="date" value="2026-04-01" style="width:140px"><span class="mx-1 text-[#00000040]">~</span><input class="ant-input" type="date" value="2026-05-08" style="width:140px"></div></div>
+          <div class="filter-item"><label>设备ID</label><input class="ant-input" placeholder="请输入设备ID" style="width:180px"></div>
+          <div class="filter-item"><label>在线状态</label><select class="ant-select" style="min-width:120px"><option value="">全部</option><option>在线</option><option>离线</option></select></div>
+          <div class="filter-item"><label>SIM卡号</label><input class="ant-input" placeholder="请输入SIM卡号" style="width:180px"></div>
+          <div class="filter-item"><label>企业名称</label><input class="ant-input" placeholder="请输入企业名称" style="width:180px"></div>
+          <div class="filter-item"><label>车辆标识</label><input class="ant-input" placeholder="请输入车辆标识" style="width:180px"></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+          <button class="ant-btn ml-auto">导出</button>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th>设备ID</th><th>设备版本号</th><th>设备在线状态</th><th>设备硬盘状态</th><th>SIM卡号</th><th>企业名称</th><th>车辆标识</th><th>安装时间</th><th>备注</th></tr></thead>
+            <tbody>
+              <tr><td>TB001</td><td>V2.3.1</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-success">正常</span></td><td>13912345678</td><td>襄阳智行科技有限公司</td><td>VEH001</td><td>2025-06-01</td><td>-</td></tr>
+              <tr><td>TB002</td><td>V2.3.1</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-success">正常</span></td><td>13912345679</td><td>上海蔚来汽车有限公司</td><td>VEH003</td><td>2025-08-15</td><td>-</td></tr>
+              <tr><td>TB003</td><td>V2.2.0</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-warning">存储不足</span></td><td>13912345680</td><td>百度Apollo</td><td>VEH004</td><td>2025-09-01</td><td>需关注硬盘空间</td></tr>
+              <tr><td>TB004</td><td>V2.3.1</td><td><span class="ant-tag ant-tag-default">离线</span></td><td><span class="ant-tag ant-tag-default">未知</span></td><td>13912345681</td><td>深圳AutoX</td><td>VEH005</td><td>2025-10-01</td><td>设备离线超过24小时</td></tr>
+              <tr><td>TB005</td><td>V2.3.0</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-success">正常</span></td><td>13912345682</td><td>北京百度网讯科技有限公司</td><td>VEH006</td><td>2025-11-01</td><td>-</td></tr>
+              <tr><td>TB006</td><td>V2.4.0</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-success">正常</span></td><td>13912345683</td><td>广州小马智行科技有限公司</td><td>VEH007</td><td>2025-12-01</td><td>-</td></tr>
+              <tr><td>TB007</td><td>V2.3.1</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-warning">存储不足</span></td><td>13912345684</td><td>北京主线科技有限公司</td><td>VEH009</td><td>2025-07-15</td><td>建议清理硬盘</td></tr>
+              <tr><td>TB008</td><td>V1.8.5</td><td><span class="ant-tag ant-tag-default">离线</span></td><td><span class="ant-tag ant-tag-default">未知</span></td><td>13912345685</td><td>东风汽车集团有限公司</td><td>VEH008</td><td>2025-05-01</td><td>固件版本过低，建议升级</td></tr>
+              <tr><td>TB009</td><td>V2.4.0</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-success">正常</span></td><td>13912345686</td><td>上海滴滴沃芽科技有限公司</td><td>VEH010</td><td>2025-06-15</td><td>-</td></tr>
+              <tr><td>TB010</td><td>V2.3.1</td><td><span class="ant-tag ant-tag-success">在线</span></td><td><span class="ant-tag ant-tag-success">正常</span></td><td>13912345687</td><td>重庆长安汽车股份有限公司</td><td>VEH011</td><td>2025-12-15</td><td>-</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 83 条</span>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-sm text-[#00000073]">
+              <span>每页显示</span>
+              <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>条</span>
+            </div>
+            <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">...</span><span class="page-item">9</span><span class="page-item">&gt;</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='device-query';
+function changePageSize(val){console.log('Page size changed to:',val);}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

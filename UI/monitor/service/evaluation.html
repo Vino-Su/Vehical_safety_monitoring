@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试评价管理 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    .toggle-switch{position:relative;display:inline-block;width:40px;height:20px}
+    .toggle-switch input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;transition:.3s;border-radius:20px}
+    .toggle-slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;transition:.3s;border-radius:50%}
+    .toggle-switch input:checked+.toggle-slider{background:#52c41a}
+    .toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+    .score-card{background:linear-gradient(135deg,#f6ffed 0%,#e6f7ff 100%);border-radius:12px;padding:20px;text-align:center;margin-bottom:14px;border:1px solid #f0f0f0}
+    .score-value{font-size:48px;font-weight:700;letter-spacing:-1px}
+    .score-level{font-size:16px;font-weight:600;margin-top:4px}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>测试评价管理</h2></div>
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-params')">评估参数配置</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-rules')">评估规则配置</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-vehicle')">车辆评估报告</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-enterprise')">企业评估报告</span>
+      </div>
+      <div id="tab-params"></div>
+      <div id="tab-rules" style="display:none"></div>
+      <div id="tab-vehicle" style="display:none"></div>
+      <div id="tab-enterprise" style="display:none"></div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='evaluation';
+var chartInstances={};
+function initChart(id){var dom=document.getElementById(id);if(!dom)return null;if(chartInstances[id])chartInstances[id].dispose();var c=echarts.init(dom);chartInstances[id]=c;return c;}
+function resizeAll(){Object.values(chartInstances).forEach(function(c){if(c&&!c.isDisposed())c.resize();});}
+window.addEventListener('resize',function(){clearTimeout(window._rt);window._rt=setTimeout(resizeAll,200);});
+
+var indicators=[
+  {code:'P01',name:'临时行驶号牌有效期合规',source:'临牌发放记录+实时时间',auto:'全自动',rule:'布尔：有效期内=满分，过期0分',enabled:true},
+  {code:'P02',name:'在规定测试范围内行驶',source:'实时位置+电子围栏',auto:'全自动',rule:'布尔：始终在围栏内=满分，有越界0分',enabled:true},
+  {code:'P03',name:'避开高峰时段行驶',source:'申请时段限制+实时时间',auto:'全自动',rule:'布尔：无高峰时段行驶=满分',enabled:true},
+  {code:'P04',name:'避开重大节日/活动',source:'活动日历',auto:'全自动',rule:'布尔：无违规=满分',enabled:true},
+  {code:'P05',name:'避开安保活动',source:'安保活动配置',auto:'全自动',rule:'布尔：无违规=满分',enabled:true},
+  {code:'P06',name:'避开管控路段',source:'管控路段配置+实时位置',auto:'全自动',rule:'布尔：无违规=满分',enabled:true},
+  {code:'P07',name:'在规定道路行驶',source:'轨迹+获批道路清单',auto:'全自动',rule:'布尔：无偏离=满分',enabled:true},
+  {code:'P08',name:'遇行人减速',source:'车端急减速事件',auto:'暂不采集',rule:'暂不参与计算',enabled:false},
+  {code:'P09',name:'事故时安全员正确处理',source:'事故审核记录',auto:'暂不采集',rule:'暂不参与计算',enabled:false},
+  {code:'P10',name:'车辆在线率',source:'车端心跳记录',auto:'全自动',rule:'线性：≥95%满分，每降1%扣权重×0.05',enabled:true},
+  {code:'P11',name:'车辆故障率',source:'故障记录',auto:'全自动',rule:'线性：≤5%满分，每增1%扣权重×0.1',enabled:true},
+  {code:'P12',name:'电子围栏越界次数',source:'告警记录',auto:'全自动',rule:'阶梯：0次满分，1次扣50%权重，≥2次0分',enabled:true},
+  {code:'P13',name:'超速次数',source:'告警记录',auto:'全自动',rule:'阶梯：0次满分，1次扣50%权重',enabled:true},
+  {code:'P14',name:'安全员脱岗次数',source:'告警记录',auto:'全自动',rule:'阶梯：0次满分，1次扣50%权重',enabled:true},
+  {code:'P15',name:'测试报告按时提交',source:'报告上报记录',auto:'全自动',rule:'布尔：按时=满分，未按时0分',enabled:true}
+];
+
+function defaultWeightConfig(){
+  var enabled=indicators.filter(function(i){return i.enabled});
+  var base=Math.floor(100/enabled.length);
+  var remainder=100-base*enabled.length;
+  var cfg={};
+  enabled.forEach(function(ind,idx){cfg[ind.code]=idx<remainder?base+1:base;});
+  return cfg;
+}
+
+var rulesData=[
+  {id:'RUL-001',name:'2026年Q2测试车辆评估规则',vehicleType:'测试车辆',periodType:'季度',effectiveStart:'2026-04-01',effectiveEnd:'2026-06-30',version:'V2.1',status:'生效中',weightConfig:defaultWeightConfig(),wn:0.7,wf:0.3,versions:[{version:'V2.0',time:'2026-01-01',wn:0.7,wf:0.3,weightConfig:defaultWeightConfig()},{version:'V1.0',time:'2025-10-01',wn:0.6,wf:0.4,weightConfig:defaultWeightConfig()}]},
+  {id:'RUL-002',name:'2026年Q1测试车辆评估规则',vehicleType:'测试车辆',periodType:'季度',effectiveStart:'2026-01-01',effectiveEnd:'2026-03-31',version:'V2.0',status:'已过期',weightConfig:defaultWeightConfig(),wn:0.7,wf:0.3,versions:[{version:'V1.0',time:'2025-10-01',wn:0.6,wf:0.4,weightConfig:defaultWeightConfig()}]},
+  {id:'RUL-003',name:'2026年度示范运营车辆评估规则',vehicleType:'示范运营车辆',periodType:'年度',effectiveStart:'2026-01-01',effectiveEnd:'2026-12-31',version:'V1.0',status:'生效中',weightConfig:defaultWeightConfig(),wn:0.7,wf:0.3,versions:[]}
+];
+
+var levelCriteria=[
+  {range:'90~100',level:'优秀',color:'#52c41a',tag:'ant-tag-success',desc:'各项指标表现优异，无重大违规，可作为标杆示范'},
+  {range:'75~89',level:'良好',color:'#1677ff',tag:'ant-tag-processing',desc:'整体表现良好，个别指标有改进空间，需持续关注'},
+  {range:'60~74',level:'合格',color:'#fa8c16',tag:'ant-tag-warning',desc:'基本满足合规要求，部分指标需整改提升，建议限期改进'},
+  {range:'0~59',level:'不合格',color:'#f5222d',tag:'ant-tag-error',desc:'存在严重违规或多项指标不达标，须立即整改，暂停相关业务直至复评合格'}
+];
+
+function getLevel(score){
+  if(score>=90)return'优秀';if(score>=75)return'良好';if(score>=60)return'合格';return'不合格';
+}
+function levelTag(lv){
+  var m={'优秀':'ant-tag-success','良好':'ant-tag-processing','合格':'ant-tag-warning','不合格':'ant-tag-error'};
+  return '<span class="ant-tag '+(m[lv]||'ant-tag-default')+'">'+lv+'</span>';
+}
+
+var enterprises=['襄阳智行科技','汉江出行','顺捷科技','东风出行','百度Apollo','滴滴自动驾驶','小马智行','文远知行','AutoX','元戎启行'];
+var plates=['鄂F·A1234','鄂F·B5678','鄂F·C3456','鄂F·D7890','鄂F·E9012','鄂F·F4567','鄂F·G8901','鄂F·H2345','鄂F·I6789','鄂F·J0123'];
+var vins=['LSVAA4189N2000001','LSVAA4189N2000002','LSVAA4189N2000003','LSVAA4189N2000004','LSVAA4189N2000005','LSVAA4189N2000006','LSVAA4189N2000007','LSVAA4189N2000008','LSVAA4189N2000009','LSVAA4189N2000010'];
+
+var vehicleReports=[];
+var vPeriods=['2025年10月','2025年11月','2025年12月','2026年1月','2026年2月','2026年3月','2026年4月'];
+var vPeriodRanges=[['2025-10-01','2025-10-31'],['2025-11-01','2025-11-30'],['2025-12-01','2025-12-31'],['2026-01-01','2026-01-31'],['2026-02-01','2026-02-28'],['2026-03-01','2026-03-31'],['2026-04-01','2026-04-30']];
+for(var vi=0;vi<6;vi++){
+  for(var pi=0;pi<vPeriods.length;pi++){
+    var sc=55+Math.random()*40;
+    var genType=pi<5?'定期生成':'手动创建';
+    vehicleReports.push({
+      reportId:'VR-'+String(vi*vPeriods.length+pi+1).padStart(4,'0'),
+      vin:vins[vi],plate:plates[vi],enterprise:enterprises[vi],
+      ruleName:rulesData[0].name,period:vPeriods[pi],periodStart:vPeriodRanges[pi][0],periodEnd:vPeriodRanges[pi][1],
+      score:sc.toFixed(1),level:getLevel(sc),
+      genType:genType,genTime:vPeriodRanges[pi][1].replace('31','01').replace('30','01').replace('28','01')+' 02:00',
+      detailScores:[
+        {name:'在规定测试范围内行驶',weight:15,actual:sc>70?'始终在围栏内':'越界1次',score:sc>70?15:10,reason:sc>70?'-':'一次越界扣50%权重'},
+        {name:'电子围栏越界次数',weight:20,actual:sc>80?'0次':'1次',score:sc>80?20:10,reason:sc>80?'-':'一次越界扣50%权重'},
+        {name:'车辆在线率',weight:10,actual:(90+Math.random()*10).toFixed(1)+'%',score:10,reason:'-'},
+        {name:'超速次数',weight:15,actual:sc>65?'0次':'1次',score:sc>65?15:8,reason:sc>65?'-':'超速1次扣分'},
+        {name:'安全员脱岗次数',weight:10,actual:'0次',score:10,reason:'-'},
+        {name:'车辆故障率',weight:10,actual:(Math.random()*5).toFixed(1)+'%',score:10,reason:'-'},
+        {name:'测试报告按时提交',weight:10,actual:'按时提交',score:10,reason:'-'},
+        {name:'避开管控路段',weight:10,actual:'无违规',score:10,reason:'-'}
+      ]
+    });
+  }
+}
+
+var enterpriseReports=[];
+var ePeriods=['2025年Q4','2026年Q1','2026年4月'];
+var ePeriodRanges=[['2025-10-01','2025-12-31'],['2026-01-01','2026-03-31'],['2026-04-01','2026-04-30']];
+for(var ei=0;ei<8;ei++){
+  for(var epi=0;epi<ePeriods.length;epi++){
+    var normalCnt=Math.floor(5+Math.random()*20);
+    var faultCnt=Math.floor(Math.random()*5);
+    var offlineCnt=Math.floor(Math.random()*3);
+    var avgNormal=60+Math.random()*30;
+    var baseScore=avgNormal*0.7+(faultCnt>0?Math.floor(50+Math.random()*20):60)*0.3;
+    var penalty=Math.min(offlineCnt*2,20);
+    var finalScore=Math.max(Math.round(baseScore-penalty),0);
+    enterpriseReports.push({
+      reportId:'ER-'+String(ei*ePeriods.length+epi+1).padStart(4,'0'),
+      name:enterprises[ei],
+      ruleName:epi<2?rulesData[0].name:rulesData[2].name,
+      period:ePeriods[epi],periodStart:ePeriodRanges[epi][0],periodEnd:ePeriodRanges[epi][1],
+      normalCnt:normalCnt,faultCnt:faultCnt,offlineCnt:offlineCnt,avgNormal:avgNormal.toFixed(1),
+      score:finalScore,level:getLevel(finalScore),
+      genType:epi<2?'定期生成':'手动创建',
+      genTime:ePeriodRanges[epi][1].substring(0,8)+'02 02:00'
+    });
+  }
+}
+
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  ['tab-params','tab-rules','tab-vehicle','tab-enterprise'].forEach(function(id){
+    document.getElementById(id).style.display=id===tabId?'':'none'
+  });
+  setTimeout(resizeAll,150);
+}
+
+// ========== 评估参数配置 ==========
+function renderParams(){
+  var enabledCount=indicators.filter(function(i){return i.enabled}).length;
+  var html='<div class="card"><div class="flex justify-between items-center mb-4"><h4 class="text-sm font-semibold text-[#000000d9]">预置指标清单</h4><span class="text-xs text-[#00000073]">共 '+indicators.length+' 项 | 启用 '+enabledCount+' 项</span></div>';
+  html+='<div class="ant-table-wrapper"><div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>指标编码</th><th>指标名称</th><th>数据来源</th><th>采集自动化程度</th><th>默认计分规则</th><th>状态</th></tr></thead><tbody>';
+  indicators.forEach(function(i){
+    html+='<tr><td>'+i.code+'</td><td class="font-medium">'+i.name+'</td><td>'+i.source+'</td><td>'+(i.auto==='全自动'?'<span class="ant-tag ant-tag-success">全自动</span>':'<span class="ant-tag ant-tag-warning">暂不采集</span>')+'</td><td class="text-xs text-[#00000073]">'+i.rule+'</td><td class="flex items-center gap-2"><label class="toggle-switch"><input type="checkbox" '+(i.enabled?'checked':'')+' onchange="toggleIndicator(\''+i.code+'\',this.checked)"><span class="toggle-slider"></span></label>'+(i.enabled?'<span class="ant-tag ant-tag-success">启用</span>':'<span class="ant-tag ant-tag-default">停用</span>')+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  html+='<div class="mt-3"><button class="ant-btn ant-btn-primary" onclick="renderParams()">保存配置</button></div></div>';
+  document.getElementById('tab-params').innerHTML=html;
+}
+function toggleIndicator(code,checked){var ind=indicators.find(function(i){return i.code===code});if(ind){ind.enabled=checked;renderParams();}}
+
+// ========== 评估规则配置 ==========
+function renderRules(){
+  var html='<div class="card"><div class="flex justify-between items-center mb-4"><h4 class="text-sm font-semibold text-[#000000d9]">规则列表</h4><button class="ant-btn ant-btn-primary ant-btn-sm" onclick="openNewRuleModal()">+ 新建规则</button></div>';
+  html+='<div class="ant-table-wrapper"><div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>规则编号</th><th>规则名称</th><th>适用对象</th><th>周期类型</th><th>生效时间</th><th>版本</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  rulesData.forEach(function(r){
+    html+='<tr><td>'+r.id+'</td><td class="font-medium">'+r.name+'</td><td>'+r.vehicleType+'</td><td>'+r.periodType+'</td><td class="text-xs">'+r.effectiveStart+' ~ '+r.effectiveEnd+'</td><td>'+r.version+'</td><td>'+(r.status==='生效中'?'<span class="ant-tag ant-tag-success">生效中</span>':'<span class="ant-tag ant-tag-default">已过期</span>')+'</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openRuleDetail(\''+r.id+'\')">查看权重</button><button class="ant-btn-link" onclick="openEditRuleModal(\''+r.id+'\')">编辑</button><button class="ant-btn-link" onclick="openVersionHistory(\''+r.id+'\')">版本历史</button><button class="ant-btn-link" onclick="copyRule(\''+r.id+'\')">复制</button></td></tr>';
+  });
+  html+='</tbody></table></div></div></div>';
+  document.getElementById('tab-rules').innerHTML=html;
+}
+function openNewRuleModal(){
+  var enabledIndicators=indicators.filter(function(i){return i.enabled});
+  var html='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>规则名称</div><div class="ant-form-control"><input class="ant-input" placeholder="如：2026年Q3评估规则" style="width:260px"></div></div>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label">适用对象</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer"><option>测试车辆</option><option>示范应用车辆</option><option>示范运营车辆</option></select></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">周期类型</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer"><option>月度</option><option selected>季度</option><option>年度</option></select></div></div></div>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label">生效开始</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-07-01"></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">生效结束</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-09-30"></div></div></div>';
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2">指标权重配置（已启用指标）</h4>';
+  html+='<table class="ant-table"><thead><tr><th>指标名称</th><th>权重(1-100)</th></tr></thead><tbody>';
+  enabledIndicators.forEach(function(i){html+='<tr><td>'+i.name+' ('+i.code+')</td><td><input type="number" class="ant-input weight-input-new" data-code="'+i.code+'" value="0" min="0" max="100" style="width:80px"></td></tr>';});
+  html+='</tbody></table>';
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2">企业评估权重</h4>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label">正常车辆Wn</div><div class="ant-form-control"><input type="number" class="ant-input" value="0.7" step="0.1" style="width:80px"></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">故障车辆Wf</div><div class="ant-form-control"><input type="number" class="ant-input" value="0.3" step="0.1" style="width:80px"></div></div></div>';
+  openModal('新建评估规则',html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="submitRule(\'new\')">提交创建</button>'});
+}
+function openEditRuleModal(ruleId){
+  var rule=rulesData.find(function(r){return r.id===ruleId});if(!rule)return;
+  var enabledIndicators=indicators.filter(function(i){return i.enabled});
+  var html='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>规则名称</div><div class="ant-form-control"><input class="ant-input" value="'+rule.name+'" style="width:260px"></div></div>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label">适用对象</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer">'+['测试车辆','示范应用车辆','示范运营车辆'].map(function(t){return '<option '+(rule.vehicleType===t?'selected':'')+'>'+t+'</option>';}).join('')+'</select></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">周期类型</div><div class="ant-form-control"><select class="ant-input" style="cursor:pointer">'+['月度','季度','年度'].map(function(t){return '<option '+(rule.periodType===t?'selected':'')+'>'+t+'</option>';}).join('')+'</select></div></div></div>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label">生效开始</div><div class="ant-form-control"><input class="ant-input" type="date" value="'+rule.effectiveStart+'"></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">生效结束</div><div class="ant-form-control"><input class="ant-input" type="date" value="'+rule.effectiveEnd+'"></div></div></div>';
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2">指标权重配置（已启用指标）</h4>';
+  html+='<table class="ant-table"><thead><tr><th>指标名称</th><th>权重(1-100)</th></tr></thead><tbody>';
+  enabledIndicators.forEach(function(i){html+='<tr><td>'+i.name+' ('+i.code+')</td><td><input type="number" class="ant-input weight-input-edt" data-code="'+i.code+'" value="'+(rule.weightConfig[i.code]||0)+'" min="0" max="100" style="width:80px"></td></tr>';});
+  html+='</tbody></table>';
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2">企业评估权重</h4>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label">正常车辆Wn</div><div class="ant-form-control"><input type="number" class="ant-input" value="'+rule.wn+'" step="0.1" style="width:80px"></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">故障车辆Wf</div><div class="ant-form-control"><input type="number" class="ant-input" value="'+rule.wf+'" step="0.1" style="width:80px"></div></div></div>';
+  openModal('编辑评估规则 - '+rule.name,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="submitRule(\'edit\',\''+rule.id+'\')">保存修改（生成新版本）</button>'});
+}
+function submitRule(mode,ruleId){
+  var inputs=document.querySelectorAll(mode==='new'?'.weight-input-new':'.weight-input-edt');var total=0;inputs.forEach(function(inp){total+=parseInt(inp.value)||0;});
+  if(Math.abs(total-100)>0.01){alert('指标权重和必须等于100！当前合计：'+total);return;}
+  if(mode==='new'){rulesData.push({id:'RUL-'+String(rulesData.length+1).padStart(3,'0'),name:'新建规则',vehicleType:'测试车辆',periodType:'季度',effectiveStart:'2026-07-01',effectiveEnd:'2026-09-30',version:'V1.0',status:'生效中',weightConfig:defaultWeightConfig(),wn:0.7,wf:0.3,versions:[]});}
+  else{var rule=rulesData.find(function(r){return r.id===ruleId});if(rule){rule.versions.push({version:rule.version,time:new Date().toISOString().substring(0,10),wn:rule.wn,wf:rule.wf,weightConfig:Object.assign({},rule.weightConfig)});var verNum=parseFloat(rule.version.replace('V',''))||1;rule.version='V'+(verNum+0.1).toFixed(1);}}
+  closeModal();renderRules();
+}
+function openRuleDetail(id){
+  var r=rulesData.find(function(ru){return ru.id===id});if(!r)return;
+  var html='<p class="mb-2"><b>规则：</b>'+r.name+' ('+r.version+')</p><p class="mb-2"><b>适用对象：</b>'+r.vehicleType+' | <b>周期：</b>'+r.periodType+' | <b>生效：</b>'+r.effectiveStart+'~'+r.effectiveEnd+'</p>';
+  html+='<h4 class="text-sm font-semibold mt-3 mb-2">指标权重配置</h4>';
+  html+='<table class="ant-table"><thead><tr><th>指标</th><th>权重</th></tr></thead><tbody>';
+  Object.entries(r.weightConfig).forEach(function(entry){var ind=indicators.find(function(i){return i.code===entry[0]});html+='<tr><td>'+(ind?ind.name:entry[0])+'</td><td>'+entry[1]+'</td></tr>';});
+  html+='</tbody></table><p class="mt-3"><b>企业权重：</b>Wn='+r.wn+', Wf='+r.wf+'</p>';
+  openModal('规则权重详情 - '+r.name,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function openVersionHistory(id){
+  var r=rulesData.find(function(ru){return ru.id===id});if(!r)return;var versions=r.versions||[];
+  var html='<p class="mb-3"><b>规则：</b>'+r.name+' | <b>当前版本：</b>'+r.version+'</p>';
+  html+='<table class="ant-table"><thead><tr><th>版本</th><th>时间</th><th>Wn</th><th>Wf</th><th>操作</th></tr></thead><tbody>';
+  if(versions.length===0)html+='<tr><td colspan="5" class="text-center text-[#00000040]">暂无历史版本</td></tr>';
+  versions.forEach(function(v){html+='<tr><td>'+v.version+'</td><td>'+v.time+'</td><td>'+v.wn+'</td><td>'+v.wf+'</td><td><button class="ant-btn-link" onclick="viewVersionSnapshot(\''+id+'\',\''+v.version+'\')">查看快照</button></td></tr>';});
+  html+='</tbody></table>';
+  openModal('版本历史 - '+r.name,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function viewVersionSnapshot(ruleId,version){
+  var r=rulesData.find(function(ru){return ru.id===ruleId});if(!r)return;var snap=r.versions.find(function(v){return v.version===version});if(!snap)return;
+  var html='<p class="mb-2"><b>版本：</b>'+snap.version+' | <b>时间：</b>'+snap.time+'</p>';
+  html+='<table class="ant-table"><thead><tr><th>指标</th><th>权重</th></tr></thead><tbody>';
+  Object.entries(snap.weightConfig).forEach(function(entry){var ind=indicators.find(function(i){return i.code===entry[0]});html+='<tr><td>'+(ind?ind.name:entry[0])+'</td><td>'+entry[1]+'</td></tr>';});
+  html+='</tbody></table><p class="mt-2">Wn='+snap.wn+', Wf='+snap.wf+'</p>';
+  openModal('版本快照 - '+version,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+function copyRule(id){var r=rulesData.find(function(ru){return ru.id===id});if(!r)return;var newRule=Object.assign({},r,{id:'RUL-'+String(rulesData.length+1).padStart(3,'0'),name:r.name+'（副本）',version:'V1.0',versions:[],status:'生效中',weightConfig:Object.assign({},r.weightConfig)});rulesData.push(newRule);renderRules();}
+
+// ========== 车辆评估报告 ==========
+function renderVehicle(){
+  var html='<div class="flex justify-between items-center mb-4"><h4 class="text-sm font-semibold text-[#000000d9]">车辆评估报告列表</h4><button class="ant-btn ant-btn-primary ant-btn-sm" onclick="openCreateVehicleReport()">+ 手动创建报告</button></div>';
+  html+='<div class="filter-bar"><div class="filter-row">';
+  html+='<div class="filter-item"><label>车辆VIN/车牌</label><input class="ant-input" placeholder="输入VIN或车牌搜索"></div>';
+  html+='<div class="filter-item"><label>所属企业</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>';
+  html+='<div class="filter-item"><label>评估等级</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>';
+  html+='<div class="filter-item"><label>生成方式</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>';
+  html+='<div class="filter-item"><label>评估周期</label><input class="ant-input" type="date" value="2025-10-01"><span>至</span><input class="ant-input" type="date" value="2026-04-30"></div>';
+  html+='<div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>';
+  html+='</div></div>';
+  html+='<div class="ant-table-wrapper"><div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>报告编号</th><th>车辆VIN</th><th>车牌号</th><th>所属企业</th><th>评估规则</th><th>评估周期</th><th>最终得分</th><th>评估等级</th><th>生成方式</th><th>生成时间</th><th>操作</th></tr></thead><tbody>';
+  vehicleReports.forEach(function(r){
+    html+='<tr><td>'+r.reportId+'</td><td class="font-mono text-xs">'+r.vin+'</td><td>'+r.plate+'</td><td>'+r.enterprise+'</td><td class="text-xs">'+r.ruleName+'</td><td>'+r.period+'</td><td class="font-semibold">'+r.score+'</td><td>'+levelTag(r.level)+'</td><td>'+(r.genType==='定期生成'?'<span class="ant-tag ant-tag-default">定期生成</span>':'<span class="ant-tag ant-tag-processing">手动创建</span>')+'</td><td>'+r.genTime+'</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openVehicleReportDetail(\''+r.reportId+'\')">查看</button><button class="ant-btn-link">下载PDF</button></td></tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='<div class="flex items-center justify-between px-4 py-3"><span class="text-sm text-[#00000073]">共 '+vehicleReports.length+' 条</span><div class="ant-pagination"><span class="page-item">‹</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">›</span></div></div></div>';
+  document.getElementById('tab-vehicle').innerHTML=html;
+}
+
+function openCreateVehicleReport(){
+  var html='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>选择车辆</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择车辆(VIN/车牌)<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>评估规则</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择评估规则<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>评估开始时间</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-04-01"></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>评估结束时间</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-04-30"></div></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">备注说明</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="可填写手动创建原因或特殊说明"></textarea></div></div>';
+  openModal('手动创建车辆评估报告',html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="submitVehicleReport()">生成报告</button>'});
+}
+
+function submitVehicleReport(){
+  var sc=(55+Math.random()*40).toFixed(1);
+  vehicleReports.unshift({reportId:'VR-'+String(vehicleReports.length+1).padStart(4,'0'),vin:vins[0],plate:plates[0],enterprise:enterprises[0],ruleName:rulesData[0].name,period:'自定义周期',periodStart:'2026-04-01',periodEnd:'2026-04-30',score:sc,level:getLevel(sc),genType:'手动创建',genTime:new Date().toISOString().replace('T',' ').substring(0,19),detailScores:[{name:'在规定测试范围内行驶',weight:15,actual:'始终在围栏内',score:15,reason:'-'},{name:'电子围栏越界次数',weight:20,actual:'0次',score:20,reason:'-'},{name:'车辆在线率',weight:10,actual:'96.5%',score:10,reason:'-'},{name:'超速次数',weight:15,actual:'0次',score:15,reason:'-'},{name:'安全员脱岗次数',weight:10,actual:'0次',score:10,reason:'-'},{name:'车辆故障率',weight:10,actual:'2.1%',score:10,reason:'-'},{name:'测试报告按时提交',weight:10,actual:'按时提交',score:10,reason:'-'},{name:'避开管控路段',weight:10,actual:'无违规',score:10,reason:'-'}]});
+  closeModal();renderVehicle();
+}
+
+function openVehicleReportDetail(reportId){
+  var r=vehicleReports.find(function(x){return x.reportId===reportId})||vehicleReports[0];
+  var scoreColor=r.score>=90?'#52c41a':r.score>=75?'#1677ff':r.score>=60?'#fa8c16':'#f5222d';
+  var html='<div class="score-card"><div class="score-value" style="color:'+scoreColor+'">'+r.score+'</div><div class="score-level">'+levelTag(r.level)+'</div></div>';
+  html+='<div class="ant-descriptions"><div class="ant-descriptions-row"><div class="ant-descriptions-label">报告编号</div><div class="ant-descriptions-value">'+r.reportId+'</div><div class="ant-descriptions-label">生成方式</div><div class="ant-descriptions-value">'+(r.genType==='定期生成'?'<span class="ant-tag ant-tag-default">定期生成</span>':'<span class="ant-tag ant-tag-processing">手动创建</span>')+'</div></div>';
+  html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆VIN</div><div class="ant-descriptions-value" style="font-family:monospace">'+r.vin+'</div><div class="ant-descriptions-label">车牌号</div><div class="ant-descriptions-value">'+r.plate+'</div></div>';
+  html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+r.enterprise+'</div><div class="ant-descriptions-label">评估规则</div><div class="ant-descriptions-value">'+r.ruleName+'</div></div>';
+  html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">评估周期</div><div class="ant-descriptions-value">'+r.period+' ('+r.periodStart+' ~ '+r.periodEnd+')</div><div class="ant-descriptions-label">生成时间</div><div class="ant-descriptions-value">'+r.genTime+'</div></div></div>';
+
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2 pb-2 border-b border-[#f0f0f0]">等级判定标准</h4>';
+  html+='<table class="ant-table mb-4"><thead><tr><th>分数区间</th><th>等级</th><th>判定说明</th></tr></thead><tbody>';
+  levelCriteria.forEach(function(lc){html+='<tr'+(r.level===lc.level?' style="background:#f6ffed"':'')+'><td class="font-semibold">'+lc.range+'</td><td><span class="ant-tag '+lc.tag+'">'+lc.level+'</span></td><td class="text-xs text-[#00000073]">'+lc.desc+'</td></tr>';});
+  html+='</tbody></table>';
+
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mb-2 pb-2 border-b border-[#f0f0f0]">指标评分明细</h4>';
+  html+='<table class="ant-table"><thead><tr><th>指标名称</th><th>权重</th><th>实际表现</th><th>单项得分</th><th>扣分原因</th></tr></thead><tbody>';
+  r.detailScores.forEach(function(d){html+='<tr><td>'+d.name+'</td><td>'+d.weight+'</td><td>'+d.actual+'</td><td>'+d.score+'</td><td>'+d.reason+'</td></tr>';});
+  html+='</tbody></table>';
+  html+='<div id="vTrendChart" style="height:200px;margin-top:10px;"></div>';
+  openModal('车辆评估报告 - '+r.reportId,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="alert(\'PDF报告下载中...\')">下载PDF报告</button>'});
+  setTimeout(function(){
+    var c=initChart('vTrendChart');
+    if(c){var historyScores=vehicleReports.filter(function(x){return x.vin===r.vin}).map(function(x){return parseFloat(x.score)}).slice(-5);c.setOption({tooltip:{},xAxis:{data:['前5期','前4期','前3期','前2期','当期']},yAxis:{name:'得分',min:0,max:100},series:[{type:'line',data:historyScores,lineStyle:{color:'#1677ff',width:2},smooth:true,markLine:{silent:true,data:[{yAxis:60,lineStyle:{color:'#f5222d',type:'dashed'},label:{formatter:'合格线'}}]}}],grid:{left:45,right:20,top:10,bottom:30}});}
+  },200);
+}
+
+// ========== 企业评估报告 ==========
+function renderEnterprise(){
+  var html='<div class="flex justify-between items-center mb-4"><h4 class="text-sm font-semibold text-[#000000d9]">企业评估报告列表</h4><button class="ant-btn ant-btn-primary ant-btn-sm" onclick="openCreateEnterpriseReport()">+ 手动创建报告</button></div>';
+  html+='<div class="filter-bar"><div class="filter-row">';
+  html+='<div class="filter-item"><label>企业名称</label><input class="ant-input" placeholder="输入企业名称搜索"></div>';
+  html+='<div class="filter-item"><label>评估等级</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>';
+  html+='<div class="filter-item"><label>生成方式</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>';
+  html+='<div class="filter-item"><label>评估周期</label><input class="ant-input" type="date" value="2025-10-01"><span>至</span><input class="ant-input" type="date" value="2026-04-30"></div>';
+  html+='<div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>';
+  html+='</div></div>';
+  html+='<div class="ant-table-wrapper"><div style="overflow-x:auto"><table class="ant-table"><thead><tr><th>报告编号</th><th>企业名称</th><th>评估规则</th><th>评估周期</th><th>正常车辆</th><th>故障车辆</th><th>综合得分</th><th>评估等级</th><th>生成方式</th><th>生成时间</th><th>操作</th></tr></thead><tbody>';
+  enterpriseReports.forEach(function(r){
+    html+='<tr><td>'+r.reportId+'</td><td class="font-medium">'+r.name+'</td><td class="text-xs">'+r.ruleName+'</td><td>'+r.period+'</td><td>'+r.normalCnt+'</td><td>'+r.faultCnt+'</td><td class="font-semibold">'+r.score+'</td><td>'+levelTag(r.level)+'</td><td>'+(r.genType==='定期生成'?'<span class="ant-tag ant-tag-default">定期生成</span>':'<span class="ant-tag ant-tag-processing">手动创建</span>')+'</td><td>'+r.genTime+'</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openEnterpriseReportDetail(\''+r.reportId+'\')">查看</button><button class="ant-btn-link">下载PDF</button></td></tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='<div class="flex items-center justify-between px-4 py-3"><span class="text-sm text-[#00000073]">共 '+enterpriseReports.length+' 条</span><div class="ant-pagination"><span class="page-item">‹</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">›</span></div></div></div>';
+  document.getElementById('tab-enterprise').innerHTML=html;
+}
+
+function openCreateEnterpriseReport(){
+  var html='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>选择企业</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择企业<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>评估规则</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择评估规则<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>';
+  html+='<div class="grid grid-cols-2 gap-4"><div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>评估开始时间</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-04-01"></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>评估结束时间</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-04-30"></div></div></div>';
+  html+='<div class="ant-form-item"><div class="ant-form-label">备注说明</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="可填写手动创建原因或特殊说明"></textarea></div></div>';
+  openModal('手动创建企业评估报告',html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="submitEnterpriseReport()">生成报告</button>'});
+}
+
+function submitEnterpriseReport(){
+  var ns=Math.max(Math.round(40+Math.random()*55),0);
+  enterpriseReports.unshift({reportId:'ER-'+String(enterpriseReports.length+1).padStart(4,'0'),name:enterprises[0],ruleName:rulesData[0].name,period:'自定义周期',periodStart:'2026-04-01',periodEnd:'2026-04-30',normalCnt:Math.floor(10+Math.random()*15),faultCnt:Math.floor(Math.random()*3),offlineCnt:Math.floor(Math.random()*2),avgNormal:(70+Math.random()*20).toFixed(1),score:ns,level:getLevel(ns),genType:'手动创建',genTime:new Date().toISOString().replace('T',' ').substring(0,19)});
+  closeModal();renderEnterprise();
+}
+
+function openEnterpriseReportDetail(reportId){
+  var r=enterpriseReports.find(function(x){return x.reportId===reportId})||enterpriseReports[0];
+  var scoreColor=r.score>=90?'#52c41a':r.score>=75?'#1677ff':r.score>=60?'#fa8c16':'#f5222d';
+  var html='<div class="score-card"><div class="score-value" style="color:'+scoreColor+'">'+r.score+'</div><div class="score-level">'+levelTag(r.level)+'</div></div>';
+  html+='<div class="ant-descriptions"><div class="ant-descriptions-row"><div class="ant-descriptions-label">报告编号</div><div class="ant-descriptions-value">'+r.reportId+'</div><div class="ant-descriptions-label">生成方式</div><div class="ant-descriptions-value">'+(r.genType==='定期生成'?'<span class="ant-tag ant-tag-default">定期生成</span>':'<span class="ant-tag ant-tag-processing">手动创建</span>')+'</div></div>';
+  html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">企业名称</div><div class="ant-descriptions-value">'+r.name+'</div><div class="ant-descriptions-label">评估规则</div><div class="ant-descriptions-value">'+r.ruleName+'</div></div>';
+  html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">评估周期</div><div class="ant-descriptions-value">'+r.period+' ('+r.periodStart+' ~ '+r.periodEnd+')</div><div class="ant-descriptions-label">生成时间</div><div class="ant-descriptions-value">'+r.genTime+'</div></div>';
+  html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">正常车辆数</div><div class="ant-descriptions-value">'+r.normalCnt+'</div><div class="ant-descriptions-label">故障车辆数</div><div class="ant-descriptions-value">'+r.faultCnt+'</div></div>';
+  html+='<div class="ant-descriptions-row"><div class="ant-descriptions-label">离线车辆数</div><div class="ant-descriptions-value">'+r.offlineCnt+'</div><div class="ant-descriptions-label">正常车辆平均得分</div><div class="ant-descriptions-value">'+r.avgNormal+'</div></div></div>';
+
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2 pb-2 border-b border-[#f0f0f0]">等级判定标准</h4>';
+  html+='<table class="ant-table mb-4"><thead><tr><th>分数区间</th><th>等级</th><th>判定说明</th></tr></thead><tbody>';
+  levelCriteria.forEach(function(lc){html+='<tr'+(r.level===lc.level?' style="background:#f6ffed"':'')+'><td class="font-semibold">'+lc.range+'</td><td><span class="ant-tag '+lc.tag+'">'+lc.level+'</span></td><td class="text-xs text-[#00000073]">'+lc.desc+'</td></tr>';});
+  html+='</tbody></table>';
+
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mb-2 pb-2 border-b border-[#f0f0f0]">企业评估计算方式</h4>';
+  html+='<div class="p-3 bg-[#fafafa] rounded text-sm text-[#000000d9] mb-4">';
+  html+='<p><b>综合得分 = 正常车辆平均得分 × Wn + 故障车辆平均得分 × Wf - 离线扣分</b></p>';
+  html+='<p class="text-xs text-[#00000073] mt-1">其中Wn为正常车辆权重（当前0.7），Wf为故障车辆权重（当前0.3），离线扣分=离线车辆数×2分/辆（上限20分）</p></div>';
+
+  html+='<div class="grid grid-cols-2 gap-4"><div class="card"><h4 class="text-sm font-semibold mb-2">车辆构成分析</h4><div id="ePieChart" style="height:240px;"></div></div><div class="card"><h4 class="text-sm font-semibold mb-2">历史得分趋势</h4><div id="eTrendChart" style="height:240px;"></div></div></div>';
+
+  openModal('企业评估报告 - '+r.reportId,html,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="alert(\'PDF报告下载中...\')">下载PDF报告</button>'});
+  setTimeout(function(){
+    var pc=initChart('ePieChart');
+    if(pc)pc.setOption({tooltip:{},series:[{type:'pie',radius:['45%','68%'],center:['50%','48%'],data:[{value:r.normalCnt,name:'正常',itemStyle:{color:'#52c41a'}},{value:r.faultCnt,name:'故障',itemStyle:{color:'#fa8c16'}},{value:r.offlineCnt,name:'离线',itemStyle:{color:'#f5222d'}}],label:{formatter:'{b}\n{d}%',fontSize:10}}]});
+    var tc=initChart('eTrendChart');
+    if(tc){var historyScores=enterpriseReports.filter(function(x){return x.name===r.name}).map(function(x){return x.score}).slice(-5);tc.setOption({tooltip:{},xAxis:{data:['前4期','前3期','前2期','前1期','当期']},yAxis:{name:'得分',min:0,max:100},series:[{type:'line',data:historyScores,lineStyle:{color:'#1677ff',width:2},smooth:true,markLine:{silent:true,data:[{yAxis:60,lineStyle:{color:'#f5222d',type:'dashed'},label:{formatter:'合格线'}}]}}],grid:{left:45,right:20,top:10,bottom:30}});}
+  },200);
+}
+
+renderParams();
+renderRules();
+renderVehicle();
+renderEnterprise();
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

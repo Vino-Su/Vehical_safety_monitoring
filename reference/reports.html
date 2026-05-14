@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报告管理 - 智能网联汽车安全监测平台</title>
+    <style>
+        :root {
+            --primary: #1677ff;
+            --success: #52c41a;
+            --warning: #fa8c16;
+            --error: #ff4d4f;
+            --bg: #f5f5f5;
+            --bg-white: #ffffff;
+            --border: #f0f0f0;
+            --text: #1f1f1f;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --radius: 8px;
+            --shadow: 0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02);
+            --shadow-md: 0 6px 16px 0 rgba(0,0,0,0.08);
+            --transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            color: var(--text);
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .app-header {
+            height: 48px;
+            background: #001529;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            flex-shrink: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .app-header .logo {
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .app-header .logo .dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #52c41a; box-shadow: 0 0 6px #52c41a;
+        }
+        .breadcrumb {
+            font-size: 13px;
+            color: rgba(255,255,255,0.65);
+            margin-left: 12px;
+        }
+        .breadcrumb span { color: rgba(255,255,255,0.85); }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            min-height: calc(100vh - 120px);
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #f0f0f0;
+            padding: 0 4px;
+        }
+        .tab-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border: none;
+            background: none;
+            border-bottom: 2px solid transparent;
+            transition: var(--transition);
+            user-select: none;
+        }
+        .tab-item:hover { color: var(--primary); }
+        .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); background: #f0f5ff; }
+        .panel { display: none; padding: 20px; }
+        .panel.active { display: block; }
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 7px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            background: #fff;
+            transition: var(--transition);
+            min-width: 140px;
+        }
+        .filter-bar select:focus, .filter-bar input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+        }
+        .btn {
+            padding: 7px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            color: var(--text);
+        }
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .btn-primary:hover { background: #4096ff; border-color: #4096ff; color: #fff; }
+        .btn-link {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 13px;
+            transition: var(--transition);
+        }
+        .btn-link:hover { color: #4096ff; text-decoration: underline; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { background: #fafafa; font-weight: 600; color: var(--text-secondary); font-size: 12px; }
+        tr:hover td { background: #fafafa; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+        .tag-done { background: #f6ffed; color: #52c41a; }
+        .tag-draft { background: #f5f5f5; color: #999; }
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+        .pagination select { padding: 4px 8px; border: 1px solid #d9d9d9; border-radius: 4px; }
+        .pagination .page-item {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: var(--transition);
+            min-width: 28px;
+            text-align: center;
+        }
+        .pagination .page-item:hover { background: #f0f5ff; color: var(--primary); }
+        .pagination .page-item.active { background: var(--primary); color: #fff; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45); z-index: 200; display: none;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-dialog {
+            background: #fff; border-radius: 8px; box-shadow: 0 12px 48px rgba(0,0,0,0.2);
+            width: 600px; max-width: 90vw; max-height: 80vh; overflow-y: auto;
+            animation: slideUp 0.25s;
+        }
+        @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+        .modal-header {
+            padding: 16px 20px; border-bottom: 1px solid #f0f0f0;
+            display: flex; align-items: center; justify-content: space-between;
+            font-weight: 600; font-size: 16px;
+        }
+        .modal-close { cursor: pointer; border: none; background: none; font-size: 18px; color: #999; }
+        .modal-body { padding: 20px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+        .detail-item { display: flex; flex-direction: column; }
+        .detail-item .d-label { font-size: 12px; color: #999; margin-bottom: 2px; }
+        .detail-item .d-value { font-size: 14px; font-weight: 500; color: #1f1f1f; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo"><span class="dot"></span>智能网联汽车安全监测平台</div>
+        <div class="breadcrumb">/ 测试示范监管 / <span>报告管理</span></div>
+    </header>
+
+    <div class="main-content">
+        <div class="card">
+            <div class="tabs" id="tabNav">
+                <button class="tab-item active" data-tab="query">报告查询</button>
+                <button class="tab-item" data-tab="submit">报告提交</button>
+                <button class="tab-item" data-tab="archive">专家材料归档</button>
+            </div>
+
+            <!-- 报告查询面板 -->
+            <div class="panel active" id="panel-query">
+                <div class="filter-bar">
+                    <select id="qReportType"><option value="">报告类型</option><option>道路测试报告</option><option>示范应用报告</option><option>示范运营报告</option></select>
+                    <select id="qSubType"><option value="">子类�?/option><option>阶段性报�?/option><option>总结报告</option></select>
+                    <input type="text" placeholder="企业名称" id="qCompany">
+                    <input type="date" id="qStartDate"> <span>�?/span> <input type="date" id="qEndDate">
+                    <button class="btn btn-primary" onclick="searchReports()">🔍 搜索</button>
+                    <button class="btn" onclick="resetReports()">重置</button>
+                </div>
+                <table id="reportTable">
+                    <thead>
+                        <tr><th>报告编号</th><th>报告类型</th><th>子类�?/th><th>报告名称</th><th>所属企�?/th><th>关联申请编号</th><th>提交时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="pagination" id="paginationQuery"></div>
+            </div>
+
+            <!-- 报告提交面板 -->
+            <div class="panel" id="panel-submit">
+                <div class="filter-bar">
+                    <button class="btn btn-primary" onclick="openNewReport()">📄 新建报告</button>
+                    <select id="sReportType"><option value="">报告类型</option><option>季度报告</option><option>年度报告</option><option>专项报告</option></select>
+                    <input type="text" placeholder="报告�? id="sPeriod">
+                    <button class="btn btn-primary" onclick="searchSubmits()">🔍 搜索</button>
+                    <button class="btn" onclick="resetSubmits()">重置</button>
+                </div>
+                <table id="submitTable">
+                    <thead>
+                        <tr><th>报送编�?/th><th>报告类型</th><th>报告�?/th><th>报告标题</th><th>报送时�?/th><th>报送人</th><th>接收单位</th><th>状�?/th><th>操作</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="pagination" id="paginationSubmit"></div>
+            </div>
+
+            <!-- 专家材料归档面板 -->
+            <div class="panel" id="panel-archive">
+                <div class="filter-bar">
+                    <button class="btn btn-primary" onclick="openUpload()">📤 上传材料</button>
+                    <select id="aMaterialType"><option value="">材料类型</option><option>专家评审材料</option><option>实车审查材料</option><option>专家资质材料</option><option>其他</option></select>
+                    <input type="text" placeholder="关联企业" id="aCompanyFilter">
+                    <input type="text" placeholder="关联申请单号" id="aApplicationId">
+                    <button class="btn btn-primary" onclick="searchArchives()">🔍 搜索</button>
+                    <button class="btn" onclick="resetArchives()">重置</button>
+                </div>
+                <table id="archiveTable">
+                    <thead>
+                        <tr><th>材料编号</th><th>材料名称</th><th>材料类型</th><th>关联申请单号</th><th>关联企业</th><th>文件格式</th><th>文件大小</th><th>上传时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="pagination" id="paginationArchive"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span id="modalTitle">详情</span>
+                <button class="modal-close" onclick="closeModal()">�?/button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟数据
+        const mockReports = [
+            { id: 'RPT001', type: '道路测试报告', subType: '总结报告', name: '2026�?月道路测试总结', company: '东风汽车', applicationId: 'SQ2026041001', time: '2026-04-28 14:30' },
+            { id: 'RPT002', type: '示范应用报告', subType: '阶段性报�?, name: '2026年Q1示范应用进展', company: '百度Apollo', applicationId: 'SQ2026041502', time: '2026-04-15 09:12' },
+            { id: 'RPT003', type: '示范运营报告', subType: '总结报告', name: '无人公交示范运营总结', company: '襄阳公交集团', applicationId: 'SQ2026042003', time: '2026-04-20 16:45' },
+            { id: 'RPT004', type: '道路测试报告', subType: '阶段性报�?, name: '3月份道路测试阶段性报�?, company: '东风商用�?, applicationId: 'SQ2026033104', time: '2026-03-31 11:00' },
+            { id: 'RPT005', type: '示范应用报告', subType: '总结报告', name: '无人配送车示范应用总结', company: '美团无人配�?, applicationId: 'SQ2026042505', time: '2026-04-25 08:30' },
+        ];
+
+        const mockSubmits = [
+            { id: 'SUB001', type: '季度报告', period: '2026年Q1', title: '襄阳市智能网联汽车测试示范季度报�?, time: '2026-04-10', submitter: '张科�?, receiver: '工业和信息化�?, status: '已提�? },
+            { id: 'SUB002', type: '年度报告', period: '2025年度', title: '2025年度襄阳市车联网先导区工作报�?, time: '2026-01-15', submitter: '李主�?, receiver: '工信部、公安部、交通运输部', status: '已提�? },
+            { id: 'SUB003', type: '专项报告', period: '重大活动保障', title: '春节保障专项报告', time: '2026-02-18', submitter: '王工', receiver: '公安�?, status: '草稿' },
+        ];
+
+        const mockArchives = [
+            { id: 'ARC001', name: 'L4自动驾驶专家评审意见', type: '专家评审材料', appId: 'SQ20260430001', company: '东风汽车', format: 'PDF', size: '2.3MB', time: '2026-04-26' },
+            { id: 'ARC002', name: '现场实车审查记录�?, type: '实车审查材料', appId: 'SQ20260430001', company: '东风汽车', format: 'Word', size: '560KB', time: '2026-04-25' },
+            { id: 'ARC003', name: '示范应用评审会议纪要', type: '专家评审材料', appId: 'SQ20260415002', company: '百度Apollo', format: 'PDF', size: '1.8MB', time: '2026-04-16' },
+            { id: 'ARC004', name: '专家资格证书-李明', type: '专家资质材料', appId: '-', company: '-', format: 'PDF', size: '420KB', time: '2026-04-01' },
+            { id: 'ARC005', name: '无人配送车路测检查照�?, type: '实车审查材料', appId: 'SQ2026042505', company: '美团无人配�?, format: 'JPG', size: '15MB', time: '2026-04-21' },
+        ];
+
+        // 新增：申请单模拟数据
+        const mockApplications = [
+            { id: 'SQ2026041001', type: '道路测试', company: '东风汽车', vehicle: '鄂F·D0001', applyTime: '2026-04-10 10:00', status: '已审�?, applicant: '王工' },
+            { id: 'SQ2026041502', type: '示范应用', company: '百度Apollo', vehicle: '鄂F·D0003', applyTime: '2026-04-15 08:30', status: '审批�?, applicant: '李经�? },
+            { id: 'SQ2026042003', type: '示范运营', company: '襄阳公交集团', vehicle: '鄂F·D0006', applyTime: '2026-04-20 14:15', status: '已审�?, applicant: '赵主�? },
+            { id: 'SQ2026033104', type: '道路测试', company: '东风商用�?, vehicle: '鄂F·D0007', applyTime: '2026-03-31 09:00', status: '已审�?, applicant: '孙工' },
+            { id: 'SQ2026042505', type: '示范应用', company: '美团无人配�?, vehicle: '鄂F·D0008', applyTime: '2026-04-25 11:20', status: '已审�?, applicant: '周主�? },
+            { id: 'SQ20260430001', type: '道路测试', company: '东风汽车', vehicle: '鄂F·D0002', applyTime: '2026-04-30 09:45', status: '已审�?, applicant: '王工' },
+        ];
+
+        let currentTab = 'query';
+        const pageSize = 3;
+        const paginationState = { query: 1, submit: 1, archive: 1 };
+
+        // Tab 切换
+        document.getElementById('tabNav').addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-item')) {
+                switchTab(e.target.dataset.tab);
+            }
+        });
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab-item[data-tab="${tab}"]`).classList.add('active');
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`panel-${tab}`).classList.add('active');
+            renderCurrentTab();
+        }
+
+        function renderCurrentTab() {
+            if (currentTab === 'query') renderReports();
+            else if (currentTab === 'submit') renderSubmits();
+            else if (currentTab === 'archive') renderArchives();
+        }
+
+        // 报告查询
+        function getFilteredReports() {
+            let filtered = [...mockReports];
+            const type = document.getElementById('qReportType')?.value;
+            const subType = document.getElementById('qSubType')?.value;
+            const company = document.getElementById('qCompany')?.value.trim().toLowerCase();
+            if (type) filtered = filtered.filter(r => r.type === type);
+            if (subType) filtered = filtered.filter(r => r.subType === subType);
+            if (company) filtered = filtered.filter(r => r.company.toLowerCase().includes(company));
+            return filtered;
+        }
+
+        function renderReports() {
+            const data = getFilteredReports();
+            const start = (paginationState.query - 1) * pageSize;
+            const pageData = data.slice(start, start + pageSize);
+            const tbody = document.querySelector('#reportTable tbody');
+            tbody.innerHTML = pageData.map(r => `
+                <tr>
+                    <td>${r.id}</td>
+                    <td>${r.type}</td>
+                    <td>${r.subType}</td>
+                    <td>${r.name}</td>
+                    <td>${r.company}</td>
+                    <td><a href="#" onclick="event.preventDefault(); showApplicationDetail('${r.applicationId}')" style="color:var(--primary);">${r.applicationId}</a></td>
+                    <td>${r.time}</td>
+                    <td>
+                        <button class="btn-link" onclick="showDetail('report', '${r.id}')">查看</button>
+                        <button class="btn-link">下载</button>
+                    </td>
+                </tr>
+            `).join('');
+            renderPagination('query', data.length);
+        }
+
+        function searchReports() { paginationState.query = 1; renderReports(); }
+        function resetReports() {
+            document.getElementById('qReportType').value = '';
+            document.getElementById('qSubType').value = '';
+            document.getElementById('qCompany').value = '';
+            document.getElementById('qStartDate').value = '';
+            document.getElementById('qEndDate').value = '';
+            searchReports();
+        }
+
+        // 报告提交
+        function renderSubmits() {
+            const data = [...mockSubmits];
+            const start = (paginationState.submit - 1) * pageSize;
+            const pageData = data.slice(start, start + pageSize);
+            const tbody = document.querySelector('#submitTable tbody');
+            tbody.innerHTML = pageData.map(s => `
+                <tr>
+                    <td>${s.id}</td><td>${s.type}</td><td>${s.period}</td><td>${s.title}</td>
+                    <td>${s.time}</td><td>${s.submitter}</td><td>${s.receiver}</td>
+                    <td><span class="tag ${s.status==='已提�??'tag-done':'tag-draft'}">${s.status}</span></td>
+                    <td><button class="btn-link" onclick="showDetail('submit','${s.id}')">查看</button> <button class="btn-link">下载</button></td>
+                </tr>
+            `).join('');
+            renderPagination('submit', data.length);
+        }
+
+        function searchSubmits() { paginationState.submit = 1; renderSubmits(); }
+        function resetSubmits() {
+            document.getElementById('sReportType').value = '';
+            document.getElementById('sPeriod').value = '';
+            searchSubmits();
+        }
+
+        // 专家材料归档
+        function renderArchives() {
+            const data = [...mockArchives];
+            const start = (paginationState.archive - 1) * pageSize;
+            const pageData = data.slice(start, start + pageSize);
+            const tbody = document.querySelector('#archiveTable tbody');
+            tbody.innerHTML = pageData.map(a => `
+                <tr>
+                    <td>${a.id}</td><td>${a.name}</td><td>${a.type}</td>
+                    <td><a href="#" onclick="event.preventDefault(); showApplicationDetail('${a.appId}')" style="color:var(--primary);">${a.appId}</a></td>
+                    <td>${a.company}</td><td>${a.format}</td><td>${a.size}</td><td>${a.time}</td>
+                    <td><button class="btn-link" onclick="showDetail('archive','${a.id}')">预览</button> <button class="btn-link">下载</button></td>
+                </tr>
+            `).join('');
+            renderPagination('archive', data.length);
+        }
+
+        function searchArchives() { paginationState.archive = 1; renderArchives(); }
+        function resetArchives() {
+            document.getElementById('aMaterialType').value = '';
+            document.getElementById('aCompanyFilter').value = '';
+            document.getElementById('aApplicationId').value = '';
+            searchArchives();
+        }
+
+        // 通用分页
+        function renderPagination(tab, total) {
+            const totalPages = Math.ceil(total / pageSize) || 1;
+            const container = document.getElementById(`pagination${tab.charAt(0).toUpperCase()+tab.slice(1)}`);
+            let html = `<span>�?${total} �?/span>`;
+            for (let i=1; i<=totalPages; i++) {
+                const active = paginationState[tab] === i ? 'active' : '';
+                html += `<span class="page-item ${active}" onclick="goPage('${tab}',${i})">${i}</span>`;
+            }
+            html += `<select onchange="goPage('${tab}',1)" style="margin-left:8px;">
+                <option ${pageSize===3?'selected':''}>3</option>
+                <option ${pageSize===5?'selected':''}>5</option>
+                <option ${pageSize===10?'selected':''}>10</option>
+            </select> �?页`;
+            container.innerHTML = html;
+        }
+
+        function goPage(tab, page) { paginationState[tab] = page; renderCurrentTab(); }
+
+        // 弹窗详情
+        function showDetail(type, id) {
+            let title = '详细信息';
+            let content = '';
+            if (type === 'report') {
+                const r = mockReports.find(x => x.id === id);
+                title = '报告详情';
+                content = `
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="d-label">报告编号</span><span class="d-value">${r.id}</span></div>
+                        <div class="detail-item"><span class="d-label">报告类型</span><span class="d-value">${r.type}</span></div>
+                        <div class="detail-item"><span class="d-label">子类�?/span><span class="d-value">${r.subType}</span></div>
+                        <div class="detail-item"><span class="d-label">报告名称</span><span class="d-value">${r.name}</span></div>
+                        <div class="detail-item"><span class="d-label">所属企�?/span><span class="d-value">${r.company}</span></div>
+                        <div class="detail-item"><span class="d-label">关联申请编号</span><span class="d-value">${r.applicationId}</span></div>
+                        <div class="detail-item"><span class="d-label">提交时间</span><span class="d-value">${r.time}</span></div>
+                    </div>
+                `;
+            } else if (type === 'submit') {
+                const s = mockSubmits.find(x => x.id === id);
+                title = '报送详�?;
+                content = `
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="d-label">报送编�?/span><span class="d-value">${s.id}</span></div>
+                        <div class="detail-item"><span class="d-label">报告类型</span><span class="d-value">${s.type}</span></div>
+                        <div class="detail-item"><span class="d-label">报告�?/span><span class="d-value">${s.period}</span></div>
+                        <div class="detail-item"><span class="d-label">标题</span><span class="d-value">${s.title}</span></div>
+                        <div class="detail-item"><span class="d-label">报送时�?/span><span class="d-value">${s.time}</span></div>
+                        <div class="detail-item"><span class="d-label">报送人</span><span class="d-value">${s.submitter}</span></div>
+                        <div class="detail-item"><span class="d-label">接收单位</span><span class="d-value">${s.receiver}</span></div>
+                        <div class="detail-item"><span class="d-label">状�?/span><span class="d-value">${s.status}</span></div>
+                    </div>
+                `;
+            } else if (type === 'archive') {
+                const a = mockArchives.find(x => x.id === id);
+                title = '材料预览';
+                content = `<p>材料名称: ${a.name}</p><p>类型: ${a.type} | 格式: ${a.format} | 大小: ${a.size}</p><p>预览区域（演示）</p>`;
+            }
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = content;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        // 申请单详�?        function showApplicationDetail(appId) {
+            const app = mockApplications.find(x => x.id === appId);
+            if (!app) {
+                document.getElementById('modalTitle').innerText = '提示';
+                document.getElementById('modalBody').innerHTML = '<p>未找到该申请单信息�?/p>';
+                document.getElementById('modalOverlay').classList.add('show');
+                return;
+            }
+            document.getElementById('modalTitle').innerText = '申请单详�?;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="d-label">申请编号</span><span class="d-value">${app.id}</span></div>
+                    <div class="detail-item"><span class="d-label">申请类型</span><span class="d-value">${app.type}</span></div>
+                    <div class="detail-item"><span class="d-label">申请企业</span><span class="d-value">${app.company}</span></div>
+                    <div class="detail-item"><span class="d-label">关联车辆</span><span class="d-value">${app.vehicle}</span></div>
+                    <div class="detail-item"><span class="d-label">申请时间</span><span class="d-value">${app.applyTime}</span></div>
+                    <div class="detail-item"><span class="d-label">状�?/span><span class="d-value">${app.status}</span></div>
+                    <div class="detail-item"><span class="d-label">申请�?/span><span class="d-value">${app.applicant}</span></div>
+                </div>
+                <p style="margin-top:16px;color:#666;">详细申请材料、审批记录等可进一步展开�?/p>
+            `;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        function openNewReport() {
+            document.getElementById('modalTitle').innerText = '新建报告';
+            document.getElementById('modalBody').innerHTML = `
+                <p>报告周期: <select><option>2026年Q2</option></select></p>
+                <p>报告类型: <select><option>季度报告</option></select></p>
+                <p>系统将自动填充数据，点击确定进入编辑�?/p>
+                <button class="btn btn-primary" onclick="closeModal()">确定</button>
+            `;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        function openUpload() {
+            document.getElementById('modalTitle').innerText = '上传专家材料';
+            document.getElementById('modalBody').innerHTML = `
+                <div style="border:2px dashed #d9d9d9;border-radius:8px;padding:30px;text-align:center;color:#999;">拖拽文件到此或点击上�?/div>
+                <p>选择材料类型: <select><option>专家评审材料</option></select></p>
+                <p>关联申请单号: <input placeholder="SQ..." style="width:200px;"></p>
+                <button class="btn btn-primary" onclick="closeModal()">上传</button>
+            `;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+        }
+
+        document.getElementById('modalOverlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalOverlay')) closeModal();
+        });
+
+        // 初始�?        renderReports();
+    </script>
+</body>
+</html>

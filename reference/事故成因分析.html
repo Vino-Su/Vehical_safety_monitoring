@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事故成因分析系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-hover: #40a9ff;
+            --primary-bg: #e6f7ff;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border: #d9d9d9;
+            --border-light: #f0f0f0;
+            --bg: #f0f2f5;
+            --bg-white: #fff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+            --shadow-card: 0 1px 2px -2px rgba(0, 0, 0, 0.16), 0 3px 6px 0 rgba(0, 0, 0, 0.12), 0 5px 12px 4px rgba(0, 0, 0, 0.09);
+            --shadow-lg: 0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03);
+            --radius-sm: 4px;
+            --radius: 6px;
+            --radius-lg: 8px;
+            --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --transition: 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5715;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        .app-header {
+            background: #001529;
+            color: #fff;
+            padding: 0 32px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .app-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .app-header .logo .icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius);
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        /* Main Layout */
+        .app-body {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px 28px 40px;
+        }
+
+        /* Tabs Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .tab-nav .tab-btn {
+            flex: 1;
+            padding: 11px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-radius: var(--radius);
+            transition: var(--transition);
+            position: relative;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+        .tab-nav .tab-btn:hover {
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+        .tab-nav .tab-btn.active {
+            color: #fff;
+            background: var(--primary);
+            box-shadow: 0 2px 6px rgba(24, 144, 255, 0.35);
+            font-weight: 600;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeSlideIn 0.35s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Query Bar */
+        .query-bar {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 14px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            position: sticky;
+            top: 72px;
+            z-index: 50;
+        }
+        .query-bar .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 130px;
+        }
+        .query-bar .form-group label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .query-bar select,
+        .query-bar input {
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: var(--font-stack);
+            color: var(--text-primary);
+            background: #fff;
+            transition: var(--transition);
+            min-width: 120px;
+            outline: none;
+        }
+        .query-bar select:focus,
+        .query-bar input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.12);
+        }
+        .query-bar input[type="date"] {
+            min-width: 140px;
+        }
+        .btn {
+            height: 34px;
+            padding: 0 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font-stack);
+            transition: var(--transition);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.35);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary-bg);
+        }
+        .btn-sm {
+            height: 28px;
+            padding: 0 12px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        .btn-link {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0 4px;
+            height: auto;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        /* Stat Cards */
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: var(--transition);
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-1px);
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        .stat-card .stat-value {
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+        .stat-card .stat-sub {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+        .stat-card.accent-blue {
+            border-left: 3px solid var(--primary);
+        }
+        .stat-card.accent-red {
+            border-left: 3px solid var(--error);
+        }
+        .stat-card.accent-orange {
+            border-left: 3px solid var(--warning);
+        }
+        .stat-card.accent-green {
+            border-left: 3px solid var(--success);
+        }
+        .stat-card .stat-value.warn {
+            color: var(--error);
+        }
+
+        /* Chart Panels */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+        .chart-row.three-col {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        .chart-row.single-col {
+            grid-template-columns: 1fr;
+        }
+        .chart-panel {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            min-height: 360px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-panel.full-width {
+            min-height: 400px;
+        }
+        .chart-panel .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chart-panel .panel-title .badge {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-tertiary);
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .chart-container {
+            flex: 1;
+            min-height: 280px;
+        }
+
+        /* Table Styles */
+        .table-wrap {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 18px;
+        }
+        .table-wrap .table-header {
+            padding: 14px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.3px;
+        }
+        .table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .table-wrap table thead th {
+            background: #fafafa;
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .table-wrap table tbody td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #f5f5f5;
+            color: var(--text-primary);
+        }
+        .table-wrap table tbody tr {
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        .table-wrap table tbody tr:hover {
+            background: #fafafa;
+        }
+        .table-wrap table tbody tr.clickable-row:hover {
+            background: var(--primary-bg);
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #cf1322;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #d46b08;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #096dd9;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #389e0d;
+        }
+        .tag-purple {
+            background: #f9f0ff;
+            color: #722ed1;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 28px;
+            list-style: none;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 4px;
+            bottom: 4px;
+            width: 2px;
+            background: #e8e8e8;
+            border-radius: 1px;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 16px;
+            padding-left: 12px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--primary);
+            z-index: 2;
+        }
+        .timeline-item.critical::before {
+            background: var(--error);
+            border-color: var(--error);
+            box-shadow: 0 0 0 4px rgba(245, 34, 45, 0.2);
+        }
+        .timeline-item .tl-time {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--primary);
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .timeline-item.critical .tl-time {
+            color: var(--error);
+        }
+        .timeline-item .tl-desc {
+            font-size: 13px;
+            color: var(--text-primary);
+            background: #fafafa;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            line-height: 1.5;
+        }
+        .timeline-item .tl-source {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            font-style: italic;
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            margin-bottom: 18px;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .detail-grid .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .detail-grid .detail-item .dl {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .detail-grid .detail-item .dv {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* Info Card Row */
+        .info-card-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .info-card-mini {
+            background: var(--bg-white);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            text-align: center;
+        }
+        .info-card-mini .ic-val {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .info-card-mini .ic-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        /* Left-Right Layout */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            align-items: start;
+        }
+        .list-panel {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            padding: 16px;
+        }
+        .list-panel .search-box {
+            margin-bottom: 14px;
+            position: relative;
+        }
+        .list-panel .search-box input {
+            width: 100%;
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            outline: none;
+        }
+        .list-panel .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.12);
+        }
+        .list-panel ul {
+            list-style: none;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .list-panel ul li {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-bottom: 4px;
+            font-size: 13px;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            color: var(--text-primary);
+        }
+        .list-panel ul li:hover {
+            background: #f5f5f5;
+        }
+        .list-panel ul li.active {
+            background: var(--primary-bg);
+            border-color: var(--primary);
+            font-weight: 500;
+        }
+        .list-panel .list-item-desc {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            background: #fff;
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            font-size: 13px;
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 3px solid var(--primary);
+        }
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .stat-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .chart-row {
+                grid-template-columns: 1fr;
+            }
+            .chart-row.three-col {
+                grid-template-columns: 1fr 1fr;
+            }
+            .info-card-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .split-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            .stat-cards {
+                grid-template-columns: 1fr;
+            }
+            .chart-row.three-col {
+                grid-template-columns: 1fr;
+            }
+            .info-card-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .query-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="logo">
+            <span class="icon">🛡�?/span>
+            <span>事故成因分析系统</span>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <nav class="tab-nav" id="tabNav">
+            <button class="tab-btn active" data-tab="tab-district">📊 片区事故成因分析</button>
+            <button class="tab-btn" data-tab="tab-road">🛣�?路段事故成因分析</button>
+            <button class="tab-btn" data-tab="tab-single">🔍 单起事故成因分析</button>
+        </nav>
+
+        <!-- ==================== TAB 1: 片区事故成因分析 ==================== -->
+        <div class="tab-content active" id="tab-district">
+            <div class="query-bar">
+                <div class="form-group"><label>区域选择</label><select id="districtSelect"><option value="all">全部区域</option><option value="xiangcheng">襄城�?/option><option value="fancheng">樊城�?/option><option value="xiangzhou">襄州�?/option><option value="nanzhang">南漳�?/option><option value="gucheng">谷城�?/option></select></div>
+                <div class="form-group"><label>开始日�?/label><input type="date" id="districtDateFrom" value="2026-04-01"></div>
+                <div class="form-group"><label>结束日期</label><input type="date" id="districtDateTo" value="2026-05-08"></div>
+                <div class="form-group"><label>事故类型</label><select id="accidentType" multiple style="height:auto;min-height:34px;"><option value="all" selected>全部</option><option value="collision">碰撞</option><option value="scrape">刮擦</option><option value="rear-end">追尾</option><option value="pedestrian">行人冲突</option></select></div>
+                <button class="btn btn-primary" onclick="showToast('片区分析数据已刷�?)">🔍 查询分析</button>
+                <button class="btn btn-outline" onclick="showToast('报表导出�?..')">📥 导出报告</button>
+            </div>
+            <div class="stat-cards">
+                <div class="stat-card accent-blue"><span class="stat-label">总事故数</span><span class="stat-value">1,247</span><span class="stat-sub">同比 �?8.3%</span></div>
+                <div class="stat-card accent-red"><span class="stat-label">涉及车辆�?/span><span class="stat-value warn">2,103</span><span class="stat-sub">平均每起 1.69 �?/span></div>
+                <div class="stat-card accent-orange"><span class="stat-label">主成因类�?/span><span class="stat-value" style="font-size:22px;">行为因素</span><span class="stat-sub">占比 48.6%</span></div>
+                <div class="stat-card accent-green"><span class="stat-label">高风险片�?/span><span class="stat-value" style="font-size:22px;">樊城�?/span><span class="stat-sub">事故密度 3.8�?km²</span></div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-panel"><div class="panel-title">四大主成因占�?<span class="badge">行为·车辆·道路·环境</span></div><div class="chart-container" id="chartDistrictPie"></div></div>
+                <div class="chart-panel"><div class="panel-title">Top10 子因素事故数量与占比</div><div class="chart-container" id="chartDistrictBar"></div></div>
+            </div>
+            <div class="chart-row single-col">
+                <div class="chart-panel full-width"><div class="panel-title">事故点位热力分布�?/div><div class="chart-container" id="chartDistrictHeatmap" style="min-height:380px;"></div></div>
+            </div>
+            <div class="table-wrap">
+                <div class="table-header"><span>📋 片区成因详情�?/span><span style="font-weight:400;font-size:12px;color:var(--text-tertiary);">点击查看明细展开区域事故列表</span></div>
+                <div style="overflow-x:auto;">
+                    <table id="districtTable">
+                        <thead><tr><th>片区</th><th>事故�?/th><th>主成因类�?/th><th>Top子因�?/th><th>平均贡献权重</th><th>操作</th></tr></thead>
+                        <tbody>
+                            <tr data-district="樊城�? class="district-row clickable-row"><td><strong>樊城�?/strong></td><td><span class="tag tag-red">386</span></td><td>行为因素</td><td>未按规定让行</td><td>47.2%</td><td><button class="btn btn-link btn-sm district-detail-btn">查看明细 �?/button></td></tr>
+                            <tr data-district="襄城�? class="district-row clickable-row"><td><strong>襄城�?/strong></td><td><span class="tag tag-orange">298</span></td><td>道路因素</td><td>视距不足</td><td>39.8%</td><td><button class="btn btn-link btn-sm district-detail-btn">查看明细 �?/button></td></tr>
+                            <tr data-district="襄州�? class="district-row clickable-row"><td><strong>襄州�?/strong></td><td><span class="tag tag-blue">215</span></td><td>环境因素</td><td>恶劣天气</td><td>35.1%</td><td><button class="btn btn-link btn-sm district-detail-btn">查看明细 �?/button></td></tr>
+                            <tr data-district="南漳�? class="district-row clickable-row"><td><strong>南漳�?/strong></td><td>178</td><td>车辆因素</td><td>制动效能不足</td><td>31.5%</td><td><button class="btn btn-link btn-sm district-detail-btn">查看明细 �?/button></td></tr>
+                            <tr data-district="谷城�? class="district-row clickable-row"><td><strong>谷城�?/strong></td><td>170</td><td>行为因素</td><td>超速行�?/td><td>42.0%</td><td><button class="btn btn-link btn-sm district-detail-btn">查看明细 �?/button></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 片区事故列表（动态填充） -->
+            <div id="districtAccidentListPanel" class="table-wrap" style="display:none;">
+                <div class="table-header"><span id="districtAccidentListTitle">📄 区域事故列表</span><button class="btn btn-sm btn-outline" onclick="document.getElementById('districtAccidentListPanel').style.display='none'">关闭</button></div>
+                <div style="overflow-x:auto;">
+                    <table><thead><tr><th>事故编号</th><th>时间</th><th>地点</th><th>类型</th><th>涉事车辆</th><th>操作</th></tr></thead><tbody id="districtAccidentListBody"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: 路段事故成因分析 ==================== -->
+        <div class="tab-content" id="tab-road">
+            <div class="split-layout">
+                <div class="list-panel">
+                    <div class="search-box"><input type="text" id="roadSearchInput" placeholder="搜索道路名称..." oninput="filterRoadList()"></div>
+                    <ul id="roadList">
+                        <li class="active" data-road="长虹�? onclick="selectRoad(this)">长虹�?div class="list-item-desc">主干�?· 4.8km · 6车道</div></li>
+                        <li data-road="檀溪路" onclick="selectRoad(this)">檀溪路<div class="list-item-desc">主干�?· 3.2km · 4车道</div></li>
+                        <li data-road="航空�? onclick="selectRoad(this)">航空�?div class="list-item-desc">主干�?· 5.1km · 6车道</div></li>
+                        <li data-road="人民�? onclick="selectRoad(this)">人民�?div class="list-item-desc">次干�?· 2.8km · 4车道</div></li>
+                        <li data-road="建设�? onclick="selectRoad(this)">建设�?div class="list-item-desc">次干�?· 1.9km · 2车道</div></li>
+                        <li data-road="金源�? onclick="selectRoad(this)">金源�?div class="list-item-desc">支路 · 1.2km · 2车道</div></li>
+                    </ul>
+                </div>
+                <div id="roadDetailContainer">
+                    <div class="query-bar" style="position:static;top:auto;z-index:auto;margin-bottom:14px;">
+                        <div class="form-group"><label>开始日�?/label><input type="date" id="roadDateFrom" value="2026-04-01"></div>
+                        <div class="form-group"><label>结束日期</label><input type="date" id="roadDateTo" value="2026-05-08"></div>
+                        <button class="btn btn-primary" onclick="showToast('路段分析数据已刷�?)">🔍 查询分析</button>
+                    </div>
+                    <div class="info-card-row" id="roadInfoCards">
+                        <div class="info-card-mini"><div class="ic-val">长虹�?/div><div class="ic-label">道路名称</div></div>
+                        <div class="info-card-mini"><div class="ic-val">主干�?/div><div class="ic-label">等级</div></div>
+                        <div class="info-card-mini"><div class="ic-val">双向6车道</div><div class="ic-label">车道�?/div></div>
+                        <div class="info-card-mini"><div class="ic-val">4.8 km</div><div class="ic-label">路段长度</div></div>
+                        <div class="info-card-mini"><div class="ic-val">92%</div><div class="ic-label">RSU覆盖�?/div></div>
+                        <div class="info-card-mini"><div class="ic-val">3.2�?km</div><div class="ic-label">交叉口密�?/div></div>
+                    </div>
+                    <div class="chart-row">
+                        <div class="chart-panel"><div class="panel-title">路段事故成因分布</div><div class="chart-container" id="chartRoadPie"></div></div>
+                        <div class="chart-panel"><div class="panel-title">道路参数与事故关�?<select id="roadParamSelect" onchange="updateRoadScatter()" style="margin-left:8px;height:28px;font-size:12px;"><option value="curvature">曲率</option><option value="slope">坡度</option><option value="laneWidth">车道宽度</option></select></div><div class="chart-container" id="chartRoadScatter"></div></div>
+                    </div>
+                    <div class="chart-row">
+                        <div class="chart-panel"><div class="panel-title">交通流量与事故对比</div><div class="chart-container" id="chartRoadFlow"></div></div>
+                        <div class="chart-panel"><div class="panel-title">事故时段分布热力�?/div><div class="chart-container" id="chartRoadHeatmapTime"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: 单起事故成因分析 ==================== -->
+        <div class="tab-content" id="tab-single">
+            <div class="split-layout">
+                <div class="list-panel">
+                    <div class="search-box"><input type="text" id="accidentSearchInput" placeholder="搜索事故编号或地�?.." oninput="filterAccidentList()"></div>
+                    <ul id="accidentList">
+                        <li class="active" data-accident="acc001" onclick="selectAccident(this)">ACC-2026-0508-001<div class="list-item-desc">樊城区·长虹路·追尾</div></li>
+                        <li data-accident="acc002" onclick="selectAccident(this)">ACC-2026-0507-015<div class="list-item-desc">襄城区·檀溪路·碰撞</div></li>
+                        <li data-accident="acc003" onclick="selectAccident(this)">ACC-2026-0506-022<div class="list-item-desc">襄州区·航空路·行人冲突</div></li>
+                        <li data-accident="acc004" onclick="selectAccident(this)">ACC-2026-0505-008<div class="list-item-desc">樊城区·人民路·刮擦</div></li>
+                        <li data-accident="acc005" onclick="selectAccident(this)">ACC-2026-0504-031<div class="list-item-desc">谷城县·建设路·追尾</div></li>
+                        <li data-accident="acc006" onclick="selectAccident(this)">ACC-2026-0503-012<div class="list-item-desc">襄城区·檀溪路·追尾</div></li>
+                        <li data-accident="acc007" onclick="selectAccident(this)">ACC-2026-0502-045<div class="list-item-desc">樊城区·长虹路·刮擦</div></li>
+                    </ul>
+                </div>
+                <div id="singleDetailContainer">
+                    <div class="detail-panel">
+                        <div class="detail-title">📝 事故基本信息</div>
+                        <div class="detail-grid">
+                            <div class="detail-item"><span class="dl">事故编号</span><span class="dv" id="detailId">ACC-2026-0508-001</span></div>
+                            <div class="detail-item"><span class="dl">发生时间</span><span class="dv" id="detailTime">2026-05-08 14:32:15</span></div>
+                            <div class="detail-item"><span class="dl">地点</span><span class="dv" id="detailLoc">樊城区长虹路与建华路交叉口南200m</span></div>
+                            <div class="detail-item"><span class="dl">事故类型</span><span class="dv"><span class="tag tag-red" id="detailType">追尾</span></span></div>
+                            <div class="detail-item"><span class="dl">涉事车辆</span><span class="dv" id="detailVehicles">鄂F·A1234（自动驾驶） / 鄂F·B5678</span></div>
+                            <div class="detail-item"><span class="dl">伤亡情况</span><span class="dv" id="detailCasualty">轻伤1�?/ 无死�?/span></div>
+                        </div>
+                    </div>
+                    <div class="chart-row">
+                        <div class="chart-panel" style="min-height:420px;"><div class="panel-title">⏱️ 事故还原时间�?/div><div style="overflow-y:auto;max-height:370px;"><ul class="timeline" id="timelineList"></ul></div></div>
+                        <div class="chart-panel" style="min-height:420px;"><div class="panel-title">📊 各维度贡献度</div><div class="chart-container" id="chartSinglePie"></div></div>
+                    </div>
+                    <div class="table-wrap"><div class="table-header">🔬 成因详情</div><div style="overflow-x:auto;"><table><thead><tr><th>维度</th><th>子因素标�?/th><th>贡献�?/th><th>关键证据</th><th>数据来源</th></tr></thead><tbody><tr><td><span class="tag tag-red">行为因素</span></td><td>制动响应延迟</td><td><strong>38%</strong></td><td>AD系统检测到行人�?秒才开始减�?/td><td>车端数据</td></tr><tr><td><span class="tag tag-orange">车辆因素</span></td><td>制动效能不足</td><td><strong>22%</strong></td><td>减速度峰值未达设计标�?/td><td>车端数据</td></tr><tr><td><span class="tag tag-blue">道路因素</span></td><td>视距受限</td><td><strong>18%</strong></td><td>绿化带遮�?/td><td>道路静态数�?/td></tr><tr><td><span class="tag tag-purple">环境因素</span></td><td>行人违规横穿</td><td><strong>22%</strong></td><td>未走斑马�?/td><td>路侧数据</td></tr></tbody></table></div></div>
+                    <div class="table-wrap"><div class="table-header">📐 关键数据对比�?/div><div style="overflow-x:auto;"><table><thead><tr><th>参数</th><th>事故�?/th><th>标准�?/th><th>偏差</th><th>判定</th></tr></thead><tbody id="keyDataTableBody"></tbody></table></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script>
+        // ==================== Data Store ====================
+        const roadDataMap = {
+            '长虹�?: { name: '长虹�?, grade: '主干�?, lanes: '双向6车道', length: '4.8 km', rsu: '92%', density: '3.2�?km' },
+            '檀溪路': { name: '檀溪路', grade: '主干�?, lanes: '双向4车道', length: '3.2 km', rsu: '88%', density: '2.8�?km' },
+            '航空�?: { name: '航空�?, grade: '主干�?, lanes: '双向6车道', length: '5.1 km', rsu: '90%', density: '3.5�?km' },
+            '人民�?: { name: '人民�?, grade: '次干�?, lanes: '双向4车道', length: '2.8 km', rsu: '85%', density: '2.2�?km' },
+            '建设�?: { name: '建设�?, grade: '次干�?, lanes: '双向2车道', length: '1.9 km', rsu: '80%', density: '1.8�?km' },
+            '金源�?: { name: '金源�?, grade: '支路', lanes: '双向2车道', length: '1.2 km', rsu: '75%', density: '1.5�?km' },
+        };
+
+        const accidentDetailMap = {
+            'acc001': { id: 'ACC-2026-0508-001', time: '2026-05-08 14:32:15', loc: '樊城区长虹路与建华路交叉口南200m', type: '追尾', typeClass: 'tag-red', vehicles: '鄂F·A1234（自动驾驶） / 鄂F·B5678', casualty: '轻伤1�?/ 无死�?, timeline: [{ time: 'T-30s', desc: '车辆自动驾驶模式，速度 <strong>55 km/h</strong>', source: '车端数据', critical: false }, { time: 'T-20s', desc: '路侧激光雷达监测到前方 <strong>80m</strong> 有行人横穿意�?, source: '路侧激光雷�?, critical: false }, { time: 'T-15s', desc: '路侧RSU广播行人预警信息', source: '路侧RSU', critical: false }, { time: 'T-12s', desc: 'AD系统检测到行人，开始减�?, source: '车端数据', critical: false }, { time: 'T-0s ⚠️ 碰撞', desc: '碰撞发生，车�?<strong>20 km/h</strong>', source: '车端数据', critical: true }, { time: 'T+5s', desc: '安全员接�?, source: '车端模式', critical: false }], keyData: [['制动响应时间','2.0 s','�?.0 s','+100%','异常'],['瞬时减速度峰�?,'9.8 m/s²','�?1.0 m/s²','-10.9%','偏低']] },
+            'acc002': { id: 'ACC-2026-0507-015', time: '2026-05-07 08:15:42', loc: '襄城区檀溪路与铁佛寺路交叉口', type: '碰撞', typeClass: 'tag-orange', vehicles: '鄂F·C3456（手动） / 鄂F·D7890', casualty: '重伤1�?/ 无死�?, timeline: [{ time: 'T-30s', desc: '车辆手动驾驶，速度 <strong>62 km/h</strong>', source: '车端数据', critical: false }, { time: 'T-5s', desc: '驾驶员急刹', source: '车端数据', critical: false }, { time: 'T-0s ⚠️ 碰撞', desc: '侧面碰撞，车�?<strong>28 km/h</strong>', source: '车端数据', critical: true }], keyData: [['制动响应时间','1.2 s','�?.0 s','+20%','偏慢']] },
+            'acc003': { id: 'ACC-2026-0506-022', time: '2026-05-06 19:48:03', loc: '襄州区航空路与金富士路交叉口', type: '行人冲突', typeClass: 'tag-purple', vehicles: '鄂F·E9012（自动驾驶）', casualty: '行人轻伤1�?, timeline: [{ time: 'T-10s', desc: '路侧检测到行人闯红�?, source: '路侧激光雷�?, critical: false }, { time: 'T-3s', desc: 'AD系统紧急制�?, source: '车端数据', critical: false }, { time: 'T-0s ⚠️ 碰撞', desc: '与行人发生冲�?, source: '车端数据', critical: true }], keyData: [['制动响应时间','0.8 s','�?.0 s','正常','正常']] },
+            'acc004': { id: 'ACC-2026-0505-008', time: '2026-05-05 11:22:30', loc: '樊城区人民路天元四季城前', type: '刮擦', typeClass: 'tag-blue', vehicles: '鄂F·F4567（自动驾驶） / 鄂F·G8901', casualty: '无伤�?, timeline: [{ time: 'T-8s', desc: '路侧监测到右侧车辆变�?, source: '路侧激光雷�?, critical: false }, { time: 'T-0s ⚠️ 刮擦', desc: '右侧刮擦', source: '车端数据', critical: true }], keyData: [['变道预警时间','1.5 s','�?.0 s','-25%','偏低']] },
+            'acc005': { id: 'ACC-2026-0504-031', time: '2026-05-04 17:05:18', loc: '谷城县建设路与银城大道交叉口', type: '追尾', typeClass: 'tag-red', vehicles: '鄂F·H2345（手动） / 鄂F·I6789', casualty: '轻伤2�?, timeline: [{ time: 'T-6s', desc: '前车突然减�?, source: '路侧激光雷�?, critical: false }, { time: 'T-0s ⚠️ 追尾', desc: '追尾碰撞', source: '车端数据', critical: true }], keyData: [['安全距离','15 m','�?0 m','-50%','异常']] },
+            'acc006': { id: 'ACC-2026-0503-012', time: '2026-05-03 09:12:05', loc: '襄城区檀溪路中段', type: '追尾', typeClass: 'tag-red', vehicles: '鄂F·J5678 / 鄂F·K8901', casualty: '轻伤1�?, timeline: [{ time: 'T-4s', desc: '前车急刹', source: '车端数据', critical: false }, { time: 'T-0s ⚠️ 追尾', desc: '追尾', source: '车端数据', critical: true }], keyData: [['制动响应','1.8 s','�?.0 s','+80%','异常']] },
+            'acc007': { id: 'ACC-2026-0502-045', time: '2026-05-02 16:40:22', loc: '樊城区长虹路万达广场�?, type: '刮擦', typeClass: 'tag-blue', vehicles: '鄂F·L1234 / 鄂F·M5678', casualty: '无伤�?, timeline: [{ time: 'T-2s', desc: '变道未打�?, source: '路侧数据', critical: false }, { time: 'T-0s ⚠️ 刮擦', desc: '侧面刮擦', source: '车端数据', critical: true }], keyData: [['变道预警','�?,'�?,'缺失','异常']] },
+        };
+
+        // District accident list mock
+        const districtAccidents = {
+            '樊城�?: [
+                { id: 'acc001', time: '2026-05-08 14:32', loc: '长虹路与建华路交叉口', type: '追尾', vehicles: '鄂F·A1234 / 鄂F·B5678' },
+                { id: 'acc007', time: '2026-05-02 16:40', loc: '长虹路万达广场前', type: '刮擦', vehicles: '鄂F·L1234 / 鄂F·M5678' },
+                { id: 'acc004', time: '2026-05-05 11:22', loc: '人民路天元四季城�?, type: '刮擦', vehicles: '鄂F·F4567 / 鄂F·G8901' },
+            ],
+            '襄城�?: [
+                { id: 'acc002', time: '2026-05-07 08:15', loc: '檀溪路与铁佛寺路交叉口', type: '碰撞', vehicles: '鄂F·C3456 / 鄂F·D7890' },
+                { id: 'acc006', time: '2026-05-03 09:12', loc: '檀溪路中段', type: '追尾', vehicles: '鄂F·J5678 / 鄂F·K8901' },
+            ],
+            '襄州�?: [
+                { id: 'acc003', time: '2026-05-06 19:48', loc: '航空路与金富士路交叉�?, type: '行人冲突', vehicles: '鄂F·E9012' },
+            ],
+            '南漳�?: [],
+            '谷城�?: [
+                { id: 'acc005', time: '2026-05-04 17:05', loc: '建设路与银城大道交叉�?, type: '追尾', vehicles: '鄂F·H2345 / 鄂F·I6789' },
+            ],
+        };
+
+        // ==================== Tab Switching ====================
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-tab');
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tabContents.forEach(tc => tc.classList.remove('active'));
+                document.getElementById(targetId).classList.add('active');
+                setTimeout(resizeAllCharts, 100);
+            });
+        });
+
+        function switchToSingleTab(accidentId) {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-tab="tab-single"]').classList.add('active');
+            tabContents.forEach(tc => tc.classList.remove('active'));
+            document.getElementById('tab-single').classList.add('active');
+            if (accidentId) {
+                const li = document.querySelector(`#accidentList li[data-accident="${accidentId}"]`);
+                if (li) selectAccident(li);
+            }
+            setTimeout(resizeAllCharts, 150);
+        }
+
+        // ==================== Toast ====================
+        function showToast(msg) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = '�?' + msg;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 2500);
+        }
+
+        // ==================== Charts ====================
+        const chartInstances = {};
+        function initChart(id) {
+            const dom = document.getElementById(id);
+            if (!dom) return null;
+            if (chartInstances[id]) chartInstances[id].dispose();
+            const chart = echarts.init(dom);
+            chartInstances[id] = chart;
+            return chart;
+        }
+        function resizeAllCharts() {
+            Object.values(chartInstances).forEach(c => { if (c && !c.isDisposed()) c.resize(); });
+        }
+
+        function renderDistrictPie() {
+            const chart = initChart('chartDistrictPie');
+            if (!chart) return;
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                legend: { bottom: 0 },
+                series: [{ type: 'pie', radius: ['55%','78%'], center: ['50%','48%'], itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 3 }, data: [{ value: 606, name: '行为因素', itemStyle: { color: '#f5222d' } },{ value: 274, name: '车辆因素', itemStyle: { color: '#fa8c16' } },{ value: 212, name: '道路因素', itemStyle: { color: '#1890ff' } },{ value: 155, name: '环境因素', itemStyle: { color: '#722ed1' } }] }],
+            });
+        }
+        function renderDistrictBar() {
+            const chart = initChart('chartDistrictBar');
+            if (!chart) return;
+            const cats = ['未按规定让行','制动响应延迟','超速行�?,'视距不足','恶劣天气','行人违规横穿','制动效能不足','信号违规','车道偏离','疲劳驾驶'];
+            const vals = [198,156,134,118,95,82,71,58,45,39];
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 100, right: 60 },
+                xAxis: { type: 'value' },
+                yAxis: { type: 'category', data: cats.reverse(), inverse: true },
+                series: [{ type: 'bar', data: vals.reverse().map(v => ({ value: v, itemStyle: { color: new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#1890ff'},{offset:1,color:'#69c0ff'}]) }})), barWidth: 18, label: { show: true, position: 'right', formatter: '{c}�? } }],
+            });
+        }
+        function renderDistrictHeatmap() {
+            const chart = initChart('chartDistrictHeatmap');
+            if (!chart) return;
+            const areas = [{ name:'樊城�?, cx:112.14, cy:32.04, r:28, cnt:386 },{ name:'襄城�?, cx:112.10, cy:31.98, r:22, cnt:298 },{ name:'襄州�?, cx:112.20, cy:32.08, r:18, cnt:215 },{ name:'南漳�?, cx:111.85, cy:31.78, r:14, cnt:178 },{ name:'谷城�?, cx:111.65, cy:32.10, r:13, cnt:170 }];
+            const data = [];
+            areas.forEach(a => { for(let i=0;i<Math.min(a.cnt,200);i++){ const ang=Math.random()*Math.PI*2; const dist=Math.random()*a.r*0.018; data.push([a.cx+Math.cos(ang)*dist, a.cy+Math.sin(ang)*dist, Math.random()*a.cnt/10+2]); } });
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                xAxis: { type: 'value', name: '经度', min: 111.55, max: 112.35 },
+                yAxis: { type: 'value', name: '纬度', min: 31.68, max: 32.20 },
+                visualMap: { min:0, max:40, orient:'horizontal', left:'center', bottom:0, inRange:{ color:['#bae7ff','#1890ff','#f5222d','#8c0000'] } },
+                series: [{ type: 'scatter', data: data, symbolSize: val => Math.min(val[2]*1.2,18) }],
+                graphic: areas.map(a => ({ type: 'text', left: ((a.cx-111.55)/0.8*100)+'%', top: ((32.20-a.cy)/0.52*100)+'%', style: { text: a.name, fill: '#262626', fontSize: 13, fontWeight: 'bold' } })),
+            });
+        }
+
+        function renderRoadPie() {
+            const chart = initChart('chartRoadPie');
+            if (!chart) return;
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                legend: { bottom: 0 },
+                series: [{ type: 'pie', radius: ['50%','75%'], center: ['50%','46%'], itemStyle: { borderRadius: 5 }, data: [{ value: 38, name: '行为因素', itemStyle: { color: '#f5222d' } },{ value: 20, name: '车辆因素', itemStyle: { color: '#fa8c16' } },{ value: 25, name: '道路因素', itemStyle: { color: '#1890ff' } },{ value: 12, name: '环境因素', itemStyle: { color: '#722ed1' } }] }],
+            });
+        }
+
+        function renderRoadScatter(param = 'curvature') {
+            const chart = initChart('chartRoadScatter');
+            if (!chart) return;
+            const paramMap = {
+                curvature: { name: '曲率（°）', data: [0.8,1.5,2.1,3.0,3.8,4.5,5.2,6.0,7.1,8.3,9.5,10.2,11.0,12.5,14.0] },
+                slope: { name: '坡度�?�?, data: [0.5,1.0,1.8,2.5,3.2,4.0,4.8,5.5,6.2,7.0,7.8,8.5,9.2,10.0,11.5] },
+                laneWidth: { name: '车道宽度（m�?, data: [2.8,3.0,3.2,3.3,3.5,3.6,3.8,4.0,4.2,4.5,4.8,5.0,5.2,5.5,6.0] },
+            };
+            const p = paramMap[param] || paramMap.curvature;
+            const accidents = [1,2,3,5,7,9,12,15,18,22,25,28,30,33,35];
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                xAxis: { type: 'value', name: p.name },
+                yAxis: { type: 'value', name: '事故数（起）' },
+                series: [{ type: 'scatter', data: p.data.map((v,i) => [v, accidents[i]]), symbolSize: val => Math.sqrt(val[1])*6+8, itemStyle: { color: '#ff4d4f' } }],
+            });
+        }
+
+        function renderRoadFlow() {
+            const chart = initChart('chartRoadFlow');
+            if (!chart) return;
+            const hours = ['00:00','02:00','04:00','06:00','08:00','10:00','12:00','14:00','16:00','18:00','20:00','22:00'];
+            const flow = [120,80,60,350,850,720,680,780,920,1050,650,280];
+            const accidents = [2,1,0,5,18,10,8,11,14,20,9,4];
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { bottom: 0, data: ['交通流�?,'事故�?] },
+                grid: { left: 50, right: 50, bottom: 35 },
+                xAxis: { type: 'category', data: hours },
+                yAxis: [{ type: 'value', name: '流量(�?h)' }, { type: 'value', name: '事故�?�?' }],
+                series: [
+                    { name: '交通流�?, type: 'bar', data: flow, itemStyle: { color: '#91caff' }, yAxisIndex: 0 },
+                    { name: '事故�?, type: 'line', data: accidents, yAxisIndex: 1, itemStyle: { color: '#f5222d' } },
+                ],
+            });
+        }
+
+        function renderRoadHeatmapTime() {
+            const chart = initChart('chartRoadHeatmapTime');
+            if (!chart) return;
+            const weekdays = ['周一','周二','周三','周四','周五','周六','周日'];
+            const hours24 = Array.from({length:24},(_,i)=>i+'�?);
+            const data = [];
+            for(let d=0;d<7;d++) for(let h=0;h<24;h++) {
+                let val=0;
+                if(h>=7&&h<=9) val=8+Math.random()*10;
+                else if(h>=16&&h<=19) val=10+Math.random()*14;
+                else if(h>=22||h<=5) val=Math.random()*2;
+                else val=4+Math.random()*6;
+                if(d>=5) val*=0.8;
+                data.push([h,d,Math.round(val*10)/10]);
+            }
+            chart.setOption({
+                tooltip: { position:'top' },
+                grid: { left:60, right:30, bottom:25 },
+                xAxis: { type:'category', data: hours24 },
+                yAxis: { type:'category', data: weekdays },
+                visualMap: { min:0, max:18, orient:'horizontal', left:'center', bottom:0, inRange:{ color:['#e6f7ff','#91d5ff','#1890ff','#096dd9','#003a8c'] } },
+                series: [{ type:'heatmap', data: data }],
+            });
+        }
+
+        function renderSinglePie() {
+            const chart = initChart('chartSinglePie');
+            if (!chart) return;
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                legend: { bottom: 0 },
+                series: [{ type: 'pie', radius: ['50%','76%'], center: ['50%','46%'], itemStyle: { borderRadius: 6 }, data: [{ value: 38, name: '行为因素', itemStyle: { color: '#f5222d' } },{ value: 22, name: '车辆因素', itemStyle: { color: '#fa8c16' } },{ value: 18, name: '道路因素', itemStyle: { color: '#1890ff' } },{ value: 22, name: '环境因素', itemStyle: { color: '#722ed1' } }] }],
+            });
+        }
+
+        // ==================== District Accident List ====================
+        function showDistrictAccidents(district) {
+            const list = districtAccidents[district] || [];
+            const tbody = document.getElementById('districtAccidentListBody');
+            tbody.innerHTML = list.map(a => `<tr><td>${a.id}</td><td>${a.time}</td><td>${a.loc}</td><td>${a.type}</td><td>${a.vehicles}</td><td><button class="btn btn-link btn-sm" onclick="switchToSingleTab('${a.id}')">单起分析</button></td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:#8c8c8c;">该区域暂无事故记�?/td></tr>';
+            document.getElementById('districtAccidentListTitle').textContent = `📄 ${district} - 事故列表`;
+            document.getElementById('districtAccidentListPanel').style.display = 'block';
+        }
+        document.querySelectorAll('.district-detail-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const row = btn.closest('tr');
+                const district = row.getAttribute('data-district');
+                if (district) showDistrictAccidents(district);
+            });
+        });
+        document.querySelectorAll('.district-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+                const district = this.getAttribute('data-district');
+                if (district) showDistrictAccidents(district);
+            });
+        });
+
+        // ==================== Road List ====================
+        function selectRoad(li) {
+            document.querySelectorAll('#roadList li').forEach(l => l.classList.remove('active'));
+            li.classList.add('active');
+            const road = li.getAttribute('data-road');
+            const info = roadDataMap[road] || roadDataMap['长虹�?];
+            document.getElementById('roadInfoCards').innerHTML = `
+                <div class="info-card-mini"><div class="ic-val">${info.name}</div><div class="ic-label">道路名称</div></div>
+                <div class="info-card-mini"><div class="ic-val">${info.grade}</div><div class="ic-label">等级</div></div>
+                <div class="info-card-mini"><div class="ic-val">${info.lanes}</div><div class="ic-label">车道�?/div></div>
+                <div class="info-card-mini"><div class="ic-val">${info.length}</div><div class="ic-label">路段长度</div></div>
+                <div class="info-card-mini"><div class="ic-val">${info.rsu}</div><div class="ic-label">RSU覆盖�?/div></div>
+                <div class="info-card-mini"><div class="ic-val">${info.density}</div><div class="ic-label">交叉口密�?/div></div>
+            `;
+            showToast(`已切换至道路�?{road}`);
+        }
+        function filterRoadList() {
+            const keyword = document.getElementById('roadSearchInput').value.toLowerCase();
+            document.querySelectorAll('#roadList li').forEach(li => {
+                const text = li.textContent.toLowerCase();
+                li.style.display = text.includes(keyword) ? '' : 'none';
+            });
+        }
+
+        // ==================== Accident List (Single Tab) ====================
+        function selectAccident(li) {
+            document.querySelectorAll('#accidentList li').forEach(l => l.classList.remove('active'));
+            li.classList.add('active');
+            const id = li.getAttribute('data-accident');
+            const d = accidentDetailMap[id] || accidentDetailMap['acc001'];
+            document.getElementById('detailId').textContent = d.id;
+            document.getElementById('detailTime').textContent = d.time;
+            document.getElementById('detailLoc').textContent = d.loc;
+            document.getElementById('detailType').textContent = d.type;
+            document.getElementById('detailType').className = 'tag ' + d.typeClass;
+            document.getElementById('detailVehicles').textContent = d.vehicles;
+            document.getElementById('detailCasualty').textContent = d.casualty;
+            document.getElementById('timelineList').innerHTML = d.timeline.map(t => `<li class="timeline-item${t.critical?' critical':''}"><div class="tl-time">${t.time}</div><div class="tl-desc">${t.desc}</div><div class="tl-source">来源�?{t.source}</div></li>`).join('');
+            const keyTbody = document.getElementById('keyDataTableBody');
+            keyTbody.innerHTML = (d.keyData || []).map(k => `<tr><td>${k[0]}</td><td>${k[1]}</td><td>${k[2]}</td><td style="color:${k[4]==='异常'?'#f5222d':'#595959'}">${k[3]}</td><td><span class="tag ${k[4]==='异常'?'tag-red':'tag-green'}">${k[4]}</span></td></tr>`).join('');
+            renderSinglePie();
+            showToast('已加载事故：' + d.id);
+        }
+        function filterAccidentList() {
+            const keyword = document.getElementById('accidentSearchInput').value.toLowerCase();
+            document.querySelectorAll('#accidentList li').forEach(li => {
+                const text = li.textContent.toLowerCase();
+                li.style.display = text.includes(keyword) ? '' : 'none';
+            });
+        }
+
+        // ==================== Road Scatter Update ====================
+        function updateRoadScatter() {
+            const sel = document.getElementById('roadParamSelect');
+            renderRoadScatter(sel.value);
+        }
+
+        // ==================== Initialize ====================
+        function initAll() {
+            renderDistrictPie();
+            renderDistrictBar();
+            renderDistrictHeatmap();
+            renderRoadPie();
+            renderRoadScatter();
+            renderRoadFlow();
+            renderRoadHeatmapTime();
+            renderSinglePie();
+            // Default load first accident timeline
+            selectAccident(document.querySelector('#accidentList li.active'));
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            initAll();
+            window.addEventListener('resize', () => { clearTimeout(window._resizeTimer); window._resizeTimer = setTimeout(resizeAllCharts, 200); });
+        });
+    </script>
+</body>
+</html>

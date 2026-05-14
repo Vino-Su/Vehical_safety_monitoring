@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>监控一张图 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/AMap.JSAPI.Driving/1.4.4/AMap.Driving.min.css">
+  <style>
+    .amap-logo,.amap-copyright{display:none!important}
+    .layer-switch{position:relative;display:inline-block;width:36px;height:20px}
+    .layer-switch input{opacity:0;width:0;height:0}
+    .layer-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#d9d9d9;border-radius:20px;transition:.3s}
+    .layer-slider:before{content:"";position:absolute;height:16px;width:16px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s}
+    .layer-switch input:checked+.layer-slider{background:#1677ff}
+    .layer-switch input:checked+.layer-slider:before{transform:translateX(16px)}
+    .vehicle-marker{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer;border:2px solid #fff;transition:transform .2s}
+    .vehicle-marker:hover{transform:scale(1.2)}
+    .vehicle-marker.auto{background:#1677ff}
+    .vehicle-marker.manual{background:#52c41a}
+    .vehicle-marker.testing{background:#722ed1}
+    .vehicle-marker.alarm{background:#ff4d4f;animation:pulse-alarm 1s infinite}
+    .vehicle-marker.offline{background:#d9d9d9;color:#999}
+    @keyframes pulse-alarm{0%,100%{box-shadow:0 0 0 0 rgba(255,77,79,.4)}50%{box-shadow:0 0 0 8px rgba(255,77,79,0)}}
+    .alarm-badge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;line-height:16px;text-align:center;background:#ff4d4f;color:#fff;font-size:10px;border-radius:8px;padding:0 4px;font-weight:600}
+    .accident-marker{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);background:#faad14}
+    .info-window{background:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:16px;min-width:280px;max-width:360px;font-size:13px}
+    .info-window .iw-title{font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #f0f0f0}
+    .info-window .iw-row{display:flex;justify-content:space-between;padding:3px 0}
+    .info-window .iw-label{color:#00000073}
+    .info-window .iw-value{color:#000000d9;font-weight:500}
+    .info-window .iw-actions{margin-top:10px;padding-top:8px;border-top:1px solid #f0f0f0;display:flex;gap:8px;flex-wrap:wrap}
+    .info-window .iw-close{position:absolute;top:8px;right:8px;cursor:pointer;color:#00000040;font-size:16px;line-height:1}
+    .info-window .iw-close:hover{color:#000000d9}
+    .fence-label{background:rgba(22,119,255,.12);border:2px dashed #1677ff;border-radius:4px;padding:4px 8px;font-size:11px;color:#1677ff;white-space:nowrap}
+    .fence-label.forbidden{background:rgba(255,77,79,.1);border-color:#ff4d4f;color:#ff4d4f}
+    .fence-label.speed{background:rgba(250,173,20,.1);border-color:#faad14;color:#faad14}
+    .road-open{stroke:#52c41a;stroke-width:4;stroke-opacity:.7}
+    .road-paused{stroke:#faad14;stroke-width:4;stroke-opacity:.7;stroke-dasharray:8 4}
+    .road-closed{stroke:#ff4d4f;stroke-width:4;stroke-opacity:.7;stroke-dasharray:4 4}
+    .facility-marker{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+    .facility-marker.charger{background:#52c41a;color:#fff}
+    .facility-marker.signal{background:#722ed1;color:#fff}
+    .facility-marker.sensor{background:#1677ff;color:#fff}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-hidden bg-[#f0f2f5] flex flex-col" style="padding:16px 24px 24px">
+      <div class="grid grid-cols-4 gap-4 mb-4" style="flex-shrink:0">
+        <div class="stat-card"><div class="stat-icon" style="background:#e6f4ff;color:#1677ff">🚗</div><div class="stat-info"><div class="stat-value" id="statOnline">186</div><div class="stat-label">在线车辆 / 总计480辆</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fff2f0;color:#ff4d4f">🚨</div><div class="stat-info"><div class="stat-value" id="statAlarm">7</div><div class="stat-label">今日告警总数（严重2/一般5）</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fff7e6;color:#fa8c16">⚠</div><div class="stat-info"><div class="stat-value" id="statAccident">1</div><div class="stat-label">当日事故数量</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#f6ffed;color:#52c41a">🤖</div><div class="stat-info"><div class="stat-value" id="statAuto">142</div><div class="stat-label">自动驾驶模式车辆数</div></div></div>
+      </div>
+      <div class="flex-1 flex gap-4 min-h-0">
+        <div class="flex-1 card p-0 overflow-hidden relative" style="min-height:0">
+          <div id="mapContainer" class="w-full h-full"></div>
+          <div class="absolute top-3 left-3 z-20 flex gap-2">
+            <button class="ant-btn bg-white shadow-md text-sm" onclick="toggleLayerPanel()" style="height:32px;padding:0 12px">☰ 图层控制</button>
+            <button class="ant-btn bg-white shadow-md text-sm" onclick="toggleBaseMap()" style="height:32px;padding:0 12px" id="btnBaseMap">🗺 切换卫星</button>
+          </div>
+          <div id="layerPanel" class="absolute top-12 left-3 bg-white rounded-lg shadow-lg z-30" style="width:260px;display:none;max-height:calc(100% - 60px);overflow-y:auto">
+            <div class="flex items-center justify-between p-4 pb-2">
+              <h4 class="text-sm font-semibold text-[#000000d9]">图层控制</h4>
+              <button class="text-[#00000040] hover:text-[#000000d9] text-lg leading-none" onclick="toggleLayerPanel()">×</button>
+            </div>
+            <div class="px-4 pb-4 space-y-3">
+              <div class="flex items-center justify-between"><span class="text-sm">车辆实时位置</span><label class="layer-switch"><input type="checkbox" checked onchange="toggleLayer('vehicles',this.checked)"><span class="layer-slider"></span></label></div>
+              <div class="flex items-center justify-between"><span class="text-sm">行驶轨迹</span><label class="layer-switch"><input type="checkbox" onchange="toggleLayer('trajectory',this.checked)"><span class="layer-slider"></span></label></div>
+              <div class="flex items-center justify-between"><span class="text-sm">告警信息</span><label class="layer-switch"><input type="checkbox" checked onchange="toggleLayer('alarms',this.checked)"><span class="layer-slider"></span></label></div>
+              <div class="flex items-center justify-between"><span class="text-sm">事故点位</span><label class="layer-switch"><input type="checkbox" checked onchange="toggleLayer('accidents',this.checked)"><span class="layer-slider"></span></label></div>
+              <div class="flex items-center justify-between"><span class="text-sm">电子围栏</span><label class="layer-switch"><input type="checkbox" onchange="toggleLayer('fences',this.checked)"><span class="layer-slider"></span></label></div>
+              <div class="flex items-center justify-between"><span class="text-sm">开放道路</span><label class="layer-switch"><input type="checkbox" checked onchange="toggleLayer('roads',this.checked)"><span class="layer-slider"></span></label></div>
+              <div class="flex items-center justify-between"><span class="text-sm">设施设备</span><label class="layer-switch"><input type="checkbox" onchange="toggleLayer('facilities',this.checked)"><span class="layer-slider"></span></label></div>
+              <div class="flex items-center justify-between"><span class="text-sm">历史事故</span><label class="layer-switch"><input type="checkbox" onchange="toggleLayer('historyAccidents',this.checked)"><span class="layer-slider"></span></label></div>
+            </div>
+            <div class="px-4 pb-4 pt-2 border-t border-[#f0f0f0]">
+              <div class="text-xs text-[#00000073] mb-2">快捷操作</div>
+              <div class="flex gap-2">
+                <button class="ant-btn flex-1 text-xs" style="height:28px" onclick="toggleLayerPanel();openTrajectoryModal()">历史轨迹回放</button>
+                <button class="ant-btn flex-1 text-xs" style="height:28px" onclick="toggleLayerPanel();openFenceModal()">围栏管理</button>
+              </div>
+            </div>
+          </div>
+          <div class="absolute bottom-3 left-3 bg-white/95 rounded-lg shadow p-3 z-10" style="width:160px">
+            <h4 class="text-xs font-semibold text-[#000000d9] mb-2">图例说明</h4>
+            <div class="space-y-1.5 text-xs">
+              <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-[#1677ff]"></span>自动驾驶模式</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-[#52c41a]"></span>人工驾驶模式</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-[#722ed1]"></span>测试中车辆</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-[#ff4d4f]"></span>故障/告警车辆</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded bg-[#faad14]"></span>事故点位</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-[#52c41a]"></span>开放道路</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-[#faad14]" style="border-top:1px dashed #faad14"></span>暂停道路</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-[#ff4d4f]" style="border-top:1px dashed #ff4d4f"></span>关闭道路</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded border-2 border-dashed border-[#1677ff] bg-[#1677ff20]"></span>电子围栏</div>
+              <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded bg-[#52c41a] text-white text-[8px] flex items-center justify-center">⚡</span>充电桩</div>
+            </div>
+          </div>
+        </div>
+        <div class="card flex flex-col" style="width:420px;min-width:380px;max-width:460px">
+          <div class="p-4 border-b border-[#f0f0f0]" style="flex-shrink:0">
+            <h4 class="text-sm font-semibold text-[#000000d9] mb-3">车辆运行列表</h4>
+            <div class="flex flex-wrap gap-2">
+              <select id="filterCompany" class="ant-input" style="width:120px;font-size:12px" onchange="filterVehicles()"><option value="all">全部企业</option><option>襄阳智行科技</option><option>东风汽车</option><option>百度Apollo</option><option>华为技术</option><option>小马智行</option></select>
+              <select id="filterStatus" class="ant-input" style="width:90px;font-size:12px" onchange="filterVehicles()"><option value="all">全部状态</option><option value="online">在线</option><option value="offline">离线</option><option value="alarm">告警</option></select>
+              <select id="filterMode" class="ant-input" style="width:100px;font-size:12px" onchange="filterVehicles()"><option value="all">全部模式</option><option value="auto">自动驾驶</option><option value="manual">人工驾驶</option></select>
+            </div>
+            <div class="mt-2 relative">
+              <input id="searchInput" class="ant-input" placeholder="输入车牌号或VIN搜索" style="font-size:12px;padding-right:32px" oninput="filterVehicles()">
+              <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#00000040]" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto">
+            <table class="ant-table" style="width:100%">
+              <thead><tr><th>车牌号</th><th>企业</th><th>模式</th><th>速度</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody id="vehicleTableBody"></tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-2 border-t border-[#f0f0f0]" style="flex-shrink:0">
+            <span class="text-xs text-[#00000073]">共 <b id="vehicleTotal">0</b> 辆</span>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-1.5 text-xs text-[#00000073]">
+                <span>每页显示</span>
+                <select id="vehiclePageSize" class="ant-input" style="width:56px;height:24px;font-size:12px;padding:0 6px" onchange="vehiclePageSize=parseInt(this.value);renderVehicleTable(1)">
+                  <option value="10" selected>10</option><option value="20">20</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination flex items-center gap-1">
+                <span class="page-item cursor-pointer" id="vPrevBtn" onclick="vehiclePage>1&&renderVehicleTable(vehiclePage-1)" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&lt;</span>
+                <span class="page-item active" id="vCurrPage" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">1</span>
+                <span class="page-item cursor-pointer" id="vNextBtn" onclick="vehiclePage<vehicleTotalPages&&renderVehicleTable(vehiclePage+1)" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&gt;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../common.js"></script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=6b7e1e0c7a6d4a8e9c0b3f2d1e5a7c9b"></script>
+<script>
+var PAGE_ID='monitor-map';
+var map,vehicleOverlays=[],trajectoryLine,alarmOverlays=[],accidentOverlays=[],fenceOverlays=[],roadOverlays=[],facilityOverlays=[],historyAccidentOverlays=[];
+var currentInfoWindow=null;
+var vehiclePage=1,vehiclePageSize=10,vehicleTotalPages=1;
+var isSatellite=false,satelliteLayer;
+var filteredVehicleData=[];
+var selectedVehicleId=null;
+
+var vehicleData=[
+  {id:'V001',plate:'鄂F·A001',company:'襄阳智行科技',mode:'auto',speed:45,level:'L3',status:'online',lon:112.144,lat:32.042,vin:'LSVAA4189N2000001',heading:128,gear:'D',lastTime:'2026-05-11 14:32:15',alarms:0},
+  {id:'V002',plate:'鄂F·A002',company:'襄阳智行科技',mode:'auto',speed:28,level:'L3',status:'online',lon:112.152,lat:32.038,vin:'LSVAA4189N2000002',heading:85,gear:'D',lastTime:'2026-05-11 14:32:10',alarms:0},
+  {id:'V003',plate:'鄂F·B003',company:'东风汽车',mode:'auto',speed:32,level:'L4',status:'online',lon:112.138,lat:32.048,vin:'LSVAA4189N2000003',heading:210,gear:'D',lastTime:'2026-05-11 14:32:08',alarms:0},
+  {id:'V004',plate:'鄂F·C007',company:'华为技术',mode:'manual',speed:58,level:'L3',status:'online',lon:112.158,lat:32.035,vin:'LSVAA4189N2000004',heading:320,gear:'D',lastTime:'2026-05-11 14:31:55',alarms:0},
+  {id:'V005',plate:'鄂F·D010',company:'百度Apollo',mode:'auto',speed:15,level:'L4',status:'alarm',lon:112.146,lat:32.052,vin:'LSVAA4189N2000005',heading:45,gear:'D',lastTime:'2026-05-11 14:32:20',alarms:2,alarmList:['CAN通信丢失(P0700) 13:45','SOC低于阈值(12%) 14:28']},
+  {id:'V006',plate:'鄂F·E005',company:'襄阳智行科技',mode:'manual',speed:0,level:'L3',status:'offline',lon:112.135,lat:32.030,vin:'LSVAA4189N2000006',heading:0,gear:'P',lastTime:'2026-05-11 10:15:00',alarms:0},
+  {id:'V007',plate:'鄂F·B002',company:'东风汽车',mode:'manual',speed:0,level:'L4',status:'offline',lon:112.160,lat:32.055,vin:'LSVAA4189N2000007',heading:0,gear:'P',lastTime:'2026-05-11 09:30:00',alarms:0},
+  {id:'V008',plate:'鄂F·F012',company:'小马智行',mode:'auto',speed:52,level:'L4',status:'online',lon:112.150,lat:32.045,vin:'LSVAA4189N2000008',heading:170,gear:'D',lastTime:'2026-05-11 14:32:18',alarms:0},
+  {id:'V009',plate:'鄂F·G023',company:'百度Apollo',mode:'auto',speed:38,level:'L3',status:'online',lon:112.142,lat:32.036,vin:'LSVAA4189N2000009',heading:260,gear:'D',lastTime:'2026-05-11 14:32:05',alarms:0},
+  {id:'V010',plate:'鄂F·H034',company:'华为技术',mode:'manual',speed:42,level:'L3',status:'online',lon:112.155,lat:32.040,vin:'LSVAA4189N2000010',heading:90,gear:'D',lastTime:'2026-05-11 14:31:50',alarms:0},
+  {id:'V011',plate:'鄂F·I045',company:'襄阳智行科技',mode:'auto',speed:55,level:'L4',status:'online',lon:112.148,lat:32.058,vin:'LSVAA4189N2000011',heading:180,gear:'D',lastTime:'2026-05-11 14:32:12',alarms:0},
+  {id:'V012',plate:'鄂F·J056',company:'东风汽车',mode:'auto',speed:22,level:'L3',status:'alarm',lon:112.136,lat:32.044,vin:'LSVAA4189N2000012',heading:350,gear:'D',lastTime:'2026-05-11 14:32:01',alarms:1,alarmList:['电子围栏越界 14:10']},
+  {id:'V013',plate:'鄂F·K067',company:'小马智行',mode:'auto',speed:48,level:'L4',status:'online',lon:112.162,lat:32.042,vin:'LSVAA4189N2000013',heading:120,gear:'D',lastTime:'2026-05-11 14:32:16',alarms:0},
+  {id:'V014',plate:'鄂F·L078',company:'百度Apollo',mode:'manual',speed:0,level:'L3',status:'offline',lon:112.140,lat:32.028,vin:'LSVAA4189N2000014',heading:0,gear:'P',lastTime:'2026-05-11 08:00:00',alarms:0},
+  {id:'V015',plate:'鄂F·M089',company:'华为技术',mode:'auto',speed:35,level:'L3',status:'online',lon:112.153,lat:32.050,vin:'LSVAA4189N2000015',heading:55,gear:'D',lastTime:'2026-05-11 14:31:45',alarms:0}
+];
+
+var accidentData=[
+  {id:'ACC-001',time:'2026-05-11 09:15',lon:112.147,lat:32.041,plate:'鄂F·D010',type:'追尾',severity:'轻伤',desc:'车辆在长虹路与建华路交叉口发生追尾事故'},
+  {id:'ACC-002',time:'2026-04-28 14:30',lon:112.155,lat:32.037,plate:'鄂F·A001',type:'刮擦',severity:'无伤亡',desc:'车辆在檀溪路与铁佛寺路交叉口发生刮擦'},
+  {id:'ACC-003',time:'2026-04-15 11:20',lon:112.140,lat:32.053,plate:'鄂F·B003',type:'碰撞',severity:'重伤',desc:'车辆在航空路与金富士路交叉口发生碰撞事故'}
+];
+
+var fenceData=[
+  {name:'樊城区-高新区测试路段',type:'允许区域',lon:112.144,lat:32.044,radius:1200,enabled:true},
+  {name:'襄城环线路段',type:'允许区域',lon:112.135,lat:32.032,radius:800,enabled:true},
+  {name:'襄州区禁止驶入区域',type:'禁止区域',lon:112.160,lat:32.055,radius:600,enabled:false},
+  {name:'高新区限速区域',type:'限速区域',lon:112.150,lat:32.048,radius:500,enabled:true,speed:30}
+];
+
+var roadData=[
+  {name:'长虹路测试段',status:'open',path:[[112.130,32.040],[112.145,32.040],[112.158,32.040]]},
+  {name:'檀溪路测试段',status:'open',path:[[112.140,32.030],[112.140,32.042],[112.140,32.055]]},
+  {name:'东风试验场段',status:'paused',path:[[112.150,32.050],[112.160,32.050],[112.165,32.048]]},
+  {name:'老城区路段',status:'closed',path:[[112.155,32.035],[112.162,32.035],[112.168,32.033]]}
+];
+
+var facilityData=[
+  {name:'高新区充电站',type:'charger',lon:112.148,lat:32.046},
+  {name:'樊城区充电站',type:'charger',lon:112.138,lat:32.038},
+  {name:'长虹路信号灯',type:'signal',lon:112.142,lat:32.040},
+  {name:'檀溪路信号灯',type:'signal',lon:112.140,lat:32.044},
+  {name:'路侧传感器-A',type:'sensor',lon:112.145,lat:32.042},
+  {name:'路侧传感器-B',type:'sensor',lon:112.152,lat:32.038}
+];
+
+function initMap(){
+  map=new AMap.Map('mapContainer',{
+    center:[112.144,32.042],
+    zoom:14,
+    mapStyle:'amap://styles/normal',
+    resizeEnable:true
+  });
+  satelliteLayer=new AMap.TileLayer.Satellite();
+  loadAllLayers();
+}
+
+function loadAllLayers(){
+  loadVehicleLayer();
+  loadAlarmLayer();
+  loadAccidentLayer();
+  loadFenceLayer();
+  loadRoadLayer();
+  loadFacilityLayer();
+  loadHistoryAccidentLayer();
+}
+
+function getMarkerClass(v){
+  if(v.status==='alarm')return 'alarm';
+  if(v.status==='offline')return 'offline';
+  if(v.mode==='auto')return 'auto';
+  if(v.mode==='manual')return 'manual';
+  return 'testing';
+}
+
+function loadVehicleLayer(){
+  vehicleOverlays.forEach(function(m){map.remove(m)});
+  vehicleOverlays=[];
+  vehicleData.forEach(function(v){
+    var cls=getMarkerClass(v);
+    var content='<div class="vehicle-marker '+cls+'">'+v.plate.slice(-3)+'</div>';
+    if(v.alarms>0)content='<div style="position:relative"><div class="vehicle-marker '+cls+'">'+v.plate.slice(-3)+'</div><span class="alarm-badge">'+v.alarms+'</span></div>';
+    var marker=new AMap.Marker({
+      position:[v.lon,v.lat],
+      content:content,
+      offset:new AMap.Pixel(-14,-14),
+      zIndex:v.status==='alarm'?200:100,
+      extData:v
+    });
+    marker.on('click',function(){showVehicleInfo(v)});
+    vehicleOverlays.push(marker);
+  });
+  map.add(vehicleOverlays);
+}
+
+function loadAlarmLayer(){
+  alarmOverlays.forEach(function(m){map.remove(m)});
+  alarmOverlays=[];
+  vehicleData.filter(function(v){return v.status==='alarm'}).forEach(function(v){
+    var circle=new AMap.Circle({
+      center:[v.lon,v.lat],
+      radius:80,
+      strokeColor:'#ff4d4f',
+      strokeOpacity:0.6,
+      strokeWeight:2,
+      fillColor:'#ff4d4f',
+      fillOpacity:0.08,
+      zIndex:90
+    });
+    alarmOverlays.push(circle);
+  });
+  map.add(alarmOverlays);
+}
+
+function loadAccidentLayer(){
+  accidentOverlays.forEach(function(m){map.remove(m)});
+  accidentOverlays=[];
+  var today=accidentData.filter(function(a){return a.time.startsWith('2026-05-11')});
+  today.forEach(function(a){
+    var content='<div class="accident-marker">⚠</div>';
+    var marker=new AMap.Marker({
+      position:[a.lon,a.lat],
+      content:content,
+      offset:new AMap.Pixel(-14,-14),
+      zIndex:150,
+      extData:a
+    });
+    marker.on('click',function(){showAccidentInfo(a)});
+    accidentOverlays.push(marker);
+  });
+  map.add(accidentOverlays);
+}
+
+function loadHistoryAccidentLayer(){
+  historyAccidentOverlays.forEach(function(m){map.remove(m)});
+  historyAccidentOverlays=[];
+  var history=accidentData.filter(function(a){return !a.time.startsWith('2026-05-11')});
+  history.forEach(function(a){
+    var content='<div class="accident-marker" style="background:#d9d9d9;opacity:0.7">⚠</div>';
+    var marker=new AMap.Marker({
+      position:[a.lon,a.lat],
+      content:content,
+      offset:new AMap.Pixel(-14,-14),
+      zIndex:80,
+      extData:a
+    });
+    marker.on('click',function(){showAccidentInfo(a)});
+    historyAccidentOverlays.push(marker);
+  });
+  map.add(historyAccidentOverlays);
+}
+
+function loadFenceLayer(){
+  fenceOverlays.forEach(function(m){map.remove(m)});
+  fenceOverlays=[];
+  fenceData.forEach(function(f){
+    var strokeColor=f.type==='禁止区域'?'#ff4d4f':f.type==='限速区域'?'#faad14':'#1677ff';
+    var fillColor=f.type==='禁止区域'?'rgba(255,77,79,0.06)':f.type==='限速区域'?'rgba(250,173,20,0.06)':'rgba(22,119,255,0.06)';
+    var circle=new AMap.Circle({
+      center:[f.lon,f.lat],
+      radius:f.radius,
+      strokeColor:strokeColor,
+      strokeOpacity:0.8,
+      strokeWeight:2,
+      strokeStyle:'dashed',
+      fillColor:fillColor,
+      fillOpacity:1,
+      zIndex:50
+    });
+    var labelCls=f.type==='禁止区域'?'fence-label forbidden':f.type==='限速区域'?'fence-label speed':'fence-label';
+    var labelText=f.name+(f.speed?' (限速'+f.speed+'km/h)':'');
+    var textMarker=new AMap.Text({
+      text:'<span class="'+labelCls+'">'+labelText+'</span>',
+      position:[f.lon,f.lat],
+      offset:new AMap.Pixel(-60,-10),
+      zIndex:55
+    });
+    fenceOverlays.push(circle);
+    fenceOverlays.push(textMarker);
+  });
+  map.add(fenceOverlays);
+}
+
+function loadRoadLayer(){
+  roadOverlays.forEach(function(m){map.remove(m)});
+  roadOverlays=[];
+  roadData.forEach(function(r){
+    var style='road-open';
+    if(r.status==='paused')style='road-paused';
+    if(r.status==='closed')style='road-closed';
+    var color=r.status==='open'?'#52c41a':r.status==='paused'?'#faad14':'#ff4d4f';
+    var dashArray=r.status==='open'?null:r.status==='paused'?[8,4]:[4,4];
+    var polyline=new AMap.Polyline({
+      path:r.path,
+      strokeColor:color,
+      strokeWeight:5,
+      strokeOpacity:0.8,
+      strokeStyle:r.status==='open'?'solid':'dashed',
+      strokeDasharray:dashArray,
+      lineJoin:'round',
+      lineCap:'round',
+      zIndex:40,
+      extData:r
+    });
+    var textMarker=new AMap.Text({
+      text:'<span style="background:#fff;padding:2px 6px;border-radius:3px;font-size:10px;color:'+color+';box-shadow:0 1px 3px rgba(0,0,0,.1);white-space:nowrap">'+r.name+'</span>',
+      position:r.path[Math.floor(r.path.length/2)],
+      offset:new AMap.Pixel(-40,-12),
+      zIndex:45
+    });
+    roadOverlays.push(polyline);
+    roadOverlays.push(textMarker);
+  });
+  map.add(roadOverlays);
+}
+
+function loadFacilityLayer(){
+  facilityOverlays.forEach(function(m){map.remove(m)});
+  facilityOverlays=[];
+  facilityData.forEach(function(f){
+    var icon=f.type==='charger'?'⚡':f.type==='signal'?'🚦':'📡';
+    var content='<div class="facility-marker '+f.type+'">'+icon+'</div>';
+    var marker=new AMap.Marker({
+      position:[f.lon,f.lat],
+      content:content,
+      offset:new AMap.Pixel(-11,-11),
+      zIndex:60,
+      extData:f
+    });
+    marker.on('click',function(){
+      var typeLabel=f.type==='charger'?'充电桩':f.type==='signal'?'交通信号灯':'路侧传感器';
+      showInfoWindow(f.lon,f.lat,'<div class="info-window"><div class="iw-title">'+typeLabel+'</div><div class="iw-row"><span class="iw-label">名称</span><span class="iw-value">'+f.name+'</span></div><div class="iw-row"><span class="iw-label">类型</span><span class="iw-value">'+typeLabel+'</span></div></div>');
+    });
+    facilityOverlays.push(marker);
+  });
+  map.add(facilityOverlays);
+}
+
+function showInfoWindow(lon,lat,content){
+  if(currentInfoWindow){currentInfoWindow.close()}
+  currentInfoWindow=new AMap.InfoWindow({
+    content:content,
+    offset:new AMap.Pixel(0,-20),
+    closeWhenClickMap:true
+  });
+  currentInfoWindow.open(map,[lon,lat]);
+}
+
+function showVehicleInfo(v){
+  var modeTag=v.mode==='auto'?'<span class="ant-tag ant-tag-processing">自动驾驶</span>':'<span class="ant-tag ant-tag-success">人工驾驶</span>';
+  var statusTag=v.status==='online'?'<span class="ant-tag ant-tag-success">在线</span>':v.status==='alarm'?'<span class="ant-tag ant-tag-error">告警</span>':'<span class="ant-tag ant-tag-default">离线</span>';
+  var alarmHtml='';
+  if(v.alarmList&&v.alarmList.length>0){
+    alarmHtml='<div style="margin-top:8px;padding:6px 8px;background:#fff2f0;border:1px solid #ffccc7;border-radius:4px;font-size:11px"><span style="color:#ff4d4f;font-weight:600">当前告警：</span>'+v.alarmList.join('；')+'</div>';
+  }
+  var html='<div class="info-window" style="position:relative">'+
+    '<div class="iw-title">'+v.plate+' - 车辆详情</div>'+
+    '<div class="iw-row"><span class="iw-label">VIN</span><span class="iw-value" style="font-family:monospace;font-size:11px">'+v.vin+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">所属企业</span><span class="iw-value">'+v.company+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">驾驶模式</span><span class="iw-value">'+modeTag+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">自动驾驶等级</span><span class="iw-value">'+v.level+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">实时速度</span><span class="iw-value">'+v.speed+' km/h</span></div>'+
+    '<div class="iw-row"><span class="iw-label">航向角</span><span class="iw-value">'+v.heading+'°</span></div>'+
+    '<div class="iw-row"><span class="iw-label">挡位</span><span class="iw-value">'+v.gear+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">在线状态</span><span class="iw-value">'+statusTag+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">最后上报</span><span class="iw-value">'+v.lastTime+'</span></div>'+
+    alarmHtml+
+    '<div class="iw-actions">'+
+      '<button class="ant-btn ant-btn-sm ant-btn-primary" onclick="showTrajectory(\''+v.id+'\')">查看轨迹</button>'+
+      '<button class="ant-btn ant-btn-sm" onclick="openVideoPlayer(\''+v.plate+'\')">实时视频</button>'+
+      '<button class="ant-btn ant-btn-sm" onclick="openVehicleDetail(\''+v.id+'\')">详情</button>'+
+    '</div>'+
+  '</div>';
+  showInfoWindow(v.lon,v.lat,html);
+}
+
+function showAccidentInfo(a){
+  var sevTag=a.severity==='死亡'?'ant-tag-error':a.severity==='重伤'?'ant-tag-error':a.severity==='轻伤'?'ant-tag-warning':'ant-tag-success';
+  var html='<div class="info-window"><div class="iw-title">事故详情 - '+a.id+'</div>'+
+    '<div class="iw-row"><span class="iw-label">时间</span><span class="iw-value">'+a.time+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">车辆</span><span class="iw-value">'+a.plate+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">类型</span><span class="iw-value">'+a.type+'</span></div>'+
+    '<div class="iw-row"><span class="iw-label">严重程度</span><span class="iw-value"><span class="ant-tag '+sevTag+'">'+a.severity+'</span></span></div>'+
+    '<div class="iw-row"><span class="iw-label">描述</span><span class="iw-value">'+a.desc+'</span></div>'+
+  '</div>';
+  showInfoWindow(a.lon,a.lat,html);
+}
+
+function showTrajectory(vid){
+  var v=vehicleData.find(function(d){return d.id===vid});
+  if(!v)return;
+  if(trajectoryLine){map.remove(trajectoryLine)}
+  var points=[];
+  var baseLon=v.lon,baseLat=v.lat;
+  for(var i=0;i<20;i++){
+    points.push([baseLon-0.008+i*0.001+Math.random()*0.0005,baseLat-0.004+i*0.0005+Math.random()*0.0003]);
+  }
+  points.push([baseLon,baseLat]);
+  trajectoryLine=new AMap.Polyline({
+    path:points,
+    strokeColor:'#1677ff',
+    strokeWeight:4,
+    strokeOpacity:0.8,
+    lineJoin:'round',
+    lineCap:'round',
+    zIndex:120,
+    showDir:true
+  });
+  map.add(trajectoryLine);
+  map.setFitView([trajectoryLine]);
+  showToast('已加载 '+v.plate+' 的行驶轨迹');
+}
+
+function toggleLayer(layerName,visible){
+  var targetOverlays;
+  switch(layerName){
+    case 'vehicles':targetOverlays=vehicleOverlays;break;
+    case 'trajectory':if(trajectoryLine){trajectoryLine.setVisible(visible)}return;
+    case 'alarms':targetOverlays=alarmOverlays;break;
+    case 'accidents':targetOverlays=accidentOverlays;break;
+    case 'fences':targetOverlays=fenceOverlays;break;
+    case 'roads':targetOverlays=roadOverlays;break;
+    case 'facilities':targetOverlays=facilityOverlays;break;
+    case 'historyAccidents':targetOverlays=historyAccidentOverlays;break;
+    default:return;
+  }
+  if(targetOverlays){
+    targetOverlays.forEach(function(m){m.setVisible(visible)});
+  }
+}
+
+function toggleLayerPanel(){
+  var panel=document.getElementById('layerPanel');
+  panel.style.display=panel.style.display==='none'?'':'none';
+}
+
+function toggleBaseMap(){
+  isSatellite=!isSatellite;
+  if(isSatellite){
+    map.add(satelliteLayer);
+    document.getElementById('btnBaseMap').textContent='🗺 切换地图';
+  }else{
+    map.remove(satelliteLayer);
+    document.getElementById('btnBaseMap').textContent='🛰 切换卫星';
+  }
+}
+
+function focusVehicle(vid){
+  var v=vehicleData.find(function(d){return d.id===vid});
+  if(!v)return;
+  map.setZoomAndCenter(16,[v.lon,v.lat]);
+  showVehicleInfo(v);
+  selectedVehicleId=vid;
+}
+
+function filterVehicles(){
+  var company=document.getElementById('filterCompany').value;
+  var status=document.getElementById('filterStatus').value;
+  var mode=document.getElementById('filterMode').value;
+  var search=document.getElementById('searchInput').value.trim().toLowerCase();
+  filteredVehicleData=vehicleData.filter(function(v){
+    if(company!=='all'&&v.company!==company)return false;
+    if(status==='online'&&v.status!=='online')return false;
+    if(status==='offline'&&v.status!=='offline')return false;
+    if(status==='alarm'&&v.status!=='alarm')return false;
+    if(mode==='auto'&&v.mode!=='auto')return false;
+    if(mode==='manual'&&v.mode!=='manual')return false;
+    if(search&&v.plate.toLowerCase().indexOf(search)===-1&&v.vin.toLowerCase().indexOf(search)===-1)return false;
+    return true;
+  });
+  vehiclePage=1;
+  renderVehicleTable(1);
+  updateMapVisibility();
+}
+
+function updateMapVisibility(){
+  var visibleIds=filteredVehicleData.map(function(v){return v.id});
+  vehicleOverlays.forEach(function(m){
+    var data=m.getExtData();
+    if(data)m.setVisible(visibleIds.indexOf(data.id)!==-1);
+  });
+}
+
+function renderVehicleTable(page){
+  vehiclePage=page;
+  vehicleTotalPages=Math.ceil(filteredVehicleData.length/vehiclePageSize)||1;
+  var tbody=document.getElementById('vehicleTableBody');
+  var start=(page-1)*vehiclePageSize;
+  var end=Math.min(start+vehiclePageSize,filteredVehicleData.length);
+  var pageData=filteredVehicleData.slice(start,end);
+  tbody.innerHTML=pageData.map(function(v){
+    var modeTag=v.mode==='auto'?'<span class="ant-tag ant-tag-processing" style="font-size:11px">自动</span>':'<span class="ant-tag ant-tag-success" style="font-size:11px">人工</span>';
+    var statusHtml=v.status==='online'?'<span style="color:#52c41a">在线</span>':v.status==='alarm'?'<span style="color:#ff4d4f">告警</span>':'<span style="color:#999">离线</span>';
+    var rowBg=v.status==='alarm'?'background:#fff2f0':'';
+    return '<tr style="cursor:pointer;'+rowBg+'" onclick="focusVehicle(\''+v.id+'\')">'+
+      '<td style="font-size:12px;font-weight:600">'+v.plate+'</td>'+
+      '<td style="font-size:11px">'+v.company+'</td>'+
+      '<td>'+modeTag+'</td>'+
+      '<td style="font-size:12px">'+v.speed+'</td>'+
+      '<td style="font-size:12px">'+statusHtml+'</td>'+
+      '<td><div class="flex gap-1"><button class="ant-btn-link" style="font-size:11px" onclick="event.stopPropagation();focusVehicle(\''+v.id+'\')">定位</button><button class="ant-btn-link" style="font-size:11px" onclick="event.stopPropagation();showTrajectory(\''+v.id+'\')">轨迹</button><button class="ant-btn-link" style="font-size:11px" onclick="event.stopPropagation();openVehicleDetail(\''+v.id+'\')">详情</button></div></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('vehicleTotal').textContent=filteredVehicleData.length;
+  document.getElementById('vCurrPage').textContent=page;
+}
+
+function showToast(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;top:80px;right:24px;z-index:9999;background:#fff;padding:10px 16px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15);font-size:13px;border-left:3px solid #1677ff;';
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';t.style.transition='0.3s';setTimeout(function(){t.remove()},300)},2000);
+}
+
+function openTrajectoryModal(){
+  openModal('历史轨迹查询与回放',
+    '<div class="ant-form-item"><div class="ant-form-label">选择目标车辆</div><div class="ant-form-control"><select class="ant-input" id="trajVehicle">'+vehicleData.map(function(v){return '<option value="'+v.id+'">'+v.plate+' ('+v.company+')</option>'}).join('')+'</select></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">时间范围</div><div class="ant-form-control"><div class="flex gap-2"><input class="ant-input" type="datetime-local" value="2026-05-11T08:00"><span>-</span><input class="ant-input" type="datetime-local" value="2026-05-11T14:32"></div></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">轨迹着色方式</div><div class="ant-form-control"><div class="flex gap-4"><label class="flex items-center gap-2 cursor-pointer text-sm"><input type="radio" name="trajColor" checked> 按速度着色(绿→黄→红)</label><label class="flex items-center gap-2 cursor-pointer text-sm"><input type="radio" name="trajColor"> 按时间着色(渐变色)</label></div></div></div>'+
+    '<div class="bg-[#f5f5f5] rounded h-32 flex items-center justify-center mb-3"><div class="text-center text-[#00000040]"><p class="text-sm">历史轨迹将在地图上以动画形式回放显示</p></div></div>'+
+    '<div class="flex items-center gap-2 text-xs"><span>08:00</span><div class="flex-1 h-2 bg-[#f0f0f0] rounded overflow-hidden"><div class="h-full bg-[#1677ff] rounded" style="width:65%"></div></div><span>14:32</span></div>'+
+    '<div class="flex gap-2 mt-3 justify-center"><button class="ant-btn ant-btn-sm">▶ 播放</button><button class="ant-btn ant-btn-sm">⏸ 暂停</button><button class="ant-btn ant-btn-sm">⏹ 停止</button><button class="ant-btn ant-btn-sm">1x 倍速</button></div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="closeModal();var vid=document.getElementById(\'trajVehicle\').value;showTrajectory(vid)">确认并开始回放'});
+}
+
+function openFenceModal(){
+  openModal('电子围栏管理与配置',
+    '<div class="space-y-3">'+
+      fenceData.map(function(f){
+        var typeColor=f.type==='禁止区域'?'#ff4d4f':f.type==='限速区域'?'#faad14':'#1677ff';
+        return '<div class="flex items-center justify-between p-3 bg-[#f5f5f5] rounded-lg">'+
+          '<div><div class="text-sm font-medium" style="color:'+typeColor+'">'+f.name+'</div>'+
+          '<div class="text-xs text-[#00000073]">'+f.type+(f.speed?' | 限速'+f.speed+'km/h':'')+' | '+(f.enabled?'已启用':'已停用')+'</div></div>'+
+          '<label class="flex items-center gap-2 text-sm"><input type="checkbox" '+(f.enabled?'checked':'')+'> 启用</label></div>';
+      }).join('')+
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">保存配置</button>'});
+}
+
+function openVehicleDetail(vid){
+  var v=vehicleData.find(function(d){return d.id===vid});
+  if(!v)v=vehicleData[0];
+  var isOffline=v.status==='offline';
+  var hasAlarm=v.status==='alarm';
+  var modeTag=v.mode==='auto'?'<span class="ant-tag ant-tag-processing">自动驾驶</span>':'<span class="ant-tag ant-tag-success">人工驾驶</span>';
+  var statusTag=v.status==='online'?'<span class="ant-tag ant-tag-success">在线</span>':v.status==='alarm'?'<span class="ant-tag ant-tag-error">告警</span>':'<span class="ant-tag ant-tag-default">离线</span>';
+  var alarmHtml='';
+  if(hasAlarm&&v.alarmList){
+    alarmHtml='<div style="margin-top:12px;padding:10px;background:#fff2f0;border:1px solid #ffccc7;border-radius:6px"><span style="color:#ff4d4f;font-weight:600;font-size:13px">当前存在活跃告警</span><div style="margin-top:6px;font-size:12px;color:#00000073">'+v.alarmList.map(function(a){return '<div>'+a+'</div>'}).join('')+'</div></div>';
+  }
+  openModal('车辆运行状态详细信息 - '+v.plate,
+    '<div class="ant-descriptions">'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车牌号码</div><div class="ant-descriptions-value">'+v.plate+'</div><div class="ant-descriptions-label">VIN</div><div class="ant-descriptions-value" style="font-family:monospace;font-size:12px">'+v.vin+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+v.company+'</div><div class="ant-descriptions-label">自动驾驶等级</div><div class="ant-descriptions-value">'+v.level+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">驾驶模式</div><div class="ant-descriptions-value">'+modeTag+'</div><div class="ant-descriptions-label">在线状态</div><div class="ant-descriptions-value">'+statusTag+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">当前速度</div><div class="ant-descriptions-value">'+v.speed+' km/h</div><div class="ant-descriptions-label">航向角</div><div class="ant-descriptions-value">'+v.heading+'°</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">当前挡位</div><div class="ant-descriptions-value">'+v.gear+'</div><div class="ant-descriptions-label">最后上报时间</div><div class="ant-descriptions-value">'+v.lastTime+'</div></div>'+
+    '</div>'+alarmHtml+
+    '<div style="margin-top:16px;padding:12px;background:#f5f5f5;border-radius:8px">'+
+      '<div class="flex items-center justify-between">'+
+        '<div><h4 style="font-size:13px;font-weight:600;color:#000000d9">快速操作入口</h4><p style="font-size:11px;color:#00000073;margin-top:2px">点击下方按钮可快速跳转到对应功能页面</p></div>'+
+        '<div class="flex gap-2">'+
+          '<button class="ant-btn ant-btn-sm" onclick="closeModal();openVideoPlayer(\''+v.plate+'\')">查看实时视频</button>'+
+          '<button class="ant-btn ant-btn-sm" onclick="closeModal();openVideoHistory(\''+v.plate+'\')">查看历史录像</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn" onclick="closeModal();showTrajectory(\''+v.id+'\')">查看历史轨迹</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">查看车辆运行监控页面</button>'});
+}
+
+function openVideoPlayer(plate){
+  openModal('实时视频画面播放 - '+plate,
+    '<div style="background:#000;border-radius:8px;height:240px;display:flex;align-items:center;justify-content:center;margin-bottom:12px">'+
+      '<div style="text-align:center;color:rgba(255,255,255,.45)"><div style="font-size:36px;margin-bottom:8px">📹</div><p style="font-size:13px">车辆视频流将通过RTSP/RTMP协议接入并播放</p><p style="font-size:11px;margin-top:4px">支持H.264/H.265编码格式</p></div>'+
+    '</div>'+
+    '<div class="flex items-center justify-between mb-3">'+
+      '<select class="ant-input" style="width:auto;font-size:12px"><option>前视摄像头(主驾驶位)</option><option>后视摄像头</option><option>左侧摄像头</option><option>右侧摄像头</option><option>车内摄像头</option><option>环视摄像头</option></select>'+
+      '<div class="flex gap-2"><button class="ant-btn ant-btn-sm">全屏</button><button class="ant-btn ant-btn-sm">截图</button><button class="ant-btn ant-btn-sm">录制</button></div>'+
+    '</div>'+
+    '<div class="flex items-center gap-2 text-xs"><span>00:00</span><div class="flex-1 h-1.5 bg-[#333] rounded overflow-hidden"><div class="h-full bg-[#1677ff] rounded" style="width:35%"></div></div><span>05:28</span></div>'+
+    '<div class="flex gap-2 mt-2 justify-center"><button class="ant-btn ant-btn-sm">▶ 播放</button><button class="ant-btn ant-btn-sm">⏸ 暂停</button><button class="ant-btn ant-btn-sm">⏹ 停止</button><button class="ant-btn ant-btn-sm">1x</button></div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="closeModal();openVideoHistory(\''+plate+'\')">查看历史录像</button>'});
+}
+
+function openVideoHistory(plate){
+  openModal('历史录像记录查询 - '+(plate||'鄂F·A001'),
+    '<div class="grid grid-cols-2 gap-4 mb-4"><div class="ant-form-item"><div class="ant-form-label">查询日期</div><div class="ant-form-control"><input class="ant-input" type="date" value="2026-05-11"></div></div><div class="ant-form-item"><div class="ant-form-label">摄像头类型</div><div class="ant-form-control"><select class="ant-input"><option>前视摄像头</option><option>后视摄像头</option><option>车内摄像头</option></select></div></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">时间段</div><div class="ant-form-control"><div class="flex gap-2"><input class="ant-input" type="time" value="08:00"><span>-</span><input class="ant-input" type="time" value="14:32"></div></div></div>'+
+    '<div style="background:#000;border-radius:8px;height:180px;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><div style="text-align:center;color:rgba(255,255,255,.45)"><div style="font-size:24px;margin-bottom:4px">📹</div><p style="font-size:11px">选择录像文件后可在此处预览播放</p></div></div>'+
+    '<div class="flex items-center gap-2 text-xs mb-3"><span>08:00</span><div class="flex-1 h-2 bg-[#f0f0f0] rounded overflow-hidden"><div class="h-full bg-[#1677ff] rounded" style="width:0%"></div></div><span>14:32</span></div>'+
+    '<div class="flex gap-2 mb-3 justify-center"><button class="ant-btn ant-btn-sm">▶ 播放</button><button class="ant-btn ant-btn-sm">⏸ 暂停</button><button class="ant-btn ant-btn-sm">⏹ 停止</button><button class="ant-btn ant-btn-sm">1x</button></div>'+
+    '<div style="font-size:13px;color:#00000073;margin-bottom:8px">录像文件列表</div>'+
+    '<div style="max-height:120px;overflow-y:auto" class="space-y-2">'+
+      '<div class="flex items-center gap-3 p-2 bg-[#f5f5f5] rounded cursor-pointer hover:bg-[#e6f4ff]"><div style="width:40px;height:28px;background:#000;border-radius:4px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.45);font-size:10px">▶</div><div class="flex-1"><div style="font-size:11px;font-weight:500">前视摄像头_20260511_140000.mp4</div><div style="font-size:10px;color:#00000073">14:00-14:05 | 256MB</div></div><button class="ant-btn ant-btn-sm">播放</button></div>'+
+      '<div class="flex items-center gap-3 p-2 bg-[#f5f5f5] rounded cursor-pointer hover:bg-[#e6f4ff]"><div style="width:40px;height:28px;background:#000;border-radius:4px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.45);font-size:10px">▶</div><div class="flex-1"><div style="font-size:11px;font-weight:500">前视摄像头_20260511_134500.mp4</div><div style="font-size:10px;color:#00000073">13:45-13:50 | 248MB</div></div><button class="ant-btn ant-btn-sm">播放</button></div>'+
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">确认下载选中录像</button>'});
+}
+
+function initPage(){
+  filteredVehicleData=[].concat(vehicleData);
+  renderVehicleTable(1);
+  initMap();
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',initPage);
+}else{
+  initPage();
+}
+</script>
+</body>
+</html>

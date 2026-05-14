@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企业数据查询 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>企业数据查询</h2></div>
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-test')">企业测试查询</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-disengage')">企业脱手率查询</span>
+      </div>
+
+      <!-- 企业测试查询 -->
+      <div id="tab-test">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>企业名称</label><input class="ant-input" placeholder="请输入企业名称搜索" style="width:200px"></div>
+            <div class="filter-item"><label>测试开始时间</label><input class="ant-input" type="date" value="2026-01-01" style="width:160px"></div>
+            <div class="filter-item"><label>测试截止时间</label><input class="ant-input" type="date" value="2026-04-30" style="width:160px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+            <button class="ant-btn ml-auto">导出</button>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>企业名称</th><th>测试开始时间</th><th>测试截止时间</th><th>测试里程(km)</th><th>自动驾驶测试里程(km)</th><th>测试时长(h)</th><th>自动驾驶测试时长(h)</th></tr></thead>
+              <tbody>
+                <tr><td>襄阳智行科技有限公司</td><td>2025-06-01</td><td>2026-04-30</td><td>186,532</td><td>124,356</td><td>8,520</td><td>5,680</td></tr>
+                <tr><td>上海蔚来汽车有限公司</td><td>2025-08-15</td><td>2026-04-30</td><td>142,128</td><td>98,752</td><td>6,340</td><td>4,520</td></tr>
+                <tr><td>百度Apollo</td><td>2025-03-01</td><td>2026-04-30</td><td>98,856</td><td>72,430</td><td>5,120</td><td>3,840</td></tr>
+                <tr><td>深圳AutoX</td><td>2025-09-01</td><td>2026-04-30</td><td>76,234</td><td>54,120</td><td>4,280</td><td>3,210</td></tr>
+                <tr><td>北京百度网讯科技有限公司</td><td>2025-07-01</td><td>2026-04-30</td><td>65,432</td><td>45,678</td><td>3,650</td><td>2,740</td></tr>
+                <tr><td>广州小马智行科技有限公司</td><td>2025-10-01</td><td>2026-04-30</td><td>54,321</td><td>38,765</td><td>3,120</td><td>2,340</td></tr>
+                <tr><td>北京主线科技有限公司</td><td>2025-11-01</td><td>2026-04-30</td><td>43,210</td><td>32,150</td><td>2,680</td><td>1,980</td></tr>
+                <tr><td>上海滴滴沃芽科技有限公司</td><td>2025-06-15</td><td>2026-04-30</td><td>38,765</td><td>28,430</td><td>2,350</td><td>1,760</td></tr>
+                <tr><td>重庆长安汽车股份有限公司</td><td>2025-12-01</td><td>2026-04-30</td><td>32,150</td><td>22,870</td><td>1,980</td><td>1,490</td></tr>
+                <tr><td>东风汽车集团有限公司</td><td>2025-05-01</td><td>2026-04-30</td><td>28,430</td><td>19,650</td><td>1,760</td><td>1,320</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 36 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 企业脱手率查询 -->
+      <div id="tab-disengage" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>企业名称</label><input class="ant-input" placeholder="请输入企业名称搜索" style="width:200px"></div>
+            <div class="filter-item"><label>开始时间</label><input class="ant-input" type="date" value="2026-01-01" style="width:160px"></div>
+            <div class="filter-item"><label>截止时间</label><input class="ant-input" type="date" value="2026-04-30" style="width:160px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+            <button class="ant-btn ml-auto">导出</button>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>企业名称</th><th>开始时间</th><th>截止时间</th><th>脱离次数</th><th>自动驾驶测试里程(km)</th><th>脱手率(%)</th></tr></thead>
+              <tbody>
+                <tr><td>襄阳智行科技有限公司</td><td>2025-06-01</td><td>2026-04-30</td><td>128</td><td>124,356</td><td>0.10</td></tr>
+                <tr><td>上海蔚来汽车有限公司</td><td>2025-08-15</td><td>2026-04-30</td><td>96</td><td>98,752</td><td>0.10</td></tr>
+                <tr><td>百度Apollo</td><td>2025-03-01</td><td>2026-04-30</td><td>156</td><td>72,430</td><td>0.22</td></tr>
+                <tr><td>深圳AutoX</td><td>2025-09-01</td><td>2026-04-30</td><td>42</td><td>54,120</td><td>0.08</td></tr>
+                <tr><td>北京百度网讯科技有限公司</td><td>2025-07-01</td><td>2026-04-30</td><td>78</td><td>45,678</td><td>0.17</td></tr>
+                <tr><td>广州小马智行科技有限公司</td><td>2025-10-01</td><td>2026-04-30</td><td>35</td><td>38,765</td><td>0.09</td></tr>
+                <tr><td>北京主线科技有限公司</td><td>2025-11-01</td><td>2026-04-30</td><td>52</td><td>32,150</td><td>0.16</td></tr>
+                <tr><td>上海滴滴沃芽科技有限公司</td><td>2025-06-15</td><td>2026-04-30</td><td>28</td><td>0</td><td>-</td></tr>
+                <tr><td>重庆长安汽车股份有限公司</td><td>2025-12-01</td><td>2026-04-30</td><td>63</td><td>22,870</td><td>0.28</td></tr>
+                <tr><td>东风汽车集团有限公司</td><td>2025-05-01</td><td>2026-04-30</td><td>41</td><td>19,650</td><td>0.21</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 32 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='company-query';
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  ['tab-test','tab-disengage'].forEach(function(id){document.getElementById(id).style.display=id===tabId?'':'none'});
+}
+function changePageSize(val){console.log('Page size changed to:',val);}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

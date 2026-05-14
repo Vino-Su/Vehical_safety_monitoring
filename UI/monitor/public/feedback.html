@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>在线反馈 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>在线反馈</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openFeedbackForm()">+ 提交问题</button></div></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>处理状态</label><div class="ant-select">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>提交人</label><input class="ant-input" placeholder="请输入提交人姓名"></div>
+          <div class="filter-item"><label>提交时间</label><input class="ant-input" type="date" value="2026-01-01"><span>至</span><input class="ant-input" type="date" value="2026-04-30"></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th>反馈编号</th><th>问题标题</th><th>提交人</th><th>所属企业</th><th>提交时间</th><th>处理状态</th><th>受理机构</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>FB20260427001</td><td>测试车辆自动驾驶模式异常制动</td><td>王工</td><td>襄阳智行科技有限公司</td><td>2026-04-27 11:30</td><td><span class="ant-tag ant-tag-warning">待处理</span></td><td>—</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(0)">查看详情</button></td></tr>
+              <tr><td>FB20260427002</td><td>平台移动端页面布局错位问题</td><td>赵工</td><td>东风汽车有限公司</td><td>2026-04-27 09:15</td><td><span class="ant-tag ant-tag-warning">待处理</span></td><td>—</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(1)">查看详情</button></td></tr>
+              <tr><td>FB20260425001</td><td>某路段电子围栏边界设置不准确</td><td>安全管理员</td><td>襄阳智行科技有限公司</td><td>2026-04-25 15:20</td><td><span class="ant-tag ant-tag-processing">处理中</span></td><td>第三方服务机构A</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(2)">查看详情</button></td></tr>
+              <tr><td>FB20260422001</td><td>数据上报接口偶发超时问题</td><td>陈工</td><td>华为技术有限公司</td><td>2026-04-22 14:00</td><td><span class="ant-tag ant-tag-processing">处理中</span></td><td>平台技术支持组</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(3)">查看详情</button></td></tr>
+              <tr><td>FB20260418001</td><td>建议增加车辆历史轨迹回放功能</td><td>李经理</td><td>襄阳智行科技有限公司</td><td>2026-04-18 10:00</td><td><span class="ant-tag ant-tag-success">已处理</span></td><td>平台技术支持组</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(4)">查看详情</button></td></tr>
+              <tr><td>FB20260415001</td><td>测试路线变更申请审批进度咨询</td><td>韩梅梅</td><td>上海蔚来汽车有限公司</td><td>2026-04-15 09:30</td><td><span class="ant-tag ant-tag-success">已处理</span></td><td>联席小组办公室</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(5)">查看详情</button></td></tr>
+              <tr><td>FB20260410001</td><td>临牌续期流程操作疑问</td><td>刘勇</td><td>襄阳智行科技示范应用服务运营分公司</td><td>2026-04-10 16:45</td><td><span class="ant-tag ant-tag-success">已处理</span></td><td>市交管部门</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(6)">查看详情</button></td></tr>
+              <tr><td>FB20260405001</td><td>车辆传感器数据异常报警频繁</td><td>王小明</td><td>百度Apollo机器人有限公司</td><td>2026-04-05 11:20</td><td><span class="ant-tag ant-tag-success">已处理</span></td><td>第三方服务机构B</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openFeedbackDetail(7)">查看详情</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 15 条</span>
+          <div class="ant-pagination"><span class="page-item">‹</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">›</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='feedback';
+
+var feedbackData=[
+  {id:'FB20260427001',title:'测试车辆自动驾驶模式异常制动',submitter:'王工',company:'襄阳智行科技有限公司',time:'2026-04-27 11:30',status:'待处理',handler:'—',
+    content:'在道路测试过程中，测试车辆（VIN: LSVAU2180N2012345）在自动驾驶模式下出现异常制动行为，具体表现为：在无障碍物的情况下突然减速停车，可能与前方传感器数据异常有关。该问题已出现3次，均在晴天正常路况下发生。',
+    reply:'',replyTime:'',replyBy:''},
+  {id:'FB20260427002',title:'平台移动端页面布局错位问题',submitter:'赵工',company:'东风汽车有限公司',time:'2026-04-27 09:15',status:'待处理',handler:'—',
+    content:'使用手机浏览器访问平台时，车辆监控页面布局出现错位，地图区域与数据面板重叠，影响正常使用。测试环境：iPhone 15 Pro，Safari浏览器，iOS 19.3。',
+    reply:'',replyTime:'',replyBy:''},
+  {id:'FB20260425001',title:'某路段电子围栏边界设置不准确',submitter:'安全管理员',company:'襄阳智行科技有限公司',time:'2026-04-25 15:20',status:'处理中',handler:'第三方服务机构A',
+    content:'高新区东风大道与科技路交叉口的电子围栏边界设置不准确，实际可行驶区域比围栏范围大，导致测试车辆在该路段频繁触发越界告警。建议重新标定该区域围栏边界。',
+    reply:'已收到反馈，正在安排技术人员现场核实围栏边界数据。',replyTime:'2026-04-26 09:00',replyBy:'张三（第三方服务机构A）'},
+  {id:'FB20260422001',title:'数据上报接口偶发超时问题',submitter:'陈工',company:'华为技术有限公司',time:'2026-04-22 14:00',status:'处理中',handler:'平台技术支持组',
+    content:'近期数据上报API接口出现偶发性超时（HTTP 504），主要集中在每日8:00-9:00高峰时段，超时率约5%。已确认车载端网络连接正常，怀疑是服务端并发处理能力不足。',
+    reply:'已确认问题，正在优化接口服务架构，预计5月10日前完成升级。',replyTime:'2026-04-23 10:30',replyBy:'平台技术支持组'},
+  {id:'FB20260418001',title:'建议增加车辆历史轨迹回放功能',submitter:'李经理',company:'襄阳智行科技有限公司',time:'2026-04-18 10:00',status:'已处理',handler:'平台技术支持组',
+    content:'建议在车辆监控模块中增加历史轨迹回放功能，支持选择时间段回放车辆行驶轨迹，便于事后分析和事故回溯。',
+    reply:'感谢您的建议！该功能已纳入平台V2.3版本开发计划，预计2026年6月上线。',replyTime:'2026-04-19 14:00',replyBy:'平台技术支持组'},
+  {id:'FB20260415001',title:'测试路线变更申请审批进度咨询',submitter:'韩梅梅',company:'上海蔚来汽车有限公司',time:'2026-04-15 09:30',status:'已处理',handler:'联席小组办公室',
+    content:'我司于4月8日提交的道路测试变更申请（编号RT202604003），目前审批进度如何？是否需要补充材料？',
+    reply:'您的变更申请已进入联席小组审批环节，预计4月28日前完成审批。目前无需补充材料，如有变更会另行通知。',replyTime:'2026-04-16 11:00',replyBy:'联席小组办公室'},
+  {id:'FB20260410001',title:'临牌续期流程操作疑问',submitter:'刘勇',company:'襄阳智行科技示范应用服务运营分公司',time:'2026-04-10 16:45',status:'已处理',handler:'市交管部门',
+    content:'我司有3辆测试车辆的临时号牌将于5月初到期，请问续期申请需要提前多久提交？是否需要重新提交全部材料？',
+    reply:'临时号牌续期需在到期前15日提交申请。续期时无需重新提交全部材料，仅需提供：1.原临牌复印件；2.续期申请书；3.最新保险凭证。可通过平台线上提交。',replyTime:'2026-04-11 09:30',replyBy:'市交管部门'},
+  {id:'FB20260405001',title:'车辆传感器数据异常报警频繁',submitter:'王小明',company:'百度Apollo机器人有限公司',time:'2026-04-05 11:20',status:'已处理',handler:'第三方服务机构B',
+    content:'测试车辆（VIN: LSVAU2180N2012347）近期传感器数据异常报警频繁，日均报警次数从正常的2-3次增至15-20次，主要集中在毫米波雷达模块。请协助排查是否为硬件故障。',
+    reply:'经现场检测，确认为毫米波雷达固件版本兼容性问题。已协助升级至最新固件版本V3.2.1，升级后报警频率恢复正常。',replyTime:'2026-04-07 16:00',replyBy:'李四（第三方服务机构B）'}
+];
+
+function openFeedbackForm(){
+  openModal('提交问题',
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>问题标题</div><div class="ant-form-control"><input class="ant-input" placeholder="请简要描述您的问题"></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>问题详情</div><div class="ant-form-control"><textarea class="ant-input" style="height:120px;padding:8px 12px" placeholder="请详细描述您遇到的问题、建议或咨询内容"></textarea></div></div>' +
+    '<div class="ant-form-item"><div class="ant-form-label">附件</div><div class="ant-form-control"><button class="ant-btn ant-btn-sm">点击或拖拽文件上传</button><div class="text-xs text-[#00000040] mt-1">支持PDF/JPG/PNG格式，单个文件不超过10MB</div></div></div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">提交</button>'});
+}
+
+function openFeedbackDetail(idx){
+  var d=feedbackData[idx];
+  var statusClass=d.status==='待处理'?'ant-tag-warning':d.status==='处理中'?'ant-tag-processing':'ant-tag-success';
+  var html='<div class="ant-descriptions">' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">反馈编号</div><div class="ant-descriptions-value">'+d.id+'</div><div class="ant-descriptions-label">处理状态</div><div class="ant-descriptions-value"><span class="ant-tag '+statusClass+'">'+d.status+'</span></div></div>' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">问题标题</div><div class="ant-descriptions-value" style="flex:3">'+d.title+'</div></div>' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">提交人</div><div class="ant-descriptions-value">'+d.submitter+'</div><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+d.company+'</div></div>' +
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">提交时间</div><div class="ant-descriptions-value">'+d.time+'</div><div class="ant-descriptions-label">受理机构</div><div class="ant-descriptions-value">'+d.handler+'</div></div>' +
+  '</div>';
+
+  html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2 pb-2 border-b border-[#f0f0f0]">问题详情</h4>';
+  html+='<div class="p-3 bg-[#fafafa] rounded text-sm text-[#000000d9] whitespace-pre-line leading-relaxed">'+d.content+'</div>';
+
+  if(d.reply){
+    html+='<h4 class="text-sm font-semibold text-[#000000d9] mt-4 mb-2 pb-2 border-b border-[#f0f0f0]">受理回复</h4>';
+    html+='<div class="p-3 bg-[#e6f4ff] rounded text-sm text-[#000000d9] whitespace-pre-line leading-relaxed">'+d.reply+'</div>';
+    html+='<div class="text-xs text-[#00000073] mt-2">回复人：'+d.replyBy+'　　回复时间：'+d.replyTime+'</div>';
+  }
+
+  var footerBtns='<button class="ant-btn" onclick="closeModal()">关闭</button>';
+  if(d.status==='待处理'){
+    footerBtns='<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="openReplyModal('+idx+')">受理回复</button>';
+  }else if(d.status==='处理中'){
+    footerBtns='<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="openReplyModal('+idx+')">继续回复</button>';
+  }
+
+  openModal('反馈详情',html,{wide:true,footer:footerBtns});
+}
+
+function openReplyModal(idx){
+  closeModal();
+  setTimeout(function(){
+    openModal('受理回复 - '+feedbackData[idx].id,
+      '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>回复内容</div><div class="ant-form-control"><textarea class="ant-input" style="height:120px;padding:8px 12px" placeholder="请输入回复内容"></textarea></div></div>' +
+      '<div class="ant-form-item"><div class="ant-form-label">处理状态</div><div class="ant-form-control"><div class="ant-select" style="width:100%">处理中<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>',
+      {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">提交回复</button>'});
+  },300);
+}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

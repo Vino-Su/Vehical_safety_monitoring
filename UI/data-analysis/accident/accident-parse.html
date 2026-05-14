@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事故数据解析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-[#f0f2f5]" style="padding:24px">
+      <div class="page-header">
+        <h2>事故数据解析</h2>
+        <button class="ant-btn ant-btn-primary" onclick="openUploadModal()">上传事故报告</button>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>事故编号</label><input class="ant-input" id="filterId" placeholder="请输入事故编号" style="width:160px"></div>
+          <div class="filter-item"><label>涉事车辆</label><input class="ant-input" id="filterPlate" placeholder="车牌号/VIN" style="width:140px"></div>
+          <div class="filter-item"><label>事故类型</label><select id="filterType" class="ant-input" style="width:120px"><option value="all">全部</option><option>碰撞</option><option>刮擦</option><option>追尾</option><option>行人冲突</option><option>侧翻</option></select></div>
+          <div class="filter-item"><label>责任认定</label><select id="filterLiability" class="ant-input" style="width:100px"><option value="all">全部</option><option>全责</option><option>主责</option><option>同责</option><option>次责</option><option>无责</option></select></div>
+          <div class="filter-item"><label>解析状态</label><select id="filterStatus" class="ant-input" style="width:110px"><option value="all">全部</option><option value="parsed">已解析</option><option value="corrected">已校正</option><option value="pending">待解析</option></select></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="applyFilters()">查询</button><button class="ant-btn" onclick="resetFilters()">重置</button></div>
+        </div>
+      </div>
+
+      <div class="card p-0">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th>事故编号</th><th>事故时间</th><th>事故地点</th><th>涉事车辆</th><th>事故类型</th><th>责任认定</th><th>伤亡情况</th><th>解析状态</th><th>操作</th></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 <b id="totalCount">0</b> 条</span>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-sm text-[#00000073]">
+              <span>每页显示</span>
+              <select id="pageSizeSelect" class="ant-input" style="width:70px;height:28px;padding:0 4px;font-size:12px" onchange="pageSize=parseInt(this.value);currentPage=1;renderTable()">
+                <option value="10" selected>10</option><option value="20">20</option><option value="50">50</option>
+              </select>
+              <span>条</span>
+            </div>
+            <div class="ant-pagination">
+              <span class="page-item" onclick="currentPage>1&&currentPage--&&renderTable()">&lt;</span>
+              <span class="page-item active" id="pageDisplay">1</span>
+              <span class="page-item" onclick="currentPage<totalPages&&currentPage++&&renderTable()">&gt;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../common.js"></script>
+<script>
+var PAGE_ID='accident-parse';
+var currentPage=1,pageSize=10,totalPages=1;
+var filteredData=[];
+
+var accidentRecords=[
+  {id:'ACC-2026-0001',time:'2026-05-11 09:15:00',location:'长虹路与建华路交叉口',plate:'鄂F·D010',vin:'LSVAA4189N2000005',company:'百度Apollo智能驾驶有限公司',autoLevel:'L4',driveMode:'自动驾驶',type:'追尾',liability:'主责',injury:'轻伤1人',injuryDetail:{light:1,heavy:0,death:0},weather:'晴',light:'白天',road:'干燥',preSpeed:45,maxDecel:8.2,steer:'直行',brake:'紧急制动',throttle:0,status:'corrected',corrector:'张工',correctTime:'2026-05-11 11:30',envDesc:'天气晴朗，路面干燥，视线良好',reportFile:'事故处置报告_20260511.pdf',photos:['现场照片1.jpg','现场照片2.jpg']},
+  {id:'ACC-2026-0002',time:'2026-04-28 14:30:00',location:'檀溪路与铁佛寺路交叉口',plate:'鄂F·A001',vin:'LSVAA4189N2000001',company:'襄阳智行科技有限公司',autoLevel:'L3',driveMode:'自动驾驶',type:'刮擦',liability:'次责',injury:'无伤亡',injuryDetail:{light:0,heavy:0,death:0},weather:'阴',light:'白天',road:'潮湿',preSpeed:28,maxDecel:3.5,steer:'右转',brake:'轻度制动',throttle:15,status:'parsed',corrector:'',correctTime:'',envDesc:'阴天，路面微湿，能见度一般',reportFile:'刮擦事故报告_20260428.pdf',photos:['现场照片.jpg']},
+  {id:'ACC-2026-0003',time:'2026-04-15 11:20:00',location:'航空路与金富士路交叉口',plate:'鄂F·B003',vin:'LSVAA4189N2000003',company:'东风汽车股份有限公司',autoLevel:'L4',driveMode:'自动驾驶',type:'碰撞',liability:'全责',injury:'重伤1人',injuryDetail:{light:0,heavy:1,death:0},weather:'雨',light:'白天',road:'湿滑',preSpeed:55,maxDecel:12.1,steer:'左转',brake:'紧急制动',throttle:0,status:'corrected',corrector:'李工',correctTime:'2026-04-16 09:00',envDesc:'中雨，路面湿滑，能见度较差',reportFile:'碰撞事故报告_20260415.pdf',photos:['现场照片1.jpg','现场照片2.jpg','现场照片3.jpg']},
+  {id:'ACC-2026-0004',time:'2026-04-10 16:45:00',location:'人民路天元四季城前',plate:'鄂F·C007',vin:'LSVAA4189N2000004',company:'华为技术有限公司',autoLevel:'L3',driveMode:'人工驾驶',type:'行人冲突',liability:'主责',injury:'轻伤2人',injuryDetail:{light:2,heavy:0,death:0},weather:'晴',light:'傍晚',road:'干燥',preSpeed:32,maxDecel:9.5,steer:'直行',brake:'紧急制动',throttle:0,status:'parsed',corrector:'',correctTime:'',envDesc:'傍晚光线较暗，路面干燥',reportFile:'行人冲突报告_20260410.pdf',photos:['现场照片1.jpg']},
+  {id:'ACC-2026-0005',time:'2026-03-22 08:10:00',location:'建设路与银城大道交叉口',plate:'鄂F·F012',vin:'LSVAA4189N2000008',company:'小马智行',autoLevel:'L4',driveMode:'自动驾驶',type:'追尾',liability:'同责',injury:'无伤亡',injuryDetail:{light:0,heavy:0,death:0},weather:'雾',light:'白天',road:'潮湿',preSpeed:38,maxDecel:6.8,steer:'直行',brake:'中度制动',throttle:10,status:'parsed',corrector:'',correctTime:'',envDesc:'大雾天气，能见度低，路面潮湿',reportFile:'追尾事故报告_20260322.pdf',photos:['现场照片1.jpg','现场照片2.jpg']},
+  {id:'ACC-2026-0006',time:'2026-03-15 19:30:00',location:'卧龙大道与中原路交叉口',plate:'鄂F·A002',vin:'LSVAA4189N2000002',company:'襄阳智行科技有限公司',autoLevel:'L3',driveMode:'自动驾驶',type:'侧翻',liability:'全责',injury:'重伤1人 轻伤1人',injuryDetail:{light:1,heavy:1,death:0},weather:'雨',light:'夜间',road:'积水',preSpeed:62,maxDecel:4.2,steer:'急转',brake:'未制动',throttle:35,status:'corrected',corrector:'王工',correctTime:'2026-03-16 10:15',envDesc:'夜间暴雨，路面积水严重，能见度极差',reportFile:'侧翻事故报告_20260315.pdf',photos:['现场照片1.jpg','现场照片2.jpg','现场照片3.jpg','现场照片4.jpg']},
+  {id:'ACC-2026-0007',time:'2026-05-10 10:00:00',location:'高新区产业园内部道路',plate:'鄂F·G023',vin:'LSVAA4189N2000009',company:'百度Apollo智能驾驶有限公司',autoLevel:'L3',driveMode:'自动驾驶',type:'碰撞',liability:'待认定',injury:'无伤亡',injuryDetail:{light:0,heavy:0,death:0},weather:'晴',light:'白天',road:'干燥',preSpeed:0,maxDecel:0,steer:'静止',brake:'驻车',throttle:0,status:'pending',corrector:'',correctTime:'',envDesc:'晴朗天气，园区内部道路',reportFile:'',photos:[]},
+  {id:'ACC-2026-0008',time:'2026-05-09 15:20:00',location:'金源路中段',plate:'鄂F·H034',vin:'LSVAA4189N2000010',company:'华为技术有限公司',autoLevel:'L3',driveMode:'人工驾驶',type:'刮擦',liability:'无责',injury:'无伤亡',injuryDetail:{light:0,heavy:0,death:0},weather:'多云',light:'白天',road:'干燥',preSpeed:20,maxDecel:2.1,steer:'右转',brake:'轻度制动',throttle:5,status:'pending',corrector:'',correctTime:'',envDesc:'多云天气，路面干燥',reportFile:'刮擦报告_20260509.pdf',photos:['现场照片1.jpg']}
+];
+
+function applyFilters(){
+  var fId=document.getElementById('filterId').value.trim().toLowerCase();
+  var fPlate=document.getElementById('filterPlate').value.trim().toLowerCase();
+  var fType=document.getElementById('filterType').value;
+  var fLiability=document.getElementById('filterLiability').value;
+  var fStatus=document.getElementById('filterStatus').value;
+  filteredData=accidentRecords.filter(function(r){
+    if(fId&&r.id.toLowerCase().indexOf(fId)===-1)return false;
+    if(fPlate&&r.plate.toLowerCase().indexOf(fPlate)===-1&&r.vin.toLowerCase().indexOf(fPlate)===-1)return false;
+    if(fType!=='all'&&r.type!==fType)return false;
+    if(fLiability!=='all'&&r.liability!==fLiability)return false;
+    if(fStatus!=='all'&&r.status!==fStatus)return false;
+    return true;
+  });
+  currentPage=1;
+  renderTable();
+}
+
+function resetFilters(){
+  document.getElementById('filterId').value='';
+  document.getElementById('filterPlate').value='';
+  document.getElementById('filterType').value='all';
+  document.getElementById('filterLiability').value='all';
+  document.getElementById('filterStatus').value='all';
+  filteredData=[].concat(accidentRecords);
+  currentPage=1;
+  renderTable();
+}
+
+function statusTag(s){
+  if(s==='corrected')return '<span class="ant-tag ant-tag-success">已校正</span>';
+  if(s==='parsed')return '<span class="ant-tag ant-tag-processing">已解析</span>';
+  return '<span class="ant-tag ant-tag-warning">待解析</span>';
+}
+
+function liabilityTag(l){
+  if(l==='全责')return '<span class="ant-tag ant-tag-error">'+l+'</span>';
+  if(l==='主责')return '<span class="ant-tag ant-tag-error">'+l+'</span>';
+  if(l==='同责')return '<span class="ant-tag ant-tag-warning">'+l+'</span>';
+  if(l==='次责')return '<span class="ant-tag ant-tag-processing">'+l+'</span>';
+  if(l==='无责')return '<span class="ant-tag ant-tag-success">'+l+'</span>';
+  return '<span class="ant-tag ant-tag-default">'+l+'</span>';
+}
+
+function typeTag(t){
+  if(t==='碰撞'||t==='追尾'||t==='侧翻')return '<span class="ant-tag ant-tag-error">'+t+'</span>';
+  if(t==='行人冲突')return '<span class="ant-tag ant-tag-warning">'+t+'</span>';
+  return '<span class="ant-tag ant-tag-processing">'+t+'</span>';
+}
+
+function renderTable(){
+  totalPages=Math.ceil(filteredData.length/pageSize)||1;
+  var tbody=document.getElementById('tableBody');
+  var start=(currentPage-1)*pageSize;
+  var end=Math.min(start+pageSize,filteredData.length);
+  var pageData=filteredData.slice(start,end);
+  tbody.innerHTML=pageData.map(function(r){
+    return '<tr>'+
+      '<td><b>'+r.id+'</b></td>'+
+      '<td>'+r.time+'</td>'+
+      '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.location+'</td>'+
+      '<td>'+r.plate+'</td>'+
+      '<td>'+typeTag(r.type)+'</td>'+
+      '<td>'+liabilityTag(r.liability)+'</td>'+
+      '<td>'+r.injury+'</td>'+
+      '<td>'+statusTag(r.status)+'</td>'+
+      '<td><div class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal(\''+r.id+'\')">详情</button>'+(r.status==='parsed'?'<button class="ant-btn-link" onclick="openCorrectModal(\''+r.id+'\')">校正</button>':'')+(r.status==='pending'?'<button class="ant-btn-link" onclick="startParse(\''+r.id+'\')">解析</button>':'')+'</div></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('totalCount').textContent=filteredData.length;
+  document.getElementById('pageDisplay').textContent=currentPage;
+}
+
+function findRecord(id){return accidentRecords.find(function(r){return r.id===id})}
+
+function openDetailModal(id){
+  var r=findRecord(id);if(!r)return;
+  var correctedInfo='';
+  if(r.status==='corrected'){
+    correctedInfo='<div style="margin-top:12px;padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:6px;font-size:12px"><span style="color:#52c41a;font-weight:600">校正信息</span>：校正人 <b>'+r.corrector+'</b>，校正时间 <b>'+r.correctTime+'</b></div>';
+  }
+  var attachHtml='';
+  if(r.reportFile){
+    attachHtml+='<div class="flex items-center gap-2 p-2 bg-[#f5f5f5] rounded"><svg viewBox="0 0 24 24" width="16" height="16" fill="#1677ff"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h5v7h7v9H6z"/></svg><span class="text-sm text-[#000000d9]">'+r.reportFile+'</span><button class="ant-btn-link text-xs">下载</button></div>';
+  }
+  if(r.photos&&r.photos.length>0){
+    attachHtml+='<div class="flex gap-2 mt-2 flex-wrap">'+r.photos.map(function(p){return '<div class="w-16 h-16 bg-[#f5f5f5] rounded flex items-center justify-center text-xs text-[#00000040]">'+p.slice(0,6)+'</div>';}).join('')+'</div>';
+  }
+  if(!attachHtml)attachHtml='<span class="text-sm text-[#00000040]">暂无附件</span>';
+
+  openModal('事故解析详情 - '+r.id,
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">基本信息</h4>'+
+      '<div class="ant-descriptions">'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">事故编号</div><div class="ant-descriptions-value">'+r.id+'</div><div class="ant-descriptions-label">事故时间</div><div class="ant-descriptions-value">'+r.time+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">事故地点</div><div class="ant-descriptions-value" style="flex:3">'+r.location+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">事故类型</div><div class="ant-descriptions-value">'+typeTag(r.type)+'</div><div class="ant-descriptions-label">责任认定</div><div class="ant-descriptions-value">'+liabilityTag(r.liability)+'</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">车辆信息</h4>'+
+      '<div class="ant-descriptions">'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">号牌</div><div class="ant-descriptions-value">'+r.plate+'</div><div class="ant-descriptions-label">VIN</div><div class="ant-descriptions-value" style="font-family:monospace;font-size:12px">'+r.vin+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+r.company+'</div><div class="ant-descriptions-label">自动驾驶等级</div><div class="ant-descriptions-value">'+r.autoLevel+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">当时驾驶模式</div><div class="ant-descriptions-value">'+(r.driveMode==='自动驾驶'?'<span class="ant-tag ant-tag-processing">自动驾驶</span>':'<span class="ant-tag ant-tag-success">人工驾驶</span>')+'</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">运行数据（碰撞时刻前后30秒）</h4>'+
+      '<div class="ant-descriptions">'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">碰撞前速度</div><div class="ant-descriptions-value">'+r.preSpeed+' km/h</div><div class="ant-descriptions-label">最大减速度</div><div class="ant-descriptions-value">'+r.maxDecel+' m/s²</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">转向状态</div><div class="ant-descriptions-value">'+r.steer+'</div><div class="ant-descriptions-label">制动状态</div><div class="ant-descriptions-value">'+r.brake+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">油门开度</div><div class="ant-descriptions-value">'+r.throttle+'%</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">环境信息</h4>'+
+      '<div class="ant-descriptions">'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">天气</div><div class="ant-descriptions-value">'+r.weather+'</div><div class="ant-descriptions-label">光照</div><div class="ant-descriptions-value">'+r.light+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">路面状况</div><div class="ant-descriptions-value">'+r.road+'</div><div class="ant-descriptions-label">环境描述</div><div class="ant-descriptions-value">'+r.envDesc+'</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">责任与伤亡</h4>'+
+      '<div class="ant-descriptions">'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">责任认定</div><div class="ant-descriptions-value">'+liabilityTag(r.liability)+'</div><div class="ant-descriptions-label">伤亡情况</div><div class="ant-descriptions-value">'+r.injury+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">轻伤人数</div><div class="ant-descriptions-value">'+r.injuryDetail.light+'</div><div class="ant-descriptions-label">重伤人数</div><div class="ant-descriptions-value">'+r.injuryDetail.heavy+'</div></div>'+
+        '<div class="ant-descriptions-row"><div class="ant-descriptions-label">死亡人数</div><div class="ant-descriptions-value" style="color:'+(r.injuryDetail.death>0?'#ff4d4f':'#000000d9')+'">'+r.injuryDetail.death+'</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">附件</h4>'+
+      attachHtml+
+    '</div>'+
+    correctedInfo,
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'+(r.status==='parsed'?'<button class="ant-btn ant-btn-primary" onclick="closeModal();openCorrectModal(\''+r.id+'\')">校正</button>':'')});
+}
+
+function openCorrectModal(id){
+  var r=findRecord(id);if(!r)return;
+  openModal('人工校正 - '+r.id,
+    '<div style="padding:8px 12px;background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;margin-bottom:16px;font-size:12px;color:#00000073"><span style="color:#faad14;font-weight:600">提示</span>：校正后系统将记录校正人及校正时间，原解析结果保留备查。</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">基本信息</h4>'+
+      '<div class="grid grid-cols-2 gap-4">'+
+        '<div class="ant-form-item"><div class="ant-form-label">事故编号</div><div class="ant-form-control"><input class="ant-input" value="'+r.id+'" disabled></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">事故时间</div><div class="ant-form-control"><input class="ant-input" type="datetime-local" value="'+r.time.replace(' ','T')+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">事故地点</div><div class="ant-form-control"><input class="ant-input" value="'+r.location+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">事故类型</div><div class="ant-form-control"><select class="ant-input"><option '+(r.type==='碰撞'?'selected':'')+'>碰撞</option><option '+(r.type==='刮擦'?'selected':'')+'>刮擦</option><option '+(r.type==='追尾'?'selected':'')+'>追尾</option><option '+(r.type==='行人冲突'?'selected':'')+'>行人冲突</option><option '+(r.type==='侧翻'?'selected':'')+'>侧翻</option></select></div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">车辆信息</h4>'+
+      '<div class="grid grid-cols-2 gap-4">'+
+        '<div class="ant-form-item"><div class="ant-form-label">号牌</div><div class="ant-form-control"><input class="ant-input" value="'+r.plate+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">VIN</div><div class="ant-form-control"><input class="ant-input" value="'+r.vin+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">所属企业</div><div class="ant-form-control"><input class="ant-input" value="'+r.company+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">自动驾驶等级</div><div class="ant-form-control"><select class="ant-input"><option '+(r.autoLevel==='L2'?'selected':'')+'>L2</option><option '+(r.autoLevel==='L3'?'selected':'')+'>L3</option><option '+(r.autoLevel==='L4'?'selected':'')+'>L4</option><option '+(r.autoLevel==='L5'?'selected':'')+'>L5</option></select></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">当时驾驶模式</div><div class="ant-form-control"><select class="ant-input"><option '+(r.driveMode==='自动驾驶'?'selected':'')+'>自动驾驶</option><option '+(r.driveMode==='人工驾驶'?'selected':'')+'>人工驾驶</option><option>远程遥控</option></select></div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">运行数据</h4>'+
+      '<div class="grid grid-cols-2 gap-4">'+
+        '<div class="ant-form-item"><div class="ant-form-label">碰撞前速度(km/h)</div><div class="ant-form-control"><input class="ant-input" type="number" value="'+r.preSpeed+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">最大减速度(m/s²)</div><div class="ant-form-control"><input class="ant-input" type="number" step="0.1" value="'+r.maxDecel+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">转向状态</div><div class="ant-form-control"><select class="ant-input"><option '+(r.steer==='直行'?'selected':'')+'>直行</option><option '+(r.steer==='左转'?'selected':'')+'>左转</option><option '+(r.steer==='右转'?'selected':'')+'>右转</option><option '+(r.steer==='急转'?'selected':'')+'>急转</option><option '+(r.steer==='静止'?'selected':'')+'>静止</option></select></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">制动状态</div><div class="ant-form-control"><select class="ant-input"><option '+(r.brake==='紧急制动'?'selected':'')+'>紧急制动</option><option '+(r.brake==='中度制动'?'selected':'')+'>中度制动</option><option '+(r.brake==='轻度制动'?'selected':'')+'>轻度制动</option><option '+(r.brake==='未制动'?'selected':'')+'>未制动</option><option '+(r.brake==='驻车'?'selected':'')+'>驻车</option></select></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">油门开度(%)</div><div class="ant-form-control"><input class="ant-input" type="number" value="'+r.throttle+'"></div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px"><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">环境信息</h4>'+
+      '<div class="grid grid-cols-2 gap-4">'+
+        '<div class="ant-form-item"><div class="ant-form-label">天气</div><div class="ant-form-control"><select class="ant-input"><option '+(r.weather==='晴'?'selected':'')+'>晴</option><option '+(r.weather==='多云'?'selected':'')+'>多云</option><option '+(r.weather==='阴'?'selected':'')+'>阴</option><option '+(r.weather==='雨'?'selected':'')+'>雨</option><option '+(r.weather==='雾'?'selected':'')+'>雾</option><option '+(r.weather==='雪'?'selected':'')+'>雪</option></select></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">光照</div><div class="ant-form-control"><select class="ant-input"><option '+(r.light==='白天'?'selected':'')+'>白天</option><option '+(r.light==='傍晚'?'selected':'')+'>傍晚</option><option '+(r.light==='夜间'?'selected':'')+'>夜间</option></select></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">路面状况</div><div class="ant-form-control"><select class="ant-input"><option '+(r.road==='干燥'?'selected':'')+'>干燥</option><option '+(r.road==='潮湿'?'selected':'')+'>潮湿</option><option '+(r.road==='湿滑'?'selected':'')+'>湿滑</option><option '+(r.road==='积水'?'selected':'')+'>积水</option><option '+(r.road==='结冰'?'selected':'')+'>结冰</option></select></div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div><h4 style="font-size:14px;font-weight:600;color:#000000d9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">责任与伤亡</h4>'+
+      '<div class="grid grid-cols-2 gap-4">'+
+        '<div class="ant-form-item"><div class="ant-form-label">责任认定</div><div class="ant-form-control"><select class="ant-input"><option '+(r.liability==='全责'?'selected':'')+'>全责</option><option '+(r.liability==='主责'?'selected':'')+'>主责</option><option '+(r.liability==='同责'?'selected':'')+'>同责</option><option '+(r.liability==='次责'?'selected':'')+'>次责</option><option '+(r.liability==='无责'?'selected':'')+'>无责</option><option '+(r.liability==='待认定'?'selected':'')+'>待认定</option></select></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">轻伤人数</div><div class="ant-form-control"><input class="ant-input" type="number" min="0" value="'+r.injuryDetail.light+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">重伤人数</div><div class="ant-form-control"><input class="ant-input" type="number" min="0" value="'+r.injuryDetail.heavy+'"></div></div>'+
+        '<div class="ant-form-item"><div class="ant-form-label">死亡人数</div><div class="ant-form-control"><input class="ant-input" type="number" min="0" value="'+r.injuryDetail.death+'"></div></div>'+
+      '</div>'+
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="saveCorrection(\''+r.id+'\')">保存校正</button>'});
+}
+
+function saveCorrection(id){
+  var r=findRecord(id);if(!r)return;
+  r.status='corrected';
+  r.corrector='当前用户';
+  r.correctTime=new Date().toISOString().replace('T',' ').substring(0,19);
+  closeModal();
+  showToast('校正保存成功，已记录校正人及校正时间');
+  applyFilters();
+}
+
+function openUploadModal(){
+  openModal('上传事故处置报告',
+    '<div style="padding:12px 16px;background:#e6f4ff;border:1px solid #91caff;border-radius:6px;margin-bottom:16px;font-size:12px;color:#00000073"><span style="color:#1677ff;font-weight:600">流程说明</span>：上传事故处置报告后，系统将调用第三方OCR服务进行字段识别，并与车端碰撞时刻前后30秒数据关联，自动生成结构化事故报告。</div>'+
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>选择事故处置报告</div><div class="ant-form-control">'+
+      '<div id="uploadArea" style="border:2px dashed #d9d9d9;border-radius:8px;padding:32px 16px;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById(\'fileInput\').click()" onmouseover="this.style.borderColor=\'#1677ff\'" onmouseout="this.style.borderColor=\'#d9d9d9\'">'+
+        '<div style="font-size:32px;margin-bottom:8px;color:#00000040">📄</div>'+
+        '<p style="font-size:14px;color:#000000d9;margin-bottom:4px">点击或拖拽文件到此区域上传</p>'+
+        '<p style="font-size:12px;color:#00000040">支持 PDF、JPG、PNG 格式，单文件不超过 20MB</p>'+
+        '<div id="uploadedFileName" style="margin-top:8px;font-size:13px;color:#1677ff;display:none"></div>'+
+      '</div>'+
+      '<input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFileSelect(this)">'+
+    '</div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>关联车辆</div><div class="ant-form-control"><select class="ant-input" id="uploadVehicle"><option value="">请选择涉事车辆</option><option>鄂F·A001 - 襄阳智行科技</option><option>鄂F·B003 - 东风汽车</option><option>鄂F·D010 - 百度Apollo</option><option>鄂F·C007 - 华为技术</option><option>鄂F·F012 - 小马智行</option><option>鄂F·G023 - 百度Apollo</option><option>鄂F·H034 - 华为技术</option></select></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">现场照片（可选）</div><div class="ant-form-control">'+
+      '<div id="photoArea" style="border:1px dashed #d9d9d9;border-radius:8px;padding:16px;text-align:center;cursor:pointer" onclick="document.getElementById(\'photoInput\').click()">'+
+        '<span style="font-size:12px;color:#00000040">点击上传现场照片（支持JPG/PNG，最多5张）</span>'+
+        '<div id="uploadedPhotos" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>'+
+      '</div>'+
+      '<input type="file" id="photoInput" accept=".jpg,.jpeg,.png" multiple style="display:none" onchange="handlePhotoSelect(this)">'+
+    '</div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">备注</div><div class="ant-form-control"><textarea class="ant-input" style="height:80px;padding:8px 12px;resize:vertical" placeholder="请输入补充说明（选填）"></textarea></div></div>'+
+    '<div style="padding:10px 12px;background:#f5f5f5;border-radius:6px;font-size:12px;color:#00000073">'+
+      '<div style="font-weight:600;color:#000000d9;margin-bottom:4px">OCR识别模板字段预览</div>'+
+      '<div class="flex flex-wrap gap-2">'+
+        '<span class="ant-tag ant-tag-processing">事故时间</span>'+
+        '<span class="ant-tag ant-tag-processing">事故地点</span>'+
+        '<span class="ant-tag ant-tag-processing">涉事车辆号牌</span>'+
+        '<span class="ant-tag ant-tag-processing">事故类型</span>'+
+        '<span class="ant-tag ant-tag-processing">责任认定</span>'+
+        '<span class="ant-tag ant-tag-processing">伤亡情况</span>'+
+        '<span class="ant-tag ant-tag-processing">天气/路面状况</span>'+
+      '</div>'+
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="submitUpload()">提交并开始解析</button>'});
+}
+
+function handleFileSelect(input){
+  if(input.files&&input.files[0]){
+    var name=input.files[0].name;
+    var el=document.getElementById('uploadedFileName');
+    el.textContent='已选择：'+name;
+    el.style.display='block';
+  }
+}
+
+function handlePhotoSelect(input){
+  if(input.files){
+    var container=document.getElementById('uploadedPhotos');
+    container.innerHTML='';
+    for(var i=0;i<Math.min(input.files.length,5);i++){
+      container.innerHTML+='<div style="width:48px;height:48px;background:#f0f0f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#00000040">'+input.files[i].name.slice(0,4)+'</div>';
+    }
+  }
+}
+
+function submitUpload(){
+  closeModal();
+  showToast('报告已提交，OCR解析进行中...');
+  setTimeout(function(){
+    showToast('OCR解析完成，已生成结构化事故报告');
+    applyFilters();
+  },2000);
+}
+
+function startParse(id){
+  showToast('正在调用OCR服务解析事故报告...');
+  var r=findRecord(id);
+  if(r){
+    setTimeout(function(){
+      r.status='parsed';
+      showToast('解析完成，可查看详情或进行人工校正');
+      applyFilters();
+    },1500);
+  }
+}
+
+function showToast(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;top:80px;right:24px;z-index:9999;background:#fff;padding:10px 16px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15);font-size:13px;border-left:3px solid #1677ff;';
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';t.style.transition='0.3s';setTimeout(function(){t.remove()},300)},2000);
+}
+
+filteredData=[].concat(accidentRecords);
+renderTable();
+</script>
+</body>
+</html>

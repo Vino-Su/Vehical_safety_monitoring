@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>异常状态告警统计分析 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    html,body{margin:0;padding:0;overflow-x:hidden;font-family:"Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .stat-cards{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:24px;overflow:hidden}
+    .stat-card{background:#fff;border-radius:8px;padding:16px 20px;display:flex;align-items:center;gap:14px;border:1px solid #f0f0f0;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:all .2s}
+    .stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px)}
+    .stat-card .icon-box{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:700;color:#fff}
+    .stat-card .info-box{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .stat-card .sv{font-size:26px;font-weight:700;line-height:1.2;color:#000000d9;letter-spacing:-.5px}
+    .stat-card .sl{font-size:12px;color:#00000073;line-height:1.4}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;overflow:hidden}
+    .table-wrap{overflow-x:auto;}
+    .table-wrap table{width:100%;border-collapse:collapse;table-layout:fixed}
+    .table-wrap th{background:#fafafa;font-weight:600;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:14px 16px;height:48px;font-size:13px;color:#00000073}
+    .table-wrap td{padding:14px 16px;text-align:left;font-size:13px;border-bottom:1px solid #f5f5f5;overflow:hidden;text-overflow:ellipsis;height:48px;color:#000000d9}
+    .table-wrap tr:hover{background:#f5f5f5;}
+    .map-container{height:360px;border-radius:6px;overflow:hidden;}
+    .map-container .leaflet-container{z-index:1;}
+    @media (max-width:1200px){.stat-cards{grid-template-columns:repeat(3,1fr)}.row-2{grid-template-columns:1fr}}
+    @media (max-width:768px){.stat-cards{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-y-auto overflow-x-hidden bg-[#f0f2f5] p-6 min-w-0">
+      <div class="page-header"><h2>异常状态告警统计分析</h2></div>
+
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>开始日期</label><input class="ant-input" type="date" id="startDate" style="width:140px"></div>
+          <div class="filter-item"><label>结束日期</label><input class="ant-input" type="date" id="endDate" style="width:140px"></div>
+          <div class="filter-item"><label>告警类型</label><select class="ant-input" id="filterType" style="width:130px"><option value="all">全部</option><option>车辆运行异常</option><option>临牌有效期预警</option><option>电子围栏越界</option><option>终端通信异常</option><option>设备故障告警</option><option>其他告警</option></select></div>
+          <div class="filter-item"><label>告警级别</label><select class="ant-input" id="filterLevel" style="width:100px"><option value="all">全部</option><option>严重</option><option>一般</option><option>提示</option></select></div>
+          <div class="filter-item"><label>所属企业</label><select class="ant-input" id="filterCompany" style="width:140px"><option value="all">全部</option><option>东风悦享</option><option>达安检测</option><option>百度智行</option><option>襄阳公交</option><option>酷哇机器人</option><option>新石器</option><option>文远知行</option><option>智行未来</option></select></div>
+          <div class="filter-item"><label>车牌号</label><input class="ant-input" id="filterPlate" placeholder="请输入车牌号" style="width:130px"></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="doQuery()">查询</button><button class="ant-btn" onclick="showToast('导出功能开发中','#1677ff')">导出</button></div>
+        </div>
+      </div>
+
+      <div class="stat-cards" id="statCards">
+        <div class="stat-card"><div class="icon-box" style="background:#fff2f0;">⚠</div><div class="info-box"><div class="sv" style="color:#ff4d4f;" id="totalAlarm">186</div><div class="sl">当日告警总数</div></div></div>
+        <div class="stat-card"><div class="icon-box" style="background:#fff7e6;">🕐</div><div class="info-box"><div class="sv" style="color:#fa8c16;" id="unhandled">24</div><div class="sl">未处理告警</div></div></div>
+        <div class="stat-card"><div class="icon-box" style="background:#e6f4ff;">⏳</div><div class="info-box"><div class="sv" style="color:#1677ff;" id="processing">18</div><div class="sl">处理中告警</div></div></div>
+        <div class="stat-card"><div class="icon-box" style="background:#f6ffed;">✓</div><div class="info-box"><div class="sv" style="color:#52c41a;" id="handled">144</div><div class="sl">已处理告警</div></div></div>
+        <div class="stat-card"><div class="icon-box" style="background:#f0f5ff;">%</div><div class="info-box"><div class="sv" id="rate">87.1%</div><div class="sl">告警处理率</div></div></div>
+        <div class="stat-card"><div class="icon-box" style="background:#fff2f0;">!</div><div class="info-box"><div class="sv" style="color:#ff4d4f;" id="severeRate">32.3%</div><div class="sl">严重告警占比</div></div></div>
+      </div>
+
+      <div class="row-2">
+        <div class="card" style="padding:20px;overflow:hidden;border-radius:8px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;color:#000000d9;">告警类型分布</div><div class="chart-container" id="pieChart" style="height:300px;overflow:hidden;"></div></div>
+        <div class="card" style="padding:20px;overflow:hidden;border-radius:8px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;color:#000000d9;">告警级别分布</div><div class="chart-container" id="levelBar" style="height:300px;overflow:hidden;"></div></div>
+      </div>
+      <div class="row-2">
+        <div class="card" style="padding:20px;overflow:hidden;border-radius:8px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;color:#000000d9;">告警趋势</div><div class="chart-container" id="trendChart" style="height:300px;overflow:hidden;"></div></div>
+        <div class="card" style="padding:20px;overflow:hidden;border-radius:8px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;color:#000000d9;">企业告警排名 Top10</div><div class="chart-container" id="rankChart" style="height:300px;overflow:hidden;"></div></div>
+      </div>
+
+      <div class="card" style="padding:20px;margin-bottom:24px;overflow:hidden;border-radius:8px;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;color:#000000d9;">
+          <span>告警热点地图</span>
+          <span style="font-weight:400;font-size:12px;color:#00000073;">点位颜色按级别：<span style="color:#ff4d4f;">●严重</span> <span style="color:#fa8c16;">●一般</span> <span style="color:#1677ff;">●提示</span></span>
+        </div>
+        <div id="alertMap" class="map-container"></div>
+      </div>
+
+      <div class="card" style="padding:20px;overflow:hidden;border-radius:8px;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:16px;color:#000000d9;">告警明细列表</div>
+        <div class="table-wrap">
+          <table><thead><tr><th>告警编号</th><th>时间</th><th>车牌号</th><th>VIN码</th><th>所属企业</th><th>告警类型</th><th>告警级别</th><th>地点</th><th>处理状态</th><th>操作</th></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3 flex-wrap gap-2">
+          <span class="text-sm" style="color:#00000073;" id="totalInfo">共 0 条</span>
+          <div class="ant-pagination" id="pagination"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<div class="ant-modal-mask" id="modalMask" style="display:none!important;">
+  <div class="ant-modal wide">
+    <div class="ant-modal-header"><h3>告警详情</h3><span class="ant-modal-close" onclick="closeDetail()">✕</span></div>
+    <div class="ant-modal-body" id="modalBody"></div>
+    <div class="ant-modal-footer"><button class="ant-btn" onclick="closeDetail()">关闭</button></div>
+  </div>
+</div>
+<script>
+const PAGE_ID='alarm-stats';
+
+const alarmTypeColors = {'车辆运行异常':'#ff4d4f','临牌有效期预警':'#faad14','电子围栏越界':'#1677ff','终端通信异常':'#722ed1','设备故障告警':'#52c41a','其他告警':'#00000040'};
+const alarmTypeList = ['车辆运行异常','临牌有效期预警','电子围栏越界','终端通信异常','设备故障告警','其他告警'];
+const enterpriseFullList = ['东风悦享科技有限公司','襄阳达安汽车检测中心','百度智行科技（襄阳）','襄阳市公共交通集团','酷哇机器人有限公司','新石器慧通（北京）','文远知行（襄阳）','襄阳智行未来科技'];
+const enterpriseShortList = ['东风悦享','达安检测','百度智行','襄阳公交','酷哇机器人','新石器','文远知行','智行未来'];
+const levels = ['严重','一般','提示'];
+const statuses = ['待处理','处理中','已完成'];
+const locations = ['长虹路建华路口','檀溪路铁佛寺路口','航空路金富士路口','人民路天元四季城','建设路银城大道口','邓城大道与卧龙大道交叉口','胜利街与环城东路交叉口','襄州大道与机场路交叉口','东津新区南山路','鱼梁洲绿洲大道'];
+
+let mockAlarms = [];
+let currentPeriod = '7d';
+let page = 1; const pageSize = 10;
+let chartPie, chartLevel, chartTrend, chartRank;
+let alertMap = null;
+let mapInitialized = false;
+
+function genAlarms() {
+  var alarms = [];
+  var now = new Date();
+  for (var i = 0; i < 86; i++) {
+    var d = new Date(now); d.setMinutes(d.getMinutes() - i * 15 + Math.floor(Math.random() * 10));
+    var t = d.toLocaleString('zh-CN', {hour12:false}).replace(/\//g,'-');
+    var type = alarmTypeList[Math.floor(Math.random() * alarmTypeList.length)];
+    var lv = levels[Math.floor(Math.random() * 3)];
+    var ent = enterpriseFullList[Math.floor(Math.random() * enterpriseFullList.length)];
+    var st = statuses[Math.floor(Math.random() * 3)];
+    var plate = '鄂F·' + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + String(Math.floor(Math.random() * 900) + 100).padStart(3,'0');
+    var vin = 'LSVA' + String(Math.floor(Math.random() * 89999) + 10000).padStart(5,'0') + 'N2' + String(Math.floor(Math.random() * 899) + 100).padStart(3,'0');
+    var loc = locations[Math.floor(Math.random() * locations.length)];
+    alarms.push({id:'ALT-'+t.replace(/[-\s:]/g,'').slice(0,10)+'-'+String(i+1).padStart(4,'0'),time:t,plate:plate,vin:vin,enterprise:ent,type:type,level:lv,status:st,location:loc});
+  }
+  alarms.sort(function(a,b){return b.time.localeCompare(a.time);});
+  return alarms;
+}
+
+function getDateRange(period) {
+  var today=new Date(), end=new Date(today), start=new Date(today);
+  if (period==='today'){ }
+  else if (period==='yesterday'){ start.setDate(start.getDate()-1); end.setDate(end.getDate()-1); }
+  else if (period==='7d'){ start.setDate(start.getDate()-7); }
+  else if (period==='30d'){ start.setDate(start.getDate()-30); }
+  else if (period==='month'){ start.setDate(1); }
+  return {start,end};
+}
+
+function getOverviewStats(period) {
+  var f = period==='today'?1:period==='yesterday'?0.9:period==='7d'?0.5:period==='30d'?0.08:0.15;
+  var total=Math.round(186*f), unhandled=Math.round(total*0.13), processing=Math.round(total*0.1), handled=total-unhandled-processing;
+  var rate=(handled/total*100).toFixed(1);
+  var severe=Math.round(total*0.323);
+  var severeRate=(severe/total*100).toFixed(1);
+  return {total,unhandled,processing,handled,rate,severeRate};
+}
+
+function getFilteredAlarms() {
+  var level=document.getElementById('filterLevel').value;
+  var type=document.getElementById('filterType').value;
+  var company=document.getElementById('filterCompany').value;
+  var plate=document.getElementById('filterPlate').value;
+  var range=getDateRange(currentPeriod);
+  return mockAlarms.filter(function(a){
+    if(level!=='all'&&a.level!==level)return false;
+    if(type!=='all'&&a.type!==type)return false;
+    if(company!=='all'&&a.enterprise.indexOf(company)===-1)return false;
+    if(plate&&a.plate.indexOf(plate)===-1)return false;
+    var t=new Date(a.time.replace(/-/g,'/'));
+    return t>=range.start&&t<=range.end;
+  });
+}
+
+function setPeriod(type) {
+  currentPeriod=type;
+  var b=document.querySelectorAll('.query-row div:first-child button');
+  b.forEach(function(x){x.classList.remove('ant-btn-primary');});
+  var m={today:'今日',yesterday:'昨日','7d':'最近7天','30d':'最近30天',month:'本月'};
+  b.forEach(function(x){if(x.textContent.trim()===m[type])x.classList.add('ant-btn-primary');});
+  var r=getDateRange(type);
+  document.getElementById('startDate').value=r.start.toISOString().split('T')[0];
+  document.getElementById('endDate').value=r.end.toISOString().split('T')[0];
+  refreshAll();
+}
+
+function doQuery() {
+  page=1;
+  refreshAll();
+  showToast('数据已更新','#1677ff');
+}
+
+function refreshAll() {
+  var filtered=getFilteredAlarms();
+  var st=getOverviewStats(currentPeriod);
+  document.getElementById('totalAlarm').innerText=st.total;
+  document.getElementById('unhandled').innerText=st.unhandled;
+  document.getElementById('processing').innerText=st.processing;
+  document.getElementById('handled').innerText=st.handled;
+  document.getElementById('rate').innerText=st.rate+'%';
+  document.getElementById('severeRate').innerText=st.severeRate+'%';
+  renderPie(filtered);
+  renderLevelBar(filtered);
+  renderTrend();
+  renderRank();
+  renderTable(filtered);
+}
+
+function renderPie(filtered) {
+  var map={};
+  filtered.forEach(function(a){map[a.type]=(map[a.type]||0)+1;});
+  var cd=alarmTypeList.map(function(t){return{name:t,value:map[t]||0,itemStyle:{color:alarmTypeColors[t]}};}).filter(function(d){return d.value>0;});
+  if(chartPie)chartPie.dispose();
+  chartPie=echarts.init(document.getElementById('pieChart'));
+  chartPie.setOption({
+    tooltip:{trigger:'item',formatter:function(p){return p.name+'<br/>'+p.value+' 起 ('+p.percent+'%)';}},
+    legend:{orient:'vertical',left:'left',textStyle:{fontSize:11}},
+    series:[{type:'pie',radius:['38%','62%'],center:['55%','50%'],avoidLabelOverlap:true,label:{show:false},emphasis:{label:{show:true,fontSize:13,fontWeight:'bold'}},data:cd}]
+  });
+}
+
+function renderLevelBar(filtered) {
+  var severe=0, general=0, info=0;
+  filtered.forEach(function(a){if(a.level==='严重')severe++;else if(a.level==='一般')general++;else info++;});
+  if(chartLevel)chartLevel.dispose();
+  chartLevel=echarts.init(document.getElementById('levelBar'));
+  chartLevel.setOption({
+    tooltip:{trigger:'axis'},grid:{left:'10%',right:'8%',containLabel:true},
+    xAxis:{type:'category',data:['严重','一般','提示'],axisLabel:{fontSize:12}},
+    yAxis:{type:'value',name:'告警数',axisLabel:{fontSize:10}},
+    series:[{type:'bar',data:[severe,general,info],barWidth:'50%',
+      itemStyle:{color:function(p){return p.dataIndex===0?'#ff4d4f':p.dataIndex===1?'#fa8c16':'#1677ff';},borderRadius:[4,4,0,0]},
+      label:{show:true,position:'top',fontSize:12}
+    }]
+  });
+}
+
+function renderTrend() {
+  if(currentPeriod==='today'||currentPeriod==='yesterday'){
+    var d={dates:['00-04','04-08','08-12','12-16','16-20','20-24'],data:[24,18,32,26,40,16]};
+    renderTrendChart(d.dates,d.data);
+    return;
+  }
+  if(currentPeriod==='7d'){
+    var dates=[];for(var i=6;i>=0;i--){var x=new Date();x.setDate(x.getDate()-i);dates.push((x.getMonth()+1)+'/'+x.getDate());}
+    renderTrendChart(dates,[24,18,32,26,40,30,36]);
+    return;
+  }
+  renderTrendChart(['第1周','第2周','第3周','第4周'],[187,202,168,220]);
+}
+
+function renderTrendChart(dates,data) {
+  if(chartTrend)chartTrend.dispose();
+  chartTrend=echarts.init(document.getElementById('trendChart'));
+  chartTrend.setOption({
+    tooltip:{trigger:'axis'},grid:{left:'10%',right:'5%',containLabel:true},
+    xAxis:{type:'category',data:dates,axisLabel:{rotate:0,fontSize:9,interval:Math.floor(dates.length/8)}},
+    yAxis:{type:'value',name:'告警数',axisLabel:{fontSize:10}},
+    series:[{type:'line',data:data,lineStyle:{color:'#1677ff',width:2},areaStyle:{color:'rgba(22,119,255,0.12)'},smooth:true,
+      markLine:{data:[{type:'average',name:'平均值'}],lineStyle:{color:'#ff4d4f',type:'dashed'}},
+      itemStyle:{color:'#1677ff'}
+    }]
+  });
+}
+
+function renderRank() {
+  var vals=[86,72,65,58,45,38,32,28];
+  if(chartRank)chartRank.dispose();
+  chartRank=echarts.init(document.getElementById('rankChart'));
+  chartRank.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},grid:{left:'5%',right:'8%',containLabel:true},
+    xAxis:{type:'value',name:'告警数',axisLabel:{fontSize:10}},
+    yAxis:{type:'category',data:enterpriseFullList.slice().reverse(),axisLabel:{fontSize:10}},
+    series:[{type:'bar',data:vals.slice().reverse().map(function(v){return{value:v,itemStyle:{color:'#1677ff',borderRadius:[0,4,4,0]}};}),barWidth:'55%',
+      label:{show:true,position:'right',formatter:function(p){return p.value+' 起';},fontSize:10}
+    }]
+  });
+}
+
+function initAlertMap() {
+  if(mapInitialized) return;
+  var container=document.getElementById('alertMap');
+  if(!container||container._leaflet_id) return;
+  try {
+    alertMap=L.map(container).setView([32.02,112.12],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(alertMap);
+    var levelColors={'严重':'#ff4d4f','一般':'#fa8c16','提示':'#1677ff'};
+    for(var i=0;i<80;i++){
+      var lat=31.76+Math.random()*0.48;
+      var lng=111.70+Math.random()*0.65;
+      var lv=levels[Math.floor(Math.random()*3)];
+      var loc=locations[Math.floor(Math.random()*locations.length)];
+      L.circleMarker([lat,lng],{radius:5+Math.random()*5,fillColor:levelColors[lv],color:'#fff',weight:1.5,fillOpacity:0.75})
+       .addTo(alertMap).bindPopup('<b>'+lv+'告警</b><br>地点：'+loc+'<br>时间：2026-05-09 '+(Math.floor(Math.random()*24)).toString().padStart(2,'0')+':'+(Math.floor(Math.random()*60)).toString().padStart(2,'0'));
+    }
+    mapInitialized=true;
+    setTimeout(function(){if(alertMap)alertMap.invalidateSize();},300);
+  } catch(e){}
+}
+
+function renderTable(filtered) {
+  var totalPages=Math.ceil(filtered.length/pageSize);
+  if(page>totalPages)page=Math.max(1,totalPages);
+  var start=(page-1)*pageSize;
+  var end=Math.min(start+pageSize,filtered.length);
+  var pageData=filtered.slice(start,end);
+  var tbody=document.getElementById('tableBody');
+  tbody.innerHTML=pageData.map(function(a){
+    var lt=a.level==='严重'?'<span class="ant-tag ant-tag-error">严重</span>':a.level==='一般'?'<span class="ant-tag ant-tag-warning">一般</span>':'<span class="ant-tag ant-tag-processing">提示</span>';
+    var sgt=a.status==='待处理'?'<span class="ant-tag ant-tag-processing">待处理</span>':a.status==='处理中'?'<span class="ant-tag ant-tag-warning">处理中</span>':'<span class="ant-tag ant-tag-success">已完成</span>';
+    return '<tr><td style="font-size:11px;color:#00000073;">'+a.id+'</td><td>'+a.time+'</td><td>'+a.plate+'</td><td style="font-size:11px;">'+a.vin+'</td><td>'+a.enterprise+'</td><td>'+a.type+'</td><td>'+lt+'</td><td>'+a.location+'</td><td>'+sgt+'</td><td><button class="ant-btn-link" onclick="openDetail(\''+a.id+'\',\''+a.plate+'\',\''+a.vin+'\',\''+a.type+'\',\''+a.level+'\',\''+a.status+'\',\''+a.time+'\',\''+a.enterprise+'\',\''+a.location+'\')">详情</button></td></tr>';
+  }).join('');
+  document.getElementById('totalInfo').innerText='共 '+filtered.length+' 条';
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  var p=document.getElementById('pagination');
+  if(totalPages<=1){p.innerHTML='';return;}
+  var html='<span class="page-item" onclick="goPage('+(page-1)+')"><i class="fas fa-chevron-left"></i></span>';
+  var s=Math.max(1,page-2),e=Math.min(totalPages,s+4);
+  if(s>1){html+='<span class="page-item" onclick="goPage(1)">1</span><span class="page-item" style="border:none;cursor:default;">...</span>';}
+  for(var i=s;i<=e;i++){html+='<span class="page-item'+(i===page?' active':'')+'" onclick="goPage('+i+')">'+i+'</span>';}
+  if(e<totalPages){html+='<span class="page-item" style="border:none;cursor:default;">...</span><span class="page-item" onclick="goPage('+totalPages+')">'+totalPages+'</span>';}
+  html+='<span class="page-item" onclick="goPage('+(page+1)+')"><i class="fas fa-chevron-right"></i></span>';
+  p.innerHTML=html;
+}
+
+function goPage(p) {
+  var totalPages=Math.ceil(getFilteredAlarms().length/pageSize);
+  if(p<1||p>totalPages)return;
+  page=p;
+  renderTable(getFilteredAlarms());
+}
+
+function openDetail(id,plate,vin,type,level,status,time,enterprise,location) {
+  var lt=level==='严重'?'<span class="ant-tag ant-tag-error">严重</span>':level==='一般'?'<span class="ant-tag ant-tag-warning">一般</span>':'<span class="ant-tag ant-tag-processing">提示</span>';
+  var sgt=status==='待处理'?'<span class="ant-tag ant-tag-processing">待处理</span>':status==='处理中'?'<span class="ant-tag ant-tag-warning">处理中</span>':'<span class="ant-tag ant-tag-success">已完成</span>';
+  document.getElementById('modalBody').innerHTML=
+    '<div class="ant-descriptions">'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">告警编号</div><div class="ant-descriptions-value">'+id+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">告警时间</div><div class="ant-descriptions-value">'+time+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">告警类型</div><div class="ant-descriptions-value">'+type+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">告警级别</div><div class="ant-descriptions-value">'+lt+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">车辆号牌</div><div class="ant-descriptions-value">'+plate+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">VIN码</div><div class="ant-descriptions-value">'+vin+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">所属企业</div><div class="ant-descriptions-value">'+enterprise+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">告警地点</div><div class="ant-descriptions-value">'+location+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">处理状态</div><div class="ant-descriptions-value">'+sgt+'</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">关联事件</div><div class="ant-descriptions-value">前方障碍物检测、自动紧急制动触发</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">数据来源</div><div class="ant-descriptions-value">车端CAN总线 + 路侧RSU</div></div>'+
+      '<div class="ant-descriptions-row"><div class="ant-descriptions-label">告警详情</div><div class="ant-descriptions-value" style="flex:3;">车辆'+plate+'在'+location+'附近触发「'+type+'」告警，'+(level==='严重'?'需立即处理，请相关企业及时排查并反馈处理结果。':level==='一般'?'请企业关注并在规定时间内完成处理。':'已记录告警信息，供后续分析参考。')+'</div></div>'+
+    '</div>';
+  document.getElementById('modalMask').style.setProperty('display','flex','important');
+}
+
+function closeDetail() {
+  document.getElementById('modalMask').style.setProperty('display','none','important');
+}
+
+function showToast(msg,bgColor) {
+  var t=document.createElement('div');
+  t.innerText=msg;
+  t.style.cssText='position:fixed;bottom:20px;right:20px;background:'+(bgColor||'#1677ff')+';color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+  document.body.appendChild(t);
+  setTimeout(function(){t.remove();},1500);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  mockAlarms=genAlarms();
+  setPeriod('7d');
+  initAlertMap();
+});
+
+window.addEventListener('resize',function(){
+  [chartPie,chartLevel,chartTrend,chartRank].forEach(function(c){if(c)c.resize();});
+  if(alertMap)alertMap.invalidateSize();
+});
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

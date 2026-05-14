@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>报告管理 - 襄阳智行科技智能网联汽车监管平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>报告管理</h2></div>
+
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-query')">报告查询</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-submit')">报告提交</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-archive')">材料归档</span>
+      </div>
+
+      <div id="tab-query">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>报告类型</label><div class="ant-select" id="qReportType">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>子类型</label><div class="ant-select" id="qSubType">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>报告提交机构</label><input class="ant-input" placeholder="请输入关键词" id="qCompany" style="width:160px"></div>
+            <div class="filter-item"><label>关联申请编号</label><input class="ant-input" placeholder="请输入编号" id="qApplicationId" style="width:160px"></div>
+            <div class="filter-item"><label>提交时间起</label><input class="ant-input" type="date" id="qStartDate" style="width:140px"></div>
+            <div class="filter-item"><label>至</label><input class="ant-input" type="date" id="qEndDate" style="width:140px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="searchReports()">查询</button><button class="ant-btn" onclick="resetReports()">重置</button></div>
+          </div>
+        </div>
+
+        <div class="ant-table-wrapper">
+          <table class="ant-table" id="reportTable">
+            <thead><tr><th>报告编号</th><th>报告类型</th><th>子类型</th><th>报告名称</th><th>提交机构</th><th>关联申请编号</th><th>提交时间</th><th>操作</th></tr></thead>
+            <tbody id="reportTbody"></tbody>
+          </table>
+        </div>
+        <div class="ant-pagination mt-4" id="paginationQuery"><span class="text-[#00000073] text-sm mr-3">共 5 条</span><span class="page-item active">1</span><span class="page-item">2</span></div>
+      </div>
+
+      <div id="tab-submit" style="display:none">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm text-[#00000073]">主管部门向工业和信息化部、公安部和交通运输部报告辖区内智能网联汽车道路测试、示范应用、示范运营情况，该报告无需审核直接提交。</p>
+          <button class="ant-btn ant-btn-primary" onclick="openNewReport()">+ 新增报告</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>报告类型</label><div class="ant-select" id="sReportType">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>报送对象</label><div class="ant-select" id="sReceiver">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>报告期次</label><input class="ant-input" placeholder="请输入期次" id="sPeriod" style="width:140px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="searchSubmits()">查询</button><button class="ant-btn" onclick="resetSubmits()">重置</button></div>
+          </div>
+        </div>
+
+        <div class="ant-table-wrapper">
+          <table class="ant-table" id="submitTable">
+            <thead><tr><th>报告编号</th><th>报告名称</th><th>报告类型</th><th>报告期次</th><th>报告日期</th><th>报送单位</th><th>报送对象</th><th>操作</th></tr></thead>
+            <tbody id="submitTbody"></tbody>
+          </table>
+        </div>
+        <div class="ant-pagination mt-4" id="paginationSubmit"><span class="text-[#00000073] text-sm mr-3">共 0 条</span><span class="page-item active">1</span></div>
+      </div>
+
+      <div id="tab-archive" style="display:none">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm text-[#00000073]">主管部门对专家评审、现场实车审查的相关材料进行归档管理。</p>
+          <button class="ant-btn ant-btn-primary" onclick="openUpload()">+ 上传归档材料</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>材料类型</label><div class="ant-select" id="aMaterialType">全部<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+            <div class="filter-item"><label>申请企业</label><input class="ant-input" placeholder="请输入企业名称" id="aCompanyFilter" style="width:160px"></div>
+            <div class="filter-item"><label>关联申请编号</label><input class="ant-input" placeholder="请输入编号" id="aApplicationId" style="width:180px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary" onclick="searchArchives()">查询</button><button class="ant-btn" onclick="resetArchives()">重置</button></div>
+          </div>
+        </div>
+
+        <div class="ant-table-wrapper">
+          <table class="ant-table" id="archiveTable">
+            <thead><tr><th>材料编号</th><th>材料名称</th><th>材料类型</th><th>关联申请编号</th><th>申请企业</th><th>格式</th><th>文件大小</th><th>上传时间</th><th>操作</th></tr></thead>
+            <tbody id="archiveTbody"></tbody>
+          </table>
+        </div>
+        <div class="ant-pagination mt-4" id="paginationArchive"><span class="text-[#00000073] text-sm mr-3">共 0 条</span><span class="page-item active">1</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+var PAGE_ID='report';
+var currentTab='query';
+var pageSize=3;
+var paginationState={query:1,submit:1,archive:1};
+
+var mockReports=[
+  {id:'RPT001',type:'道路测试报告',subType:'事故分析报告',name:'2026年第二季度道路测试事故分析报告',company:'上海蔚来汽车有限公司',applicationId:'SQ2026041001',time:'2026-04-28 14:30'},
+  {id:'RPT002',type:'自动驾驶功能测试报告',subType:'版本升级测试报告',name:'2026年第二季度自动驾驶功能版本升级测试报告',company:'百度Apollo',applicationId:'SQ2026041502',time:'2026-04-15 09:12'},
+  {id:'RPT003',type:'示范运营安全评估报告',subType:'事故分析报告',name:'关于我局监管的企业按季度提交定期安全评估报告的审核意见',company:'襄阳智行科技有限公司',applicationId:'SQ2026042003',time:'2026-04-20 16:45'},
+  {id:'RPT004',type:'道路测试报告',subType:'版本升级测试报告',name:'3月份新增测试路段的道路测试数据分析报告',company:'上海蔚来汽车技术有限公司',applicationId:'SQ2026033104',time:'2026-03-31 11:00'},
+  {id:'RPT005',type:'自动驾驶功能测试报告',subType:'事故分析报告',name:'关于保障自动驾驶车辆运营安全的阶段性排查报告',company:'深圳AutoX',applicationId:'SQ2026042505',time:'2026-04-25 08:30'},
+  {id:'RPT006',type:'道路测试报告',subType:'定期数据分析报告',name:'2026年5月测试车辆运行数据统计与分析报告',company:'小马智行',applicationId:'SQ2026050106',time:'2026-05-06 10:15'},
+  {id:'RPT007',type:'示范运营安全评估报告',subType:'安全评估报告',name:'2026年第二季度示范运营车辆安全运行评估报告',company:'文远知行',applicationId:'SQ2026050207',time:'2026-05-08 14:00'},
+  {id:'RPT008',type:'自动驾驶功能测试报告',subType:'版本升级测试报告',name:'文远知行L4级自动驾驶系统V3.2版本升级测试报告',company:'文远知行',applicationId:'SQ2026050308',time:'2026-05-10 09:30'},
+  {id:'RPT009',type:'道路测试报告',subType:'事故分析报告',name:'测试车辆鄂F·T0012事故分析与整改报告',company:'百度Apollo',applicationId:'SQ2026050409',time:'2026-05-12 16:20'},
+  {id:'RPT010',type:'示范运营安全评估报告',subType:'定期安全评估',name:'东风出行示范运营2026年4月安全运行评估报告',company:'东风出行',applicationId:'SQ2026050510',time:'2026-05-14 11:00'},
+  {id:'RPT011',type:'道路测试报告',subType:'定期数据分析报告',name:'襄阳智行科技2026年4月道路测试数据汇总报告',company:'襄阳智行科技有限公司',applicationId:'SQ2026042003',time:'2026-05-01 08:00'},
+  {id:'RPT012',type:'自动驾驶功能测试报告',subType:'事故分析报告',name:'测试车辆鄂F·T0018紧急制动事件专项分析报告',company:'文远知行',applicationId:'SQ2026050207',time:'2026-05-07 13:45'},
+  {id:'RPT013',type:'道路测试报告',subType:'版本升级测试报告',name:'比亚迪汉EV自动驾驶系统升级后道路测试验证报告',company:'襄阳智行科技有限公司',applicationId:'SQ2026042003',time:'2026-04-22 09:00'},
+  {id:'RPT014',type:'示范运营安全评估报告',subType:'安全评估报告',name:'AutoX全无人示范运营2026年Q1安全评估报告',company:'深圳AutoX',applicationId:'SQ2026042505',time:'2026-04-10 15:00'},
+  {id:'RPT015',type:'自动驾驶功能测试报告',subType:'定期数据分析报告',name:'2026年4月自动驾驶路测里程及脱离数据统计报告',company:'上海蔚来汽车有限公司',applicationId:'SQ2026041001',time:'2026-05-05 10:30'}
+];
+
+var mockSubmits=[
+  {id:'SBR001',type:'道路测试情况报告',period:'2026年第二季度',title:'关于2026年第二季度辖区智能网联汽车道路测试情况的报告',time:'2026-05-15',submitter:'武汉市经济和信息化局',receiver:'工业和信息化部'},
+  {id:'SBR002',type:'示范应用情况报告',period:'2026年第一季度',title:'关于2026年第一季度辖区智能网联汽车示范应用运行情况的报告',time:'2026-04-10',submitter:'武汉市交通运输局',receiver:'交通运输部'},
+  {id:'SBR003',type:'示范运营安全报告',period:'2026年第二季度',title:'关于2026年第二季度辖区智能网联汽车示范运营安全管理情况的报告',time:'2026-05-20',submitter:'武汉市公安局交通管理局',receiver:'公安部'},
+  {id:'SBR004',type:'年度综合报告',period:'2025年度',title:'2025年度武汉市智能网联汽车道路测试与示范应用工作总结报告',time:'2026-01-31',submitter:'武汉市经济和信息化局',receiver:'工业和信息化部'},
+  {id:'SBR005',type:'道路测试情况报告',period:'2026年5月',title:'2026年5月辖区智能网联汽车道路测试月度情况报告',time:'2026-06-05',submitter:'武汉市智能网联汽车测试场',receiver:'工业和信息化部'},
+  {id:'SBR006',type:'示范应用情况报告',period:'2026年第二季度',title:'关于2026年第二季度智能网联汽车示范应用车辆运行数据的报告',time:'2026-05-18',submitter:'武汉市交通运输局',receiver:'交通运输部'},
+  {id:'SBR007',type:'示范运营安全报告',period:'2026年第一季度',title:'2026年第一季度智能网联汽车示范运营交通事故与应急处置情况报告',time:'2026-04-15',submitter:'武汉市公安局交通管理局',receiver:'公安部'},
+  {id:'SBR008',type:'道路测试情况报告',period:'2026年第一季度',title:'关于2026年第一季度辖区新增测试道路与测试主体情况的报告',time:'2026-04-08',submitter:'武汉市经济和信息化局',receiver:'工业和信息化部'},
+  {id:'SBR009',type:'专项工作报告',period:'专项检查',title:'关于辖区自动驾驶测试车辆违规行为排查整治情况的专项报告',time:'2026-05-25',submitter:'武汉市公安局交通管理局',receiver:'公安部'},
+  {id:'SBR010',type:'年度综合报告',period:'2026年上半年',title:'2026年上半年武汉市智能网联汽车测试与示范应用发展情况报告',time:'2026-05-30',submitter:'武汉市经济和信息化局',receiver:'工业和信息化部'},
+  {id:'SBR011',type:'示范运营安全报告',period:'2026年5月',title:'智能网联汽车示范运营车辆2026年5月安全运行监测报告',time:'2026-06-01',submitter:'武汉市交通运输局',receiver:'交通运输部'},
+  {id:'SBR012',type:'专项工作报告',period:'不定期',title:'关于智能网联汽车测试数据接入国家监管平台情况的报告',time:'2026-05-22',submitter:'武汉市智能网联汽车测试场',receiver:'工业和信息化部'}
+];
+
+var mockArchives=[
+  {id:'ARC001',name:'L4级自动驾驶功能专家评审意见书',type:'专家评审材料',appId:'SQ2026041001',company:'上海蔚来汽车有限公司',format:'PDF',size:'2.8MB',time:'2026-04-28'},
+  {id:'ARC002',name:'现场实车审查记录表——蔚来ES6',type:'现场实车审查材料',appId:'SQ2026041001',company:'上海蔚来汽车有限公司',format:'PDF',size:'1.5MB',time:'2026-04-29'},
+  {id:'ARC003',name:'自动驾驶系统安全评估专家评审报告',type:'专家评审材料',appId:'SQ2026041502',company:'百度Apollo',format:'PDF',size:'3.2MB',time:'2026-04-20'},
+  {id:'ARC004',name:'实车制动性能测试原始记录',type:'现场实车审查材料',appId:'SQ2026041502',company:'百度Apollo',format:'Excel',size:'680KB',time:'2026-04-21'},
+  {id:'ARC005',name:'示范运营资质专家评审综合意见',type:'专家评审材料',appId:'SQ2026042003',company:'襄阳智行科技有限公司',format:'PDF',size:'2.1MB',time:'2026-04-25'},
+  {id:'ARC006',name:'现场实车审查——传感器系统校准验证记录',type:'现场实车审查材料',appId:'SQ2026042003',company:'襄阳智行科技有限公司',format:'PDF',size:'1.8MB',time:'2026-04-26'},
+  {id:'ARC007',name:'道路测试准入专家评审意见书',type:'专家评审材料',appId:'SQ2026033104',company:'上海蔚来汽车技术有限公司',format:'PDF',size:'2.5MB',time:'2026-04-02'},
+  {id:'ARC008',name:'现场实车审查——自动驾驶功能测试记录',type:'现场实车审查材料',appId:'SQ2026033104',company:'上海蔚来汽车技术有限公司',format:'Word',size:'3.6MB',time:'2026-04-03'},
+  {id:'ARC009',name:'全无人示范运营安全评估专家评审报告',type:'专家评审材料',appId:'SQ2026042505',company:'深圳AutoX',format:'PDF',size:'4.1MB',time:'2026-04-28'},
+  {id:'ARC010',name:'实车审查——远程干预与应急接管测试记录',type:'现场实车审查材料',appId:'SQ2026042505',company:'深圳AutoX',format:'CSV',size:'2.3MB',time:'2026-04-29'},
+  {id:'ARC011',name:'RoboTaxi运营资质专家评审综合意见',type:'专家评审材料',appId:'SQ2026050106',company:'小马智行',format:'PDF',size:'3.5MB',time:'2026-05-10'},
+  {id:'ARC012',name:'现场实车审查——环境感知能力测试记录',type:'现场实车审查材料',appId:'SQ2026050106',company:'小马智行',format:'PDF',size:'2.7MB',time:'2026-05-11'},
+  {id:'ARC013',name:'示范运营资质续期专家评审意见',type:'专家评审材料',appId:'SQ2026050207',company:'文远知行',format:'PDF',size:'2.2MB',time:'2026-05-12'},
+  {id:'ARC014',name:'实车审查——V2X通信功能现场测试记录',type:'现场实车审查材料',appId:'SQ2026050207',company:'文远知行',format:'PDF',size:'1.9MB',time:'2026-05-13'},
+  {id:'ARC015',name:'L4级自动驾驶功能升级专家评审意见',type:'专家评审材料',appId:'SQ2026050308',company:'文远知行',format:'PDF',size:'2.6MB',time:'2026-05-14'},
+  {id:'ARC016',name:'现场实车审查——紧急制动与规避测试记录',type:'现场实车审查材料',appId:'SQ2026050409',company:'百度Apollo',format:'PDF',size:'3.1MB',time:'2026-05-15'},
+  {id:'ARC017',name:'专家评审会议纪要及签字确认表',type:'专家评审材料',appId:'SQ2026050510',company:'东风出行',format:'Word',size:'1.2MB',time:'2026-05-18'},
+  {id:'ARC018',name:'实车审查——车辆定位与导航系统精度测试',type:'现场实车审查材料',appId:'SQ2026050510',company:'东风出行',format:'Excel',size:'4.5MB',time:'2026-05-19'},
+  {id:'ARC019',name:'示范运营安全管理制度专家审核意见',type:'专家评审材料',appId:'SQ2026042003',company:'襄阳智行科技有限公司',format:'PDF',size:'1.6MB',time:'2026-04-27'},
+  {id:'ARC020',name:'现场实车审查——全过程录像资料（摘要）',type:'现场实车审查材料',appId:'SQ20260430001',company:'上海蔚来汽车有限公司',format:'MP4',size:'156MB',time:'2026-05-02'}
+];
+
+var mockApplications=[
+  {id:'SQ2026041001',type:'道路测试准入',company:'上海蔚来汽车有限公司',vehicle:'测试车辆001',applyTime:'2026-04-10 10:00',status:'已通过',applicant:'张伟'},
+  {id:'SQ2026041502',type:'自动驾驶功能测试',company:'百度Apollo',vehicle:'测试车辆003',applyTime:'2026-04-15 08:30',status:'审批中',applicant:'李明'},
+  {id:'SQ2026042003',type:'示范运营准入',company:'襄阳智行科技有限公司',vehicle:'测试车辆006',applyTime:'2026-04-20 14:15',status:'已通过',applicant:'刘波'},
+  {id:'SQ2026033104',type:'道路测试准入',company:'上海蔚来汽车技术有限公司',vehicle:'测试车辆007',applyTime:'2026-03-31 09:00',status:'已通过',applicant:'韩梅'},
+  {id:'SQ2026042505',type:'自动驾驶功能测试',company:'深圳AutoX',vehicle:'测试车辆008',applyTime:'2026-04-25 11:20',status:'已通过',applicant:'王鹏'},
+  {id:'SQ20260430001',type:'道路测试准入',company:'上海蔚来汽车有限公司',vehicle:'测试车辆002',applyTime:'2026-04-30 09:45',status:'已通过',applicant:'张伟'},
+  {id:'SQ2026050106',type:'道路测试准入',company:'小马智行',vehicle:'测试车辆009',applyTime:'2026-05-01 10:00',status:'已通过',applicant:'陈晨'},
+  {id:'SQ2026050207',type:'示范运营准入',company:'文远知行',vehicle:'测试车辆010',applyTime:'2026-05-02 09:30',status:'审批中',applicant:'赵岩'},
+  {id:'SQ2026050308',type:'自动驾驶功能测试',company:'文远知行',vehicle:'测试车辆011',applyTime:'2026-05-03 14:00',status:'已通过',applicant:'赵岩'},
+  {id:'SQ2026050409',type:'道路测试准入',company:'百度Apollo',vehicle:'测试车辆003',applyTime:'2026-05-04 11:15',status:'已通过',applicant:'李明'},
+  {id:'SQ2026050510',type:'示范运营准入',company:'东风出行',vehicle:'测试车辆012',applyTime:'2026-05-05 16:30',status:'待初审',applicant:'孙丽'}
+];
+
+function switchTab(el,tabId){
+  currentTab=tabId;
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  ['tab-query','tab-submit','tab-archive'].forEach(function(id){
+    document.getElementById(id).style.display=id===tabId?'':'none'
+  });
+  if(tabId==='query')renderReports();
+  else if(tabId==='submit')renderSubmits();
+  else if(tabId==='archive')renderArchives();
+}
+
+function getFilteredReports(){
+  var filtered=[].concat(mockReports);
+  var appIdEl=document.getElementById('qApplicationId');
+  var appId=appIdEl.value.trim().toUpperCase();
+  if(appId)filtered=filtered.filter(function(r){return r.applicationId.toUpperCase().indexOf(appId)>-1;});
+  return filtered;
+}
+
+function renderReports(){
+  var data=getFilteredReports();
+  var start=(paginationState.query-1)*pageSize;
+  var pageData=data.slice(start,start+pageSize);
+  var html='';
+  pageData.forEach(function(r){
+    html+='<tr>'+
+      '<td>'+r.id+'</td>'+
+      '<td>'+r.type+'</td>'+
+      '<td>'+r.subType+'</td>'+
+      '<td>'+r.name+'</td>'+
+      '<td>'+r.company+'</td>'+
+      '<td><span class="text-[#1677ff] cursor-pointer hover:text-[#4096ff]" onclick="showApplicationDetail(\''+r.applicationId+'\')">'+r.applicationId+'</span></td>'+
+      '<td>'+r.time+'</td>'+
+      '<td class="flex gap-1"><button class="ant-btn-link" onclick="showReportDetail(\''+r.id+'\')">查看详情</button><button class="ant-btn-link">下载报告</button></td>'+
+    '</tr>';
+  });
+  document.getElementById('reportTbody').innerHTML=html;
+  renderPaginationBar('query',data.length);
+}
+
+function renderSubmits(){
+  var data=[].concat(mockSubmits);
+  var receiverEl=document.getElementById('sReceiver');
+  if(receiverEl){
+    var receiverText=receiverEl.textContent.trim();
+    if(receiverText!=='全部')data=data.filter(function(s){return s.receiver.indexOf(receiverText)>-1;});
+  }
+  var start=(paginationState.submit-1)*pageSize;
+  var pageData=data.slice(start,start+pageSize);
+  var html='';
+  pageData.forEach(function(s){
+    var rtag=s.receiver==='工业和信息化部'?'<span class="ant-tag ant-tag-processing">工业和信息化部</span>':s.receiver==='公安部'?'<span class="ant-tag ant-tag-warning">公安部</span>':'<span class="ant-tag ant-tag-success">交通运输部</span>';
+    html+='<tr>'+
+      '<td>'+s.id+'</td><td>'+s.title+'</td><td>'+s.type+'</td><td>'+s.period+'</td>'+
+      '<td>'+s.time+'</td><td>'+s.submitter+'</td>'+
+      '<td>'+rtag+'</td>'+
+      '<td class="flex gap-1"><button class="ant-btn-link" onclick="showSubmitDetail(\''+s.id+'\')">详情</button><button class="ant-btn-link">下载</button></td>'+
+    '</tr>';
+  });
+  document.getElementById('submitTbody').innerHTML=html;
+  renderPaginationBar('submit',data.length);
+}
+
+function renderArchives(){
+  var data=[].concat(mockArchives);
+  var start=(paginationState.archive-1)*pageSize;
+  var pageData=data.slice(start,start+pageSize);
+  var html='';
+  pageData.forEach(function(a){
+    html+='<tr>'+
+      '<td>'+a.id+'</td><td>'+a.name+'</td><td>'+a.type+'</td>'+
+      '<td><span class="text-[#1677ff] cursor-pointer hover:text-[#4096ff]" onclick="showApplicationDetail(\''+a.appId+'\')">'+a.appId+'</span></td>'+
+      '<td>'+a.company+'</td><td>'+a.format+'</td><td>'+a.size+'</td><td>'+a.time+'</td>'+
+      '<td class="flex gap-1"><button class="ant-btn-link" onclick="showArchiveDetail(\''+a.id+'\')">下载原件</button><button class="ant-btn-link">下载报告</button></td>'+
+    '</tr>';
+  });
+  document.getElementById('archiveTbody').innerHTML=html;
+  renderPaginationBar('archive',data.length);
+}
+
+function renderPaginationBar(tab,total){
+  var totalPages=Math.ceil(total/pageSize)||1;
+  var container=document.getElementById('pagination'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  if(!container)return;
+  var html='<span class="text-[#00000073] text-sm mr-3">共 '+total+' 条</span>';
+  for(var i=1;i<=totalPages;i++){
+    var active=paginationState[tab]===i?' active':'';
+    html+='<span class="page-item'+active+'" onclick="goPage(\''+tab+'\','+i+')">'+i+'</span>';
+  }
+  html+=' <span class="text-[#00000073] text-sm ml-2">'+pageSize+' 条/页</span>';
+  container.innerHTML=html;
+}
+
+function goPage(tab,page){
+  paginationState[tab]=page;
+  if(tab==='query')renderReports();
+  else if(tab==='submit')renderSubmits();
+  else if(tab==='archive')renderArchives();
+}
+
+function searchReports(){paginationState.query=1;renderReports();}
+function resetReports(){
+  document.getElementById('qReportType').innerHTML='全部'+document.getElementById('qReportType').querySelector('svg').outerHTML;
+  document.getElementById('qSubType').innerHTML='全部'+document.getElementById('qSubType').querySelector('svg').outerHTML;
+  document.getElementById('qCompany').value='';
+  document.getElementById('qApplicationId').value='';
+  document.getElementById('qStartDate').value='';
+  document.getElementById('qEndDate').value='';
+  searchReports();
+}
+function searchSubmits(){paginationState.submit=1;renderSubmits();}
+function resetSubmits(){
+  document.getElementById('sReportType').innerHTML='全部'+document.getElementById('sReportType').querySelector('svg').outerHTML;
+  var rEl=document.getElementById('sReceiver');
+  if(rEl)rEl.innerHTML='全部'+rEl.querySelector('svg').outerHTML;
+  document.getElementById('sPeriod').value='';
+  searchSubmits();
+}
+function searchArchives(){paginationState.archive=1;renderArchives();}
+function resetArchives(){
+  document.getElementById('aMaterialType').innerHTML='全部'+document.getElementById('aMaterialType').querySelector('svg').outerHTML;
+  document.getElementById('aCompanyFilter').value='';
+  document.getElementById('aApplicationId').value='';
+  searchArchives();
+}
+
+function showReportDetail(id){
+  var r=mockReports.find(function(x){return x.id===id;});
+  if(!r)return;
+  var body='<div class="ant-descriptions">'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报告编号</div><div class="ant-descriptions-value">'+r.id+'</div><div class="ant-descriptions-label">报告类型</div><div class="ant-descriptions-value">'+r.type+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">子类型</div><div class="ant-descriptions-value">'+r.subType+'</div><div class="ant-descriptions-label">报告名称</div><div class="ant-descriptions-value">'+r.name+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">提交机构</div><div class="ant-descriptions-value">'+r.company+'</div><div class="ant-descriptions-label">关联申请编号</div><div class="ant-descriptions-value"><span class="text-[#1677ff] cursor-pointer" onclick="showApplicationDetail(\''+r.applicationId+'\')">'+r.applicationId+'</span></div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">提交时间</div><div class="ant-descriptions-value">'+r.time+'</div></div>'+
+    '</div>'+
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">报告摘要内容</h4>'+
+    '<p class="text-sm text-[#000000d9] leading-relaxed">关于'+r.company+'于'+r.time+'提交的'+r.type+'（'+r.subType+'）命名为"'+r.name+'"，报告编号'+r.id+'，已按照相关流程完成审核归档，可在系统中查看详情。</p>';
+  openModal('报告详情 - '+r.name,body,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn-link">下载报告文件</button>'});
+}
+
+function showSubmitDetail(id){
+  var s=mockSubmits.find(function(x){return x.id===id;});
+  if(!s)return;
+  var rtag=s.receiver==='工业和信息化部'?'<span class="ant-tag ant-tag-processing">工业和信息化部</span>':s.receiver==='公安部'?'<span class="ant-tag ant-tag-warning">公安部</span>':'<span class="ant-tag ant-tag-success">交通运输部</span>';
+  var body='<div class="ant-descriptions">'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报告编号</div><div class="ant-descriptions-value">'+s.id+'</div><div class="ant-descriptions-label">报告名称</div><div class="ant-descriptions-value">'+s.title+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报告类型</div><div class="ant-descriptions-value">'+s.type+'</div><div class="ant-descriptions-label">报告期次</div><div class="ant-descriptions-value">'+s.period+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报告日期</div><div class="ant-descriptions-value">'+s.time+'</div><div class="ant-descriptions-label">报送单位</div><div class="ant-descriptions-value">'+s.submitter+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">报送对象</div><div class="ant-descriptions-value">'+rtag+'</div></div>'+
+    '</div>'+
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">报告内容说明</h4>'+
+    '<p class="text-sm text-[#000000d9] leading-relaxed">本报告由'+s.submitter+'根据《智能网联汽车道路测试与示范应用管理规范》要求，向'+s.receiver+'报送辖区智能网联汽车'+s.type+'情况，所属期次为'+s.period+'，报告日期'+s.time+'。该报告无需审核，已直接报送至相关上级部门。</p>';
+  openModal('报告详情 - '+s.title,body,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">下载报告</button>'});
+}
+
+function showArchiveDetail(id){
+  var a=mockArchives.find(function(x){return x.id===id;});
+  if(!a)return;
+  var body='<div class="ant-descriptions">'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">材料编号</div><div class="ant-descriptions-value">'+a.id+'</div><div class="ant-descriptions-label">材料名称</div><div class="ant-descriptions-value">'+a.name+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">材料类型</div><div class="ant-descriptions-value">'+a.type+'</div><div class="ant-descriptions-label">文件格式</div><div class="ant-descriptions-value">'+a.format+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">文件大小</div><div class="ant-descriptions-value">'+a.size+'</div><div class="ant-descriptions-label">上传时间</div><div class="ant-descriptions-value">'+a.time+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请企业</div><div class="ant-descriptions-value">'+a.company+'</div><div class="ant-descriptions-label">关联申请编号</div><div class="ant-descriptions-value"><span class="text-[#1677ff] cursor-pointer" onclick="showApplicationDetail(\''+a.appId+'\')">'+a.appId+'</span></div></div>'+
+    '</div>'+
+    '<h4 class="text-sm font-semibold text-[#000000d9] mb-3 mt-4 pb-2 border-b border-[#f0f0f0]">档案信息</h4>'+
+    '<div class="text-sm text-[#00000073] text-center py-8 bg-[#fafafa] rounded">本材料为【'+a.type+'】，关联申请编号'+a.appId+'，由'+a.company+(a.company!=='-'?'提交':'提供')+'。材料文件：'+a.name+'（'+a.format+'，'+a.size+'），上传时间：'+a.time+'。点击下方按钮下载原件。</div>';
+  openModal('材料详情 - '+a.name,body,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">下载文件</button>'});
+}
+
+function showApplicationDetail(appId){
+  var app=mockApplications.find(function(x){return x.id===appId;});
+  if(!app){
+    openModal('提示','<p class="text-sm text-[#00000073]">关于该编号未找到关联的申请记录，请确认编号是否正确。</p>',{footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+    return;
+  }
+  var scls=app.status==='已通过'?'ant-tag-success':app.status==='审批中'?'ant-tag-processing':'ant-tag-default';
+  var body='<div class="ant-descriptions">'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请编号</div><div class="ant-descriptions-value">'+app.id+'</div><div class="ant-descriptions-label">申请类型</div><div class="ant-descriptions-value">'+app.type+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请企业</div><div class="ant-descriptions-value">'+app.company+'</div><div class="ant-descriptions-label">测试车辆</div><div class="ant-descriptions-value">'+app.vehicle+'</div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请时间</div><div class="ant-descriptions-value">'+app.applyTime+'</div><div class="ant-descriptions-label">审核状态</div><div class="ant-descriptions-value"><span class="ant-tag '+scls+'">'+app.status+'</span></div></div>'+
+    '<div class="ant-descriptions-row"><div class="ant-descriptions-label">申请人</div><div class="ant-descriptions-value">'+app.applicant+'</div></div>'+
+    '</div>'+
+    '<div class="text-sm text-[#00000073] mt-4 p-3 bg-[#fafafa] rounded">查看该申请下的详细材料清单及审批进度，可点击下方"查看详情跳转至准入申请"按钮</div>';
+  openModal('申请记录详情 - '+appId,body,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button><button class="ant-btn-link" onclick="closeModal()">查看详情跳转至准入申请</button>'});
+}
+
+function openNewReport(){
+  var body='<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告名称</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入报告名称"></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告类型</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择报告类型<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报送对象</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择报送对象<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>报告期次</div><div class="ant-form-control"><input class="ant-input" placeholder="如：2026年第二季度"></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">备注说明</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px" placeholder="补充说明信息（选填）"></textarea></div></div>'+
+    '<p class="text-sm text-[#00000073]">根据《智能网联汽车道路测试与示范应用管理规范》，主管部门应定期向工业和信息化部、公安部和交通运输部报告辖区内的智能网联汽车道路测试、示范应用、示范运营情况。该报告无需审核，提交后直接报送。</p>';
+  openModal('新增报告',body,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">提交报告</button>'});
+}
+
+function openUpload(){
+  var body='<div class="border-2 border-dashed border-[#d9d9d9] rounded-lg p-8 text-center text-[#999] mb-4">点击或将文件拖拽到此处上传 · 支持PDF/Word/Excel/图片等多种格式</div>'+
+    '<div class="ant-form-item"><div class="ant-form-label"><span class="required">*</span>材料类型</div><div class="ant-form-control"><div class="ant-select" style="width:100%">请选择材料类型<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">关联申请编号</div><div class="ant-form-control"><input class="ant-input" placeholder="请输入关联的申请编号，如SQ2026041001"></div></div>'+
+    '<div class="ant-form-item"><div class="ant-form-label">备注说明</div><div class="ant-form-control"><textarea class="ant-input" style="height:60px" placeholder="补充材料来源及用途说明（选填）"></textarea></div></div>';
+  openModal('上传归档材料',body,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">确认上传</button>'});
+}
+
+document.addEventListener('DOMContentLoaded',function(){renderReports();});
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

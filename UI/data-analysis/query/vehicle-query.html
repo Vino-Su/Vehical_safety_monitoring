@@ -1,0 +1,280 @@
+﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>车辆数据查询 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>车辆数据查询</h2></div>
+      <div class="ant-tabs mb-4">
+        <span class="ant-tab active" onclick="switchTab(this,'tab-plate')">车辆牌照查询</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-test')">车辆测试查询</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-disengage')">车辆脱手率查询</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-realtime')">车辆实时数据查询</span>
+        <span class="ant-tab" onclick="switchTab(this,'tab-work')">车辆作业数据查询</span>
+      </div>
+
+      <!-- 车辆牌照查询 -->
+      <div id="tab-plate">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码" style="width:200px"></div>
+            <div class="filter-item"><label>临牌号</label><input class="ant-input" placeholder="请输入临牌号搜索" style="width:180px"></div>
+            <div class="filter-item"><label>车辆类型</label><select class="ant-select" style="min-width:140px"><option value="">全部</option><option>乘用车</option><option>商用车</option><option>专用作业车</option></select></div>
+            <div class="filter-item"><label>有效期</label><select class="ant-select" style="min-width:120px"><option value="">全部</option><option value="1">有效期内</option><option value="0">已过期</option></select></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+            <button class="ant-btn ml-auto">导出</button>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>VIN码</th><th>临牌号</th><th>企业名称</th><th>车辆类型</th><th>车型</th><th>有效期</th><th>开始日期</th><th>截止日期</th></tr></thead>
+              <tbody>
+                <tr><td>LSVAG2180N2000001</td><td>鄂A·T0001</td><td>襄阳智行科技有限公司</td><td>乘用车</td><td>东风风神E70</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-06-01</td><td>2026-05-31</td></tr>
+                <tr><td>LSVAG2180N2000002</td><td>鄂A·T0002</td><td>襄阳智行科技有限公司</td><td>乘用车</td><td>比亚迪汉EV</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-08-15</td><td>2026-08-14</td></tr>
+                <tr><td>LSVAG2180N2000003</td><td>沪A·W0003</td><td>上海蔚来汽车有限公司</td><td>乘用车</td><td>蔚来ET7</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-03-01</td><td>2027-02-28</td></tr>
+                <tr><td>LSVAG2180N2000004</td><td>京B·T0004</td><td>百度Apollo</td><td>商用车</td><td>金龙XMQ6127</td><td><span class="ant-tag ant-tag-default">过期</span></td><td>2025-01-15</td><td>2026-01-14</td></tr>
+                <tr><td>LSVAG2180N2000005</td><td>粤B·T0005</td><td>深圳AutoX</td><td>乘用车</td><td>小鹏P7</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-09-01</td><td>2026-09-01</td></tr>
+                <tr><td>LSVAG2180N2000006</td><td>京A·T0006</td><td>北京百度网讯科技有限公司</td><td>商用车</td><td>福田欧辉BJ6123</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-02-15</td><td>2027-02-14</td></tr>
+                <tr><td>LSVAG2180N2000007</td><td>粤A·T0007</td><td>广州小马智行科技有限公司</td><td>乘用车</td><td>广汽埃安LX</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-10-01</td><td>2026-04-01</td></tr>
+                <tr><td>LSVAG2180N2000008</td><td>鄂C·T0008</td><td>东风汽车集团有限公司</td><td>专用作业车</td><td>东风天龙KL</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-05-01</td><td>2026-05-01</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 42 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 车辆测试查询 -->
+      <div id="tab-test" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码搜索" style="width:220px"></div>
+            <div class="filter-item"><label>临牌号</label><input class="ant-input" placeholder="请输入临牌号搜索" style="width:180px"></div>
+            <div class="filter-item"><label>开始时间</label><input class="ant-input" type="date" value="2026-01-01" style="width:160px"></div>
+            <div class="filter-item"><label>截止时间</label><input class="ant-input" type="date" value="2026-04-30" style="width:160px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+            <button class="ant-btn ml-auto">导出</button>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>VIN码</th><th>临牌号</th><th>企业名称</th><th>开始时间</th><th>截止时间</th><th>测试里程(km)</th><th>自动驾驶测试里程(km)</th><th>测试时长(h)</th><th>自动驾驶测试时长(h)</th></tr></thead>
+              <tbody>
+                <tr><td>LSVAG2180N2000001</td><td>鄂A·T0001</td><td>襄阳智行科技有限公司</td><td>2025-06-01</td><td>2026-04-30</td><td>12,356</td><td>8,520</td><td>1,280</td><td>890</td></tr>
+                <tr><td>LSVAG2180N2000002</td><td>鄂A·T0002</td><td>襄阳智行科技有限公司</td><td>2025-08-15</td><td>2026-04-30</td><td>9,875</td><td>6,340</td><td>980</td><td>680</td></tr>
+                <tr><td>LSVAG2180N2000003</td><td>沪A·W0003</td><td>上海蔚来汽车有限公司</td><td>2025-03-01</td><td>2026-04-30</td><td>15,432</td><td>10,250</td><td>1,560</td><td>1,120</td></tr>
+                <tr><td>LSVAG2180N2000004</td><td>京B·T0004</td><td>百度Apollo</td><td>2025-01-15</td><td>2026-04-30</td><td>8,234</td><td>5,890</td><td>820</td><td>590</td></tr>
+                <tr><td>LSVAG2180N2000005</td><td>粤B·T0005</td><td>深圳AutoX</td><td>2025-09-01</td><td>2026-04-30</td><td>7,650</td><td>5,120</td><td>760</td><td>520</td></tr>
+                <tr><td>LSVAG2180N2000006</td><td>京A·T0006</td><td>北京百度网讯科技有限公司</td><td>2025-02-15</td><td>2026-04-30</td><td>10,567</td><td>7,890</td><td>1,050</td><td>790</td></tr>
+                <tr><td>LSVAG2180N2000007</td><td>粤A·T0007</td><td>广州小马智行科技有限公司</td><td>2025-10-01</td><td>2026-04-30</td><td>6,340</td><td>4,520</td><td>630</td><td>450</td></tr>
+                <tr><td>LSVAG2180N2000008</td><td>鄂C·T0008</td><td>东风汽车集团有限公司</td><td>2025-05-01</td><td>2026-04-30</td><td>9,210</td><td>6,780</td><td>920</td><td>680</td></tr>
+                <tr><td>LSVAG2180N2000009</td><td>鄂A·T0009</td><td>上海滴滴沃芽科技有限公司</td><td>2025-06-15</td><td>2026-04-30</td><td>5,876</td><td>4,120</td><td>580</td><td>410</td></tr>
+                <tr><td>LSVAG2180N2000010</td><td>渝A·T0010</td><td>重庆长安汽车股份有限公司</td><td>2025-12-01</td><td>2026-04-30</td><td>4,520</td><td>3,150</td><td>450</td><td>315</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 58 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 车辆脱手率查询 -->
+      <div id="tab-disengage" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码搜索" style="width:220px"></div>
+            <div class="filter-item"><label>临牌号</label><input class="ant-input" placeholder="请输入临牌号搜索" style="width:180px"></div>
+            <div class="filter-item"><label>开始时间</label><input class="ant-input" type="date" value="2026-01-01" style="width:160px"></div>
+            <div class="filter-item"><label>截止时间</label><input class="ant-input" type="date" value="2026-04-30" style="width:160px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+            <button class="ant-btn ml-auto">导出</button>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>VIN码</th><th>临牌号</th><th>企业名称</th><th>开始时间</th><th>截止时间</th><th>脱离次数</th><th>自动驾驶里程(km)</th><th>脱手率(%)</th></tr></thead>
+              <tbody>
+                <tr><td>LSVAG2180N2000001</td><td>鄂A·T0001</td><td>襄阳智行科技有限公司</td><td>2025-06-01</td><td>2026-04-30</td><td>12</td><td>8,520</td><td>0.14</td></tr>
+                <tr><td>LSVAG2180N2000002</td><td>鄂A·T0002</td><td>襄阳智行科技有限公司</td><td>2025-08-15</td><td>2026-04-30</td><td>8</td><td>6,340</td><td>0.13</td></tr>
+                <tr><td>LSVAG2180N2000003</td><td>沪A·W0003</td><td>上海蔚来汽车有限公司</td><td>2025-03-01</td><td>2026-04-30</td><td>5</td><td>10,250</td><td>0.05</td></tr>
+                <tr><td>LSVAG2180N2000004</td><td>京B·T0004</td><td>百度Apollo</td><td>2025-01-15</td><td>2026-04-30</td><td>15</td><td>5,890</td><td>0.25</td></tr>
+                <tr><td>LSVAG2180N2000005</td><td>粤B·T0005</td><td>深圳AutoX</td><td>2025-09-01</td><td>2026-04-30</td><td>6</td><td>5,120</td><td>0.12</td></tr>
+                <tr><td>LSVAG2180N2000006</td><td>京A·T0006</td><td>北京百度网讯科技有限公司</td><td>2025-02-15</td><td>2026-04-30</td><td>9</td><td>7,890</td><td>0.11</td></tr>
+                <tr><td>LSVAG2180N2000007</td><td>粤A·T0007</td><td>广州小马智行科技有限公司</td><td>2025-10-01</td><td>2026-04-30</td><td>3</td><td>4,520</td><td>0.07</td></tr>
+                <tr><td>LSVAG2180N2000008</td><td>鄂C·T0008</td><td>东风汽车集团有限公司</td><td>2025-05-01</td><td>2026-04-30</td><td>10</td><td>6,780</td><td>0.15</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 36 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 车辆实时数据查询 -->
+      <div id="tab-realtime" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码" style="width:220px"></div>
+            <div class="filter-item"><label>临牌号</label><input class="ant-input" placeholder="请输入临牌号" style="width:180px"></div>
+            <div class="filter-item"><label>设备编码</label><input class="ant-input" placeholder="请输入设备编码" style="width:180px"></div>
+            <div class="filter-item"><label>采集开始</label><input class="ant-input" type="date" value="2026-05-08" style="width:160px"></div>
+            <div class="filter-item"><label>采集截止</label><input class="ant-input" type="date" value="2026-05-08" style="width:160px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+            <button class="ant-btn ml-auto">导出</button>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>VIN码</th><th>临牌号</th><th>车辆位置</th><th>车辆控制模式</th><th>车辆速度(km/h)</th><th>加速度(m/s²)</th><th>行驶方向</th><th>设备编码</th><th>采集时间</th><th>落库时间</th></tr></thead>
+              <tbody>
+                <tr><td>LSVAG2180N2000001</td><td>鄂A·T0001</td><td><a class="ant-btn-link" onclick="showLocation('鄂A·T0001',114.3526,32.0512)">114.3526, 32.0512</a></td><td><span class="ant-tag ant-tag-processing">自动驾驶</span></td><td>55</td><td>1.2</td><td>北偏东15°</td><td>TB001</td><td>2026-05-08 14:30:25</td><td>2026-05-08 14:30:26</td></tr>
+                <tr><td>LSVAG2180N2000002</td><td>鄂A·T0002</td><td><a class="ant-btn-link" onclick="showLocation('鄂A·T0002',114.3685,32.0421)">114.3685, 32.0421</a></td><td><span class="ant-tag ant-tag-processing">自动驾驶</span></td><td>48</td><td>0.8</td><td>东偏南30°</td><td>TB002</td><td>2026-05-08 14:30:18</td><td>2026-05-08 14:30:19</td></tr>
+                <tr><td>LSVAG2180N2000003</td><td>沪A·W0003</td><td><a class="ant-btn-link" onclick="showLocation('沪A·W0003',114.3621,32.0489)">114.3621, 32.0489</a></td><td><span class="ant-tag ant-tag-default">人工驾驶</span></td><td>35</td><td>-0.5</td><td>南偏西45°</td><td>TB003</td><td>2026-05-08 14:30:12</td><td>2026-05-08 14:30:13</td></tr>
+                <tr><td>LSVAG2180N2000004</td><td>京B·T0004</td><td><a class="ant-btn-link" onclick="showLocation('京B·T0004',114.3558,32.0556)">114.3558, 32.0556</a></td><td><span class="ant-tag ant-tag-processing">自动驾驶</span></td><td>62</td><td>2.1</td><td>正北</td><td>TB004</td><td>2026-05-08 14:30:05</td><td>2026-05-08 14:30:06</td></tr>
+                <tr><td>LSVAG2180N2000005</td><td>粤B·T0005</td><td><a class="ant-btn-link" onclick="showLocation('粤B·T0005',114.3489,32.0498)">114.3489, 32.0498</a></td><td><span class="ant-tag ant-tag-default">人工驾驶</span></td><td>40</td><td>0.3</td><td>西偏北20°</td><td>TB005</td><td>2026-05-08 14:29:58</td><td>2026-05-08 14:29:59</td></tr>
+                <tr><td>LSVAG2180N2000006</td><td>京A·T0006</td><td><a class="ant-btn-link" onclick="showLocation('京A·T0006',114.3702,32.0445)">114.3702, 32.0445</a></td><td><span class="ant-tag ant-tag-processing">自动驾驶</span></td><td>0</td><td>0</td><td>-</td><td>TB006</td><td>2026-05-08 14:29:50</td><td>2026-05-08 14:29:52</td></tr>
+                <tr><td>LSVAG2180N2000007</td><td>粤A·T0007</td><td><a class="ant-btn-link" onclick="showLocation('粤A·T0007',114.3615,32.0532)">114.3615, 32.0532</a></td><td><span class="ant-tag ant-tag-processing">自动驾驶</span></td><td>72</td><td>3.5</td><td>东偏北10°</td><td>TB007</td><td>2026-05-08 14:30:22</td><td>2026-05-08 14:30:23</td></tr>
+                <tr><td>LSVAG2180N2000008</td><td>鄂C·T0008</td><td><a class="ant-btn-link" onclick="showLocation('鄂C·T0008',114.3589,32.0478)">114.3589, 32.0478</a></td><td><span class="ant-tag ant-tag-default">人工驾驶</span></td><td>28</td><td>-1.5</td><td>正南</td><td>TB008</td><td>2026-05-08 14:30:15</td><td>2026-05-08 14:30:16</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 156 条，每10秒自动刷新</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">...</span><span class="page-item">8</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 车辆作业数据查询 -->
+      <div id="tab-work" style="display:none">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码搜索" style="width:220px"></div>
+            <div class="filter-item"><label>临牌号</label><input class="ant-input" placeholder="请输入临牌号搜索" style="width:180px"></div>
+            <div class="filter-item"><label>所属企业</label><input class="ant-input" placeholder="请输入企业名称" style="width:200px"></div>
+            <div class="filter-item"><label>作业开始</label><input class="ant-input" type="date" value="2026-04-01" style="width:160px"></div>
+            <div class="filter-item"><label>作业截止</label><input class="ant-input" type="date" value="2026-04-30" style="width:160px"></div>
+            <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+            <button class="ant-btn ml-auto">导出</button>
+          </div>
+        </div>
+        <div class="ant-table-wrapper">
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead><tr><th>VIN码</th><th>临牌号</th><th>所属企业</th><th>作业开始时间</th><th>作业结束时间</th><th>作业时长(h)</th><th>作业里程(km)</th><th>清扫面积(m²)</th><th>油耗/电耗</th></tr></thead>
+              <tbody>
+                <tr><td>LSVAG2180N2000008</td><td>鄂C·T0008</td><td>东风汽车集团有限公司</td><td>2026-04-28 06:00</td><td>2026-04-28 12:00</td><td>6.0</td><td>45.2</td><td>12,500</td><td>28.5 L</td></tr>
+                <tr><td>LSVAG2180N2000008</td><td>鄂C·T0008</td><td>东风汽车集团有限公司</td><td>2026-04-28 14:00</td><td>2026-04-28 18:00</td><td>4.0</td><td>32.8</td><td>9,200</td><td>22.3 L</td></tr>
+                <tr><td>LSVAG2180N2000011</td><td>京A·T0011</td><td>北京环卫集团</td><td>2026-04-28 05:30</td><td>2026-04-28 11:30</td><td>6.0</td><td>52.6</td><td>15,800</td><td>156.3 kWh</td></tr>
+                <tr><td>LSVAG2180N2000012</td><td>粤B·T0012</td><td>深圳洁亚环保科技有限公司</td><td>2026-04-28 08:00</td><td>2026-04-28 16:00</td><td>8.0</td><td>68.4</td><td>20,100</td><td>45.8 L</td></tr>
+                <tr><td>LSVAG2180N2000013</td><td>沪A·T0013</td><td>上海城投环境有限公司</td><td>2026-04-28 07:00</td><td>2026-04-28 13:00</td><td>6.0</td><td>48.5</td><td>13,600</td><td>125.4 kWh</td></tr>
+                <tr><td>LSVAG2180N2000014</td><td>粤A·T0014</td><td>广州城市管理有限公司</td><td>2026-04-28 06:30</td><td>2026-04-28 14:30</td><td>8.0</td><td>72.1</td><td>22,400</td><td>52.1 L</td></tr>
+                <tr><td>LSVAG2180N2000015</td><td>京A·T0015</td><td>北京环卫集团</td><td>2026-04-28 09:00</td><td>2026-04-28 15:00</td><td>6.0</td><td>38.7</td><td>10,800</td><td>98.7 kWh</td></tr>
+                <tr><td>LSVAG2180N2000016</td><td>鄂C·T0016</td><td>东风汽车集团有限公司</td><td>2026-04-28 10:00</td><td>2026-04-28 16:00</td><td>6.0</td><td>42.3</td><td>11,500</td><td>32.6 L</td></tr>
+                <tr style="background:#fafafa;font-weight:600"><td colspan="5" style="text-align:right">合计：</td><td>50.0</td><td>400.6</td><td>115,900</td><td>-</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-sm text-[#00000073]">共 32 条</span>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 text-sm text-[#00000073]">
+                <span>每页显示</span>
+                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span>条</span>
+              </div>
+              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">&gt;</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='vehicle-query';
+var tabIds=['tab-plate','tab-test','tab-disengage','tab-realtime','tab-work'];
+function switchTab(el,tabId){
+  document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  tabIds.forEach(function(id){document.getElementById(id).style.display=id===tabId?'':'none'});
+}
+function changePageSize(val){console.log('Page size changed to:',val);}
+function showLocation(plate,lng,lat){alert('车辆 '+plate+' 位置：经度 '+lng+'，纬度 '+lat+'\n（可对接地图展示）');}
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>

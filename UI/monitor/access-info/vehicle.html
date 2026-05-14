@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>车辆信息管理 - 智能网联汽车安全监测平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{DEFAULT:'#1677ff',hover:'#4096ff',disabled:'#85a5cc'}}}}}</script>
+  <style>
+    .form-group-title{font-size:14px;font-weight:600;color:#000000d9;padding:10px 0 8px;margin-top:12px;border-bottom:1px solid #f0f0f0;margin-bottom:12px}
+    .form-group-title:first-child{margin-top:0}
+    .ant-radio-group{display:inline-flex;gap:16px;align-items:center}
+    .ant-radio{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:14px;color:#000000d9}
+    .ant-radio input[type="radio"]{appearance:none;width:16px;height:16px;border:1px solid #d9d9d9;border-radius:50%;cursor:pointer;position:relative;flex-shrink:0}
+    .ant-radio input[type="radio"]:checked{border-color:#1677ff}
+    .ant-radio input[type="radio"]:checked::after{content:'';position:absolute;top:3px;left:3px;width:8px;height:8px;background:#1677ff;border-radius:50%}
+    .detail-group{margin-bottom:16px}
+    .detail-group-title{font-size:14px;font-weight:600;color:#000000d9;padding:8px 12px;background:#fafafa;border-radius:6px;margin-bottom:8px;border-left:3px solid #1677ff}
+    .ant-checkbox-group{display:flex;flex-wrap:wrap;gap:8px 16px;padding:8px 0}
+    .ant-checkbox-item{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:#000000d9}
+    .ant-checkbox-item input[type="checkbox"]{appearance:none;width:16px;height:16px;border:1px solid #d9d9d9;border-radius:3px;cursor:pointer;position:relative;flex-shrink:0}
+    .ant-checkbox-item input[type="checkbox"]:checked{border-color:#1677ff;background:#1677ff}
+    .ant-checkbox-item input[type="checkbox"]:checked::after{content:'✓';position:absolute;top:-1px;left:2px;font-size:12px;color:#fff;font-weight:700}
+    .check-items-panel{background:#fafafa;border:1px solid #f0f0f0;border-radius:6px;padding:10px 14px;margin-top:8px;display:none}
+    .check-items-panel.visible{display:block}
+    .check-items-panel .panel-title{font-size:12px;color:#00000073;margin-bottom:6px}
+  </style>
+</head>
+<body>
+<div id="app" class="flex h-screen overflow-hidden">
+  <aside id="sidebar"></aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header id="topnav"></header>
+    <main class="flex-1 overflow-auto bg-[#f0f2f5] p-6">
+      <div class="page-header"><h2>车辆信息管理</h2><div class="flex gap-2"><button class="ant-btn ant-btn-primary" onclick="openAddModal()">+ 新增车辆信息</button><button class="ant-btn">导出表格</button></div></div>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码搜索"></div>
+          <div class="filter-item"><label>所属企业</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="filter-item"><label>产品商标</label><input class="ant-input" placeholder="请输入产品商标"></div>
+          <div class="filter-item"><label>自动驾驶级别</label><div class="ant-select">全部 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div></div>
+          <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
+        </div>
+      </div>
+      <div class="ant-table-wrapper">
+        <div style="overflow-x:auto">
+          <table class="ant-table">
+            <thead><tr><th><input type="checkbox" class="ant-checkbox"></th><th>VIN码</th><th>所属企业</th><th>产品商标</th><th>产品型号</th><th>自动驾驶级别</th><th>临牌号（最新）</th><th>登记时间</th><th>操作</th></tr></thead>
+            <tbody id="vehicleTableBody"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-[#00000073]">共 <span id="totalCount">0</span> 条</span>
+          <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">&gt;</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const PAGE_ID='vehicle';
+var vehicleData=[
+  {company:'襄阳智行科技有限公司',vin:'LSVAU2180N2012345',brand:'比亚迪',model:'秦PLUS DM-i',driverLevel:'L3',tempPlate:'鄂F·T0001',regTime:'2026-03-20 10:30',curbWeight:'1650',curbAxleLoad:'前850/后800',maxDesignMass:'2050',maxAxleLoad:'前1050/后1000',nonAutoMaxSpeed:'180',autoMaxSpeed:'120',tireModel:'215/55R17',tirePressure:'2.3bar',engineNo:'BYD476ZQA-001',driveType:'前置前驱',engineModel:'BYD476ZQA',engineMfr:'比亚迪汽车工业有限公司',motorModel:'TZ200XSB',motorMfr:'比亚迪汽车工业有限公司',batteryModel:'刀片电池-71.7kWh',batteryMfr:'比亚迪弗迪电池',transModel:'E-CVT',transMfr:'比亚迪汽车工业有限公司',steerType:'电动助力转向(EPS)',steerModel:'DP-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后实心盘',brakeMfr:'博世汽车部件(苏州)有限公司',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'无',useSensor:'是',useV2X:'否',useHdMap:'是',taskInput:'系统',autoDesc:'支持城市道路自主巡航、自动变道、交通信号识别响应',v2xDesc:'暂未采用网联技术',sensorItems:['1','2','3','4','5','7'],v2xItems:[],hdMapItems:['1','2','8'],taskItems:['1','2','3','4','5']},
+  {company:'襄阳智行科技有限公司',vin:'LSVAU2180N2012346',brand:'比亚迪',model:'汉EV',driverLevel:'L3',tempPlate:'鄂F·T0002',regTime:'2026-03-20 11:00',curbWeight:'1990',curbAxleLoad:'前1020/后970',maxDesignMass:'2440',maxAxleLoad:'前1240/后1200',nonAutoMaxSpeed:'185',autoMaxSpeed:'130',tireModel:'245/45R19',tirePressure:'2.4bar',engineNo:'-',driveType:'前置前驱',engineModel:'-',engineMfr:'-',motorModel:'TZ200XSA',motorMfr:'比亚迪汽车工业有限公司',batteryModel:'刀片电池-76.9kWh',batteryMfr:'比亚迪弗迪电池',transModel:'单速减速器',transMfr:'比亚迪汽车工业有限公司',steerType:'电动助力转向(EPS)',steerModel:'DP-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后通风盘',brakeMfr:'博世汽车部件(苏州)有限公司',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'无',useSensor:'是',useV2X:'否',useHdMap:'是',taskInput:'系统',autoDesc:'支持高速自主巡航、自动变道、交通信号识别',v2xDesc:'暂未采用网联技术',sensorItems:['1','2','3','4','5','7'],v2xItems:[],hdMapItems:['1','2','8'],taskItems:['1','2','3','4','5']},
+  {company:'上海蔚来汽车有限公司',vin:'LSVAU2180N2012347',brand:'蔚来',model:'ES6',driverLevel:'L4',tempPlate:'鄂F·T0003',regTime:'2026-03-25 14:30',curbWeight:'2340',curbAxleLoad:'前1190/后1150',maxDesignMass:'2820',maxAxleLoad:'前1420/后1400',nonAutoMaxSpeed:'200',autoMaxSpeed:'120',tireModel:'255/55R19',tirePressure:'2.5bar',engineNo:'-',driveType:'双电机四驱',engineModel:'-',engineMfr:'-',motorModel:'前150kW+后210kW',motorMfr:'蔚来驱动科技',batteryModel:'100kWh三元锂电池',batteryMfr:'宁德时代新能源科技',transModel:'单速减速器',transMfr:'蔚来驱动科技',steerType:'电动助力转向(EPS)',steerModel:'R-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后通风盘',brakeMfr:'采埃孚商用车系统',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'加装激光雷达×1、高精度定位模块',useSensor:'是',useV2X:'是',useHdMap:'是',taskInput:'系统',autoDesc:'支持城区自主领航、高速自主领航、自动泊车',v2xDesc:'支持V2X通信，实现车路协同感知与决策',sensorItems:['1','2','3','4','5','6','7','8'],v2xItems:['1','2','3','4','5','6','7','8'],hdMapItems:['1','2','3','8'],taskItems:['1','2','3','4','5','6','7','8']},
+  {company:'华为技术有限公司',vin:'LSVAU2180N2012348',brand:'极狐',model:'阿尔法T',driverLevel:'L3',tempPlate:'鄂F·T0005',regTime:'2026-04-01 09:20',curbWeight:'2190',curbAxleLoad:'前1120/后1070',maxDesignMass:'2670',maxAxleLoad:'前1350/后1320',nonAutoMaxSpeed:'180',autoMaxSpeed:'110',tireModel:'245/50R20',tirePressure:'2.4bar',engineNo:'-',driveType:'单电机前驱',engineModel:'-',engineMfr:'-',motorModel:'160kW永磁同步',motorMfr:'北汽蓝谷麦格纳',batteryModel:'93.6kWh三元锂电池',batteryMfr:'宁德时代新能源科技',transModel:'单速减速器',transMfr:'北汽蓝谷麦格纳',steerType:'电动助力转向(EPS)',steerModel:'DP-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后通风盘',brakeMfr:'博世汽车部件(苏州)有限公司',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'加装3颗激光雷达',useSensor:'是',useV2X:'否',useHdMap:'是',taskInput:'人工',autoDesc:'支持高速自主巡航、自动变道',v2xDesc:'暂未采用网联技术',sensorItems:['1','2','3','4','5','7'],v2xItems:[],hdMapItems:['1','2','8'],taskItems:['1','2','3','4']},
+  {company:'襄阳智行科技有限公司',vin:'LSVAU2180N2012349',brand:'金龙',model:'T5',driverLevel:'L4',tempPlate:'鄂F·T0010',regTime:'2026-04-05 16:00',curbWeight:'8500',curbAxleLoad:'前3500/后5000',maxDesignMass:'12500',maxAxleLoad:'前5000/后7500',nonAutoMaxSpeed:'80',autoMaxSpeed:'60',tireModel:'275/70R22.5',tirePressure:'6.5bar',engineNo:'YC6J200-52',driveType:'后置后驱',engineModel:'YC6J200-52',engineMfr:'玉柴机器股份有限公司',motorModel:'-',motorMfr:'-',batteryModel:'-',batteryMfr:'-',transModel:'6DS180',transMfr:'陕西法士特汽车传动',steerType:'液压助力转向',steerModel:'循环球式',steerMfr:'厦门金龙联合汽车工业',brakeType:'气压鼓式制动',brakeModel:'前后鼓式',brakeMfr:'威伯科汽车控制系统',escModel:'ESC',escMfr:'威伯科汽车控制系统',otherModify:'加装2颗激光雷达、6颗摄像头、V2X通信模块',useSensor:'是',useV2X:'是',useHdMap:'是',taskInput:'系统',autoDesc:'支持园区自主接驳、固定路线自动驾驶',v2xDesc:'支持V2X通信，实现车路协同',sensorItems:['1','2','3','4','5','6','7','8'],v2xItems:['1','2','3','4','8'],hdMapItems:['1','2','3','8'],taskItems:['1','2','3','4','5','6','7','8']},
+  {company:'百度Apollo',vin:'LSVAU2180N2012350',brand:'红旗',model:'E-HS3',driverLevel:'L4',tempPlate:'鄂F·T0012',regTime:'2026-04-10 09:00',curbWeight:'1780',curbAxleLoad:'前910/后870',maxDesignMass:'2180',maxAxleLoad:'前1100/后1080',nonAutoMaxSpeed:'160',autoMaxSpeed:'80',tireModel:'235/50R18',tirePressure:'2.3bar',engineNo:'-',driveType:'双电机四驱',engineModel:'-',engineMfr:'-',motorModel:'前100kW+后100kW',motorMfr:'中国一汽',batteryModel:'52kWh三元锂电池',batteryMfr:'宁德时代新能源科技',transModel:'单速减速器',transMfr:'中国一汽',steerType:'电动助力转向(EPS)',steerModel:'R-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后实心盘',brakeMfr:'博世汽车部件(苏州)有限公司',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'加装2颗激光雷达、高精度定位模块、计算平台',useSensor:'是',useV2X:'是',useHdMap:'是',taskInput:'系统',autoDesc:'支持Robotaxi全无人驾驶运营',v2xDesc:'支持V2X通信，实现车路云一体化',sensorItems:['1','2','3','4','5','6','7','8'],v2xItems:['1','2','3','4','5','6','7','8'],hdMapItems:['1','2','3','4','8'],taskItems:['1','2','3','4','5','6','7','8']},
+  {company:'小马智行',vin:'LSVAU2180N2012351',brand:'雷克萨斯',model:'RX450hL',driverLevel:'L4',tempPlate:'鄂F·T0015',regTime:'2026-04-12 14:20',curbWeight:'2190',curbAxleLoad:'前1120/后1070',maxDesignMass:'2670',maxAxleLoad:'前1350/后1320',nonAutoMaxSpeed:'180',autoMaxSpeed:'80',tireModel:'235/55R20',tirePressure:'2.4bar',engineNo:'2GR-FXS',driveType:'混合动力四驱',engineModel:'2GR-FXS',engineMfr:'丰田汽车',motorModel:'前/后电机',motorMfr:'丰田汽车',batteryModel:'镍氢电池组',batteryMfr:'丰田汽车',transModel:'E-CVT',transMfr:'爱信精机',steerType:'电动助力转向(EPS)',steerModel:'R-EPS',steerMfr:'捷太格特',brakeType:'液压盘式制动',brakeModel:'前通风盘/后通风盘',brakeMfr:'爱信精机',escModel:'VDM',escMfr:'电装',otherModify:'加装3颗激光雷达、多颗摄像头、计算平台',useSensor:'是',useV2X:'否',useHdMap:'是',taskInput:'系统',autoDesc:'支持Robotaxi全无人驾驶运营',v2xDesc:'暂未采用网联技术',sensorItems:['1','2','3','4','5','6','7','8'],v2xItems:[],hdMapItems:['1','2','3','8'],taskItems:['1','2','3','4','5','6','7','8']},
+  {company:'文远知行',vin:'LSVAU2180N2012352',brand:'东风',model:'E70',driverLevel:'L4',tempPlate:'鄂F·T0018',regTime:'2026-04-15 10:45',curbWeight:'1680',curbAxleLoad:'前860/后820',maxDesignMass:'2080',maxAxleLoad:'前1060/后1020',nonAutoMaxSpeed:'150',autoMaxSpeed:'80',tireModel:'215/55R17',tirePressure:'2.3bar',engineNo:'-',driveType:'前置前驱',engineModel:'-',engineMfr:'-',motorModel:'110kW永磁同步',motorMfr:'东风汽车',batteryModel:'50.8kWh三元锂电池',batteryMfr:'宁德时代新能源科技',transModel:'单速减速器',transMfr:'东风汽车',steerType:'电动助力转向(EPS)',steerModel:'C-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后实心盘',brakeMfr:'博世汽车部件(苏州)有限公司',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'加装2颗激光雷达、V2X通信模块',useSensor:'是',useV2X:'是',useHdMap:'是',taskInput:'系统',autoDesc:'支持Robotaxi运营、固定路线自动驾驶',v2xDesc:'支持V2X通信，实现车路协同',sensorItems:['1','2','3','4','5','6','7','8'],v2xItems:['1','2','3','4','8'],hdMapItems:['1','2','3','8'],taskItems:['1','2','3','4','5','6','7','8']},
+  {company:'AutoX',vin:'LSVAU2180N2012353',brand:'大通',model:'MIFA 9',driverLevel:'L4',tempPlate:'鄂F·T0020',regTime:'2026-04-18 16:30',curbWeight:'2350',curbAxleLoad:'前1200/后1150',maxDesignMass:'2850',maxAxleLoad:'前1440/后1410',nonAutoMaxSpeed:'170',autoMaxSpeed:'80',tireModel:'235/50R19',tirePressure:'2.4bar',engineNo:'-',driveType:'前置前驱',engineModel:'-',engineMfr:'-',motorModel:'180kW永磁同步',motorMfr:'上汽集团',batteryModel:'90kWh三元锂电池',batteryMfr:'宁德时代新能源科技',transModel:'单速减速器',transMfr:'上汽集团',steerType:'电动助力转向(EPS)',steerModel:'DP-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后通风盘',brakeMfr:'博世汽车部件(苏州)有限公司',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'加装4颗激光雷达、高精度定位模块',useSensor:'是',useV2X:'否',useHdMap:'是',taskInput:'系统',autoDesc:'支持Robotaxi全无人驾驶运营',v2xDesc:'暂未采用网联技术',sensorItems:['1','2','3','4','5','6','7','8'],v2xItems:[],hdMapItems:['1','2','3','4','8'],taskItems:['1','2','3','4','5','6','7','8']},
+  {company:'元戎启行',vin:'LSVAU2180N2012354',brand:'吉利',model:'几何A',driverLevel:'L3',tempPlate:'鄂F·T0022',regTime:'2026-04-20 11:15',curbWeight:'1650',curbAxleLoad:'前845/后805',maxDesignMass:'2050',maxAxleLoad:'前1045/后1005',nonAutoMaxSpeed:'150',autoMaxSpeed:'100',tireModel:'215/50R17',tirePressure:'2.3bar',engineNo:'-',driveType:'前置前驱',engineModel:'-',engineMfr:'-',motorModel:'120kW永磁同步',motorMfr:'吉利汽车',batteryModel:'61.4kWh三元锂电池',batteryMfr:'宁德时代新能源科技',transModel:'单速减速器',transMfr:'吉利汽车',steerType:'电动助力转向(EPS)',steerModel:'C-EPS',steerMfr:'博世华域转向系统有限公司',brakeType:'液压盘式制动',brakeModel:'前通风盘/后实心盘',brakeMfr:'博世汽车部件(苏州)有限公司',escModel:'ESP9.3',escMfr:'博世汽车部件(苏州)有限公司',otherModify:'加装1颗激光雷达',useSensor:'是',useV2X:'否',useHdMap:'否',taskInput:'人工',autoDesc:'支持高速自主巡航、车道保持',v2xDesc:'暂未采用网联技术',sensorItems:['1','2','3','4','5','7'],v2xItems:[],hdMapItems:[],taskItems:['1','2','3','4']}
+];
+
+var sensorCheckItems=[
+  {id:'1',name:'交通信号识别及响应（包括交通信号灯、交通标志、交通标线等）'},
+  {id:'2',name:'道路交通基础设施与障碍物识别及响应'},
+  {id:'3',name:'行人与非机动车识别及响应（包括横穿道路和沿道路行驶）'},
+  {id:'4',name:'周边车辆行驶状态识别及响应（包括影响本车行驶的周边车辆加减速、切入、切出及静止等状态）'},
+  {id:'5',name:'动态驾驶任务干预及接管'},
+  {id:'6',name:'风险减缓策略及最小风险状态'},
+  {id:'7',name:'自动紧急避险（包括自动驾驶系统开启及关闭状态）'},
+  {id:'8',name:'车辆定位'}
+];
+
+function renderTable(){
+  var tbody=document.getElementById('vehicleTableBody');
+  var html='';
+  vehicleData.forEach(function(d,i){
+    html+='<tr><td><input type="checkbox" class="ant-checkbox"></td><td class="font-mono text-xs">'+d.vin+'</td><td>'+d.company+'</td><td>'+d.brand+'</td><td>'+d.model+'</td><td><span class="ant-tag '+(d.driverLevel==='L4'?'ant-tag-success':'ant-tag-processing')+'">'+d.driverLevel+'</span></td><td>'+d.tempPlate+'</td><td>'+d.regTime+'</td><td class="flex gap-1"><button class="ant-btn-link" onclick="openDetailModal('+i+')">详情</button><button class="ant-btn-link" onclick="openAddModal('+i+')">编辑</button><button class="ant-btn-link danger">删除</button></td></tr>';
+  });
+  tbody.innerHTML=html;
+  document.getElementById('totalCount').textContent=vehicleData.length;
+}
+
+function radioHtml(name,value,checked,label,onclick){
+  return '<label class="ant-radio"><input type="radio" name="'+name+'" value="'+value+'" '+(checked?'checked':'')+(onclick?' onclick="'+onclick+'"':'')+'>'+label+'</label>';
+}
+
+function formField(label,required,inputHtml){
+  return '<div class="ant-form-item"><div class="ant-form-label">'+(required?'<span class="required">*</span>':'')+label+'</div><div class="ant-form-control">'+inputHtml+'</div></div>';
+}
+
+function buildFormHtml(d){
+  var h='';
+  h+='<div class="form-group-title">基本信息</div>';
+  h+='<div class="grid grid-cols-2 gap-x-4">';
+  h+=formField('所属企业',true,'<div class="ant-select" style="width:100%">'+(d?d.company:'请选择所属企业')+' <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div>');
+  h+=formField('VIN码',true,'<input class="ant-input" placeholder="请输入17位VIN码" value="'+(d?d.vin:'')+'">');
+  h+=formField('产品商标',true,'<input class="ant-input" placeholder="请输入产品商标" value="'+(d?d.brand:'')+'">');
+  h+=formField('产品型号',true,'<input class="ant-input" placeholder="请输入产品型号" value="'+(d?d.model:'')+'">');
+  h+=formField('自动驾驶级别',true,'<div class="ant-select" style="width:100%">'+(d?d.driverLevel:'请选择自动驾驶级别')+' <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div>');
+  h+=formField('临牌号（最新）',false,'<input class="ant-input" placeholder="请输入临时号牌号码" value="'+(d?d.tempPlate:'')+'">');
+  h+='</div>';
+
+  h+='<div class="form-group-title">车辆参数</div>';
+  h+='<div class="grid grid-cols-2 gap-x-4">';
+  h+=formField('整车整备质量(kg)',false,'<input class="ant-input" placeholder="请输入整备质量" value="'+(d?d.curbWeight:'')+'">');
+  h+=formField('对应轴荷(kg)',false,'<input class="ant-input" placeholder="如：前850/后800" value="'+(d?d.curbAxleLoad:'')+'">');
+  h+=formField('最大设计总质量(kg)',false,'<input class="ant-input" placeholder="请输入最大设计总质量" value="'+(d?d.maxDesignMass:'')+'">');
+  h+=formField('对应轴荷(kg)',false,'<input class="ant-input" placeholder="如：前1050/后1000" value="'+(d?d.maxAxleLoad:'')+'">');
+  h+=formField('非自动驾驶模式下最高车速(km/h)',false,'<input class="ant-input" placeholder="请输入最高车速" value="'+(d?d.nonAutoMaxSpeed:'')+'">');
+  h+=formField('自动驾驶模式设计最高车速(km/h)',false,'<input class="ant-input" placeholder="请输入自动驾驶最高车速" value="'+(d?d.autoMaxSpeed:'')+'">');
+  h+=formField('轮胎型号',false,'<input class="ant-input" placeholder="如：215/55R17" value="'+(d?d.tireModel:'')+'">');
+  h+=formField('标准胎压',false,'<input class="ant-input" placeholder="如：2.3bar" value="'+(d?d.tirePressure:'')+'">');
+  h+=formField('发动机号/电机号',false,'<input class="ant-input" placeholder="纯电车型填电机号" value="'+(d?d.engineNo:'')+'">');
+  h+='</div>';
+
+  h+='<div class="form-group-title">总成信息 — 动力系统</div>';
+  h+='<div class="grid grid-cols-2 gap-x-4">';
+  h+=formField('驱动型式',false,'<input class="ant-input" placeholder="如：前置前驱" value="'+(d?d.driveType:'')+'">');
+  h+=formField('发动机型号',false,'<input class="ant-input" placeholder="纯电车型填-" value="'+(d?d.engineModel:'')+'">');
+  h+=formField('发动机生产厂家',false,'<input class="ant-input" placeholder="纯电车型填-" value="'+(d?d.engineMfr:'')+'">');
+  h+=formField('电机型号',false,'<input class="ant-input" placeholder="燃油车型填-" value="'+(d?d.motorModel:'')+'">');
+  h+=formField('电机生产厂家',false,'<input class="ant-input" placeholder="燃油车型填-" value="'+(d?d.motorMfr:'')+'">');
+  h+=formField('电池型号',false,'<input class="ant-input" placeholder="燃油车型填-" value="'+(d?d.batteryModel:'')+'">');
+  h+=formField('电池生产厂家',false,'<input class="ant-input" placeholder="燃油车型填-" value="'+(d?d.batteryMfr:'')+'">');
+  h+=formField('变速器型号',false,'<input class="ant-input" placeholder="请输入变速器型号" value="'+(d?d.transModel:'')+'">');
+  h+=formField('变速器生产厂家',false,'<input class="ant-input" placeholder="请输入变速器生产厂家" value="'+(d?d.transMfr:'')+'">');
+  h+='</div>';
+
+  h+='<div class="form-group-title">总成信息 — 转向系统</div>';
+  h+='<div class="grid grid-cols-2 gap-x-4">';
+  h+=formField('转向系统型式',false,'<input class="ant-input" placeholder="如：电动助力转向(EPS)" value="'+(d?d.steerType:'')+'">');
+  h+=formField('转向机型号',false,'<input class="ant-input" placeholder="请输入转向机型号" value="'+(d?d.steerModel:'')+'">');
+  h+=formField('转向机生产厂家',false,'<input class="ant-input" placeholder="请输入生产厂家" value="'+(d?d.steerMfr:'')+'">');
+  h+='</div>';
+
+  h+='<div class="form-group-title">总成信息 — 制动系统</div>';
+  h+='<div class="grid grid-cols-2 gap-x-4">';
+  h+=formField('制动系统型式',false,'<input class="ant-input" placeholder="如：液压盘式制动" value="'+(d?d.brakeType:'')+'">');
+  h+=formField('制动器型号',false,'<input class="ant-input" placeholder="请输入制动器型号" value="'+(d?d.brakeModel:'')+'">');
+  h+=formField('制动器生产厂家',false,'<input class="ant-input" placeholder="请输入生产厂家" value="'+(d?d.brakeMfr:'')+'">');
+  h+=formField('ESC型号',false,'<input class="ant-input" placeholder="请输入ESC型号" value="'+(d?d.escModel:'')+'">');
+  h+=formField('ESC生产厂家',false,'<input class="ant-input" placeholder="请输入生产厂家" value="'+(d?d.escMfr:'')+'">');
+  h+='</div>';
+
+  h+=formField('其他改装情况说明',false,'<textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="请填写其他改装情况说明">'+(d?d.otherModify:'')+'</textarea>');
+
+  h+='<div class="form-group-title">技术路线</div>';
+
+  h+='<div class="ant-form-item"><div class="ant-form-label">是否采用传感器技术</div><div class="ant-form-control"><div class="ant-radio-group">'+radioHtml('useSensor','是',d?d.useSensor==='是':false,'是','toggleCheckPanel(\'sensorItems\',\'是\')')+radioHtml('useSensor','否',d?d.useSensor==='否':false,'否','toggleCheckPanel(\'sensorItems\',\'否\')')+'</div>';
+  h+='<div class="check-items-panel'+(d&&d.useSensor==='是'?' visible':'')+'" id="sensorItems"><div class="panel-title">对应检测项目（请在对应项目后勾选）</div><div class="ant-checkbox-group">';
+  sensorCheckItems.forEach(function(item){h+='<label class="ant-checkbox-item"><input type="checkbox" name="sensorCheck" value="'+item.id+'" '+(d&&d.sensorItems&&d.sensorItems.indexOf(item.id)>=0?'checked':'')+'>'+item.id+'. '+item.name+'</label>';});
+  h+='</div></div></div></div>';
+
+  h+='<div class="ant-form-item"><div class="ant-form-label">是否采用网联技术</div><div class="ant-form-control"><div class="ant-radio-group">'+radioHtml('useV2X','是',d?d.useV2X==='是':false,'是','toggleCheckPanel(\'v2xItems\',\'是\')')+radioHtml('useV2X','否',d?d.useV2X==='否':false,'否','toggleCheckPanel(\'v2xItems\',\'否\')')+'</div>';
+  h+='<div class="check-items-panel'+(d&&d.useV2X==='是'?' visible':'')+'" id="v2xItems"><div class="panel-title">对应检测项目（请在对应项目后勾选）</div><div class="ant-checkbox-group">';
+  sensorCheckItems.forEach(function(item){h+='<label class="ant-checkbox-item"><input type="checkbox" name="v2xCheck" value="'+item.id+'" '+(d&&d.v2xItems&&d.v2xItems.indexOf(item.id)>=0?'checked':'')+'>'+item.id+'. '+item.name+'</label>';});
+  h+='</div></div></div></div>';
+
+  h+='<div class="ant-form-item"><div class="ant-form-label">是否采用高精地图</div><div class="ant-form-control"><div class="ant-radio-group">'+radioHtml('useHdMap','是',d?d.useHdMap==='是':false,'是','toggleCheckPanel(\'hdMapItems\',\'是\')')+radioHtml('useHdMap','否',d?d.useHdMap==='否':false,'否','toggleCheckPanel(\'hdMapItems\',\'否\')')+'</div>';
+  h+='<div class="check-items-panel'+(d&&d.useHdMap==='是'?' visible':'')+'" id="hdMapItems"><div class="panel-title">对应检测项目（请在对应项目后勾选）</div><div class="ant-checkbox-group">';
+  sensorCheckItems.forEach(function(item){h+='<label class="ant-checkbox-item"><input type="checkbox" name="hdMapCheck" value="'+item.id+'" '+(d&&d.hdMapItems&&d.hdMapItems.indexOf(item.id)>=0?'checked':'')+'>'+item.id+'. '+item.name+'</label>';});
+  h+='</div></div></div></div>';
+
+  h+='<div class="ant-form-item"><div class="ant-form-label">自动驾驶任务输入方式</div><div class="ant-form-control"><div class="ant-radio-group">'+radioHtml('taskInput','人工',d?d.taskInput==='人工':false,'人工','toggleCheckPanel(\'taskItems\',\'人工\')')+radioHtml('taskInput','系统',d?d.taskInput==='系统':false,'系统','toggleCheckPanel(\'taskItems\',\'系统\')')+'</div>';
+  h+='<div class="check-items-panel'+(d&&d.taskInput?' visible':'')+'" id="taskItems"><div class="panel-title">对应检测项目（请在对应项目后勾选）</div><div class="ant-checkbox-group">';
+  sensorCheckItems.forEach(function(item){h+='<label class="ant-checkbox-item"><input type="checkbox" name="taskCheck" value="'+item.id+'" '+(d&&d.taskItems&&d.taskItems.indexOf(item.id)>=0?'checked':'')+'>'+item.id+'. '+item.name+'</label>';});
+  h+='</div></div></div></div>';
+
+  h+='<div class="form-group-title">自动驾驶功能说明</div>';
+  h+=formField('自动驾驶相应级别',true,'<div class="ant-select" style="width:100%">'+(d?d.driverLevel:'请选择自动驾驶级别')+' <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div>');
+  h+=formField('自主式智能驾驶功能描述',false,'<textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="请描述自主式智能驾驶功能">'+(d?d.autoDesc:'')+'</textarea>');
+  h+=formField('网联式协同驾驶功能描述',false,'<textarea class="ant-input" style="height:60px;padding:8px 12px" placeholder="请描述网联式协同驾驶功能">'+(d?d.v2xDesc:'')+'</textarea>');
+  return h;
+}
+
+function openAddModal(index){
+  var d=index!==undefined?vehicleData[index]:null;
+  openModal((d?'编辑':'新增')+'车辆信息',buildFormHtml(d),{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">'+(d?'保存修改':'提交创建')+'</button>'});
+}
+
+function descRow(label,value,half){
+  return '<div class="ant-descriptions-row"><div class="ant-descriptions-label">'+label+'</div><div class="ant-descriptions-value">'+(value||'-')+'</div>'+(half?'':'')+'</div>';
+}
+
+function descRow2(pairs){
+  var h='<div class="ant-descriptions-row">';
+  pairs.forEach(function(p){h+='<div class="ant-descriptions-label">'+p[0]+'</div><div class="ant-descriptions-value">'+(p[1]||'-')+'</div>';});
+  h+='</div>';
+  return h;
+}
+
+function openDetailModal(index){
+  var d=vehicleData[index]||vehicleData[0];
+  var h='';
+
+  h+='<div class="detail-group"><div class="detail-group-title">基本信息</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow2([['所属企业',d.company],['VIN码','<span class="font-mono">'+d.vin+'</span>']]);
+  h+=descRow2([['产品商标',d.brand],['产品型号',d.model]]);
+  h+=descRow2([['自动驾驶级别','<span class="ant-tag '+(d.driverLevel==='L4'?'ant-tag-success':'ant-tag-processing')+'">'+d.driverLevel+'</span>'],['临牌号（最新）',d.tempPlate]]);
+  h+=descRow2([['登记时间',d.regTime]]);
+  h+='</div></div>';
+
+  h+='<div class="detail-group"><div class="detail-group-title">车辆参数</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow2([['整车整备质量(kg)',d.curbWeight],['对应轴荷(kg)',d.curbAxleLoad]]);
+  h+=descRow2([['最大设计总质量(kg)',d.maxDesignMass],['对应轴荷(kg)',d.maxAxleLoad]]);
+  h+=descRow2([['非自动驾驶模式下最高车速(km/h)',d.nonAutoMaxSpeed],['自动驾驶模式设计最高车速(km/h)',d.autoMaxSpeed]]);
+  h+=descRow2([['轮胎型号',d.tireModel],['标准胎压',d.tirePressure]]);
+  h+=descRow2([['发动机号/电机号',d.engineNo]]);
+  h+='</div></div>';
+
+  h+='<div class="detail-group"><div class="detail-group-title">总成信息 — 动力系统</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow2([['驱动型式',d.driveType],['发动机型号',d.engineModel]]);
+  h+=descRow2([['发动机生产厂家',d.engineMfr],['电机型号',d.motorModel]]);
+  h+=descRow2([['电机生产厂家',d.motorMfr],['电池型号',d.batteryModel]]);
+  h+=descRow2([['电池生产厂家',d.batteryMfr],['变速器型号',d.transModel]]);
+  h+=descRow2([['变速器生产厂家',d.transMfr]]);
+  h+='</div></div>';
+
+  h+='<div class="detail-group"><div class="detail-group-title">总成信息 — 转向系统</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow2([['转向系统型式',d.steerType],['转向机型号',d.steerModel]]);
+  h+=descRow2([['转向机生产厂家',d.steerMfr]]);
+  h+='</div></div>';
+
+  h+='<div class="detail-group"><div class="detail-group-title">总成信息 — 制动系统</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow2([['制动系统型式',d.brakeType],['制动器型号',d.brakeModel]]);
+  h+=descRow2([['制动器生产厂家',d.brakeMfr],['ESC型号',d.escModel]]);
+  h+=descRow2([['ESC生产厂家',d.escMfr]]);
+  h+='</div></div>';
+
+  h+='<div class="detail-group"><div class="detail-group-title">其他改装情况</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow('其他改装情况说明',d.otherModify);
+  h+='</div></div>';
+
+  h+='<div class="detail-group"><div class="detail-group-title">技术路线</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow2([['是否采用传感器技术','<span class="ant-tag '+(d.useSensor==='是'?'ant-tag-success':'ant-tag-default')+'">'+d.useSensor+'</span>'],['是否采用网联技术','<span class="ant-tag '+(d.useV2X==='是'?'ant-tag-success':'ant-tag-default')+'">'+d.useV2X+'</span>']]);
+  h+=descRow2([['是否采用高精地图','<span class="ant-tag '+(d.useHdMap==='是'?'ant-tag-success':'ant-tag-default')+'">'+d.useHdMap+'</span>'],['自动驾驶任务输入方式','<span class="ant-tag ant-tag-processing">'+d.taskInput+'</span>']]);
+  h+='</div>';
+
+  if(d.useSensor==='是'&&d.sensorItems&&d.sensorItems.length>0){
+    h+='<div style="margin-top:8px"><div class="text-xs text-[#00000073] mb-1">传感器技术对应检测项目：</div><div class="flex flex-wrap gap-1">';
+    d.sensorItems.forEach(function(sid){var item=sensorCheckItems.find(function(x){return x.id===sid});if(item)h+='<span class="ant-tag ant-tag-processing text-xs">'+item.id+'. '+item.name+'</span>';});
+    h+='</div></div>';
+  }
+  if(d.useV2X==='是'&&d.v2xItems&&d.v2xItems.length>0){
+    h+='<div style="margin-top:8px"><div class="text-xs text-[#00000073] mb-1">网联技术对应检测项目：</div><div class="flex flex-wrap gap-1">';
+    d.v2xItems.forEach(function(sid){var item=sensorCheckItems.find(function(x){return x.id===sid});if(item)h+='<span class="ant-tag ant-tag-processing text-xs">'+item.id+'. '+item.name+'</span>';});
+    h+='</div></div>';
+  }
+  if(d.useHdMap==='是'&&d.hdMapItems&&d.hdMapItems.length>0){
+    h+='<div style="margin-top:8px"><div class="text-xs text-[#00000073] mb-1">高精地图对应检测项目：</div><div class="flex flex-wrap gap-1">';
+    d.hdMapItems.forEach(function(sid){var item=sensorCheckItems.find(function(x){return x.id===sid});if(item)h+='<span class="ant-tag ant-tag-processing text-xs">'+item.id+'. '+item.name+'</span>';});
+    h+='</div></div>';
+  }
+  if(d.taskItems&&d.taskItems.length>0){
+    h+='<div style="margin-top:8px"><div class="text-xs text-[#00000073] mb-1">自动驾驶任务输入方式对应检测项目：</div><div class="flex flex-wrap gap-1">';
+    d.taskItems.forEach(function(sid){var item=sensorCheckItems.find(function(x){return x.id===sid});if(item)h+='<span class="ant-tag ant-tag-processing text-xs">'+item.id+'. '+item.name+'</span>';});
+    h+='</div></div>';
+  }
+  h+='</div>';
+
+  h+='<div class="detail-group"><div class="detail-group-title">自动驾驶功能说明</div>';
+  h+='<div class="ant-descriptions">';
+  h+=descRow('自动驾驶相应级别','<span class="ant-tag '+(d.driverLevel==='L4'?'ant-tag-success':'ant-tag-processing')+'">'+d.driverLevel+'</span>');
+  h+=descRow('自主式智能驾驶功能描述',d.autoDesc);
+  h+=descRow('网联式协同驾驶功能描述',d.v2xDesc);
+  h+='</div></div>';
+
+  openModal('车辆详情 — '+d.brand+' '+d.model,h,{wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'});
+}
+
+function toggleCheckPanel(panelId,selectedValue){
+  var panel=document.getElementById(panelId);
+  if(!panel)return;
+  if(selectedValue==='是'||(panelId==='taskItems'&&(selectedValue==='人工'||selectedValue==='系统'))){
+    panel.classList.add('visible');
+  }else{
+    panel.classList.remove('visible');
+    var checks=panel.querySelectorAll('input[type="checkbox"]');
+    checks.forEach(function(c){c.checked=false;});
+  }
+}
+
+renderTable();
+</script>
+<script src="../../common.js"></script>
+</body>
+</html>
