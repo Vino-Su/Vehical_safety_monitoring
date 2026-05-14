@@ -417,16 +417,25 @@
     });
   }
 
+  var modalStack = [];
+
   function openModal(title, bodyHTML, options) {
     options = options || {};
     var wide = options.wide;
+    var customWidth = options.width;
     var footerHTML = options.footer || '<button class="ant-btn" onclick="closeModal()">取消</button><button class="ant-btn ant-btn-primary" onclick="closeModal()">确定</button>';
+    var existingMask = document.getElementById('modal-mask');
+    if (existingMask) {
+      existingMask.style.display = 'none';
+      modalStack.push(existingMask);
+    }
     var mask = document.createElement('div');
     mask.className = 'ant-modal-mask';
     mask.id = 'modal-mask';
     mask.onclick = function (e) { if (e.target === mask) closeModal(); };
     var modal = document.createElement('div');
     modal.className = 'ant-modal' + (wide ? ' wide' : '');
+    if (customWidth) modal.style.width = customWidth + 'px';
     modal.innerHTML =
       '<div class="ant-modal-header"><h3>' + title + '</h3><span class="ant-modal-close" onclick="closeModal()">✕</span></div>' +
       '<div class="ant-modal-body">' + bodyHTML + '</div>' +
@@ -442,6 +451,11 @@
   function closeModal() {
     var mask = document.getElementById('modal-mask');
     if (mask) mask.remove();
+    if (modalStack.length > 0) {
+      var prevMask = modalStack.pop();
+      prevMask.style.display = '';
+      document.body.appendChild(prevMask);
+    }
   }
 
   function init() {
@@ -479,8 +493,8 @@
   var SELECT_OPTIONS_MAP = {
     '全部': ['全部'],
     '全部区域': ['全部区域','樊城区','襄城区','襄州区','南漳县','谷城县','老河口市','枣阳市','宜城市','保康县'],
-    '申请类型': ['全部','新增申请','续期申请','变更申请','新增车辆相同配置'],
-    '申请状态': ['全部','第三方初审中','联席小组审批中','临牌回传中','已通过','已退回','已撤回'],
+    '申请类型': ['全部','初次申请','异地已许可，申请襄阳市测试','续期申请','变更申请','新增相同配置车辆'],
+    '申请状态': ['全部','草稿','待初审','待实车报告','待专家评审','待联席审批','已退回','已撤回','待上传牌照','已生效','已过期','已终止'],
     '道路等级': ['全部','一级公路','二级公路','三级公路','四级公路','城市主干路','城市次干路','城市支路'],
     '开放状态': ['全部','开放','暂停','关闭','待开放'],
     '自动驾驶等级': ['全部','L0','L1','L2','L3','L4','L5'],
