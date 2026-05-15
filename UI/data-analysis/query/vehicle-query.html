@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -28,8 +28,8 @@
           <div class="filter-row">
             <div class="filter-item"><label>VIN码</label><input class="ant-input" placeholder="请输入VIN码" style="width:200px"></div>
             <div class="filter-item"><label>临牌号</label><input class="ant-input" placeholder="请输入临牌号搜索" style="width:180px"></div>
-            <div class="filter-item"><label>车辆类型</label><select class="ant-select" style="min-width:140px"><option value="">全部</option><option>乘用车</option><option>商用车</option><option>专用作业车</option></select></div>
-            <div class="filter-item"><label>有效期</label><select class="ant-select" style="min-width:120px"><option value="">全部</option><option value="1">有效期内</option><option value="0">已过期</option></select></div>
+            <div class="filter-item"><label>车辆类型</label><select class="ant-input" style="width:140px"><option value="all">全部</option><option>乘用车</option><option>商用车</option><option>专用作业车</option></select></div>
+            <div class="filter-item"><label>有效期</label><select class="ant-input" style="width:120px"><option value="all">全部</option><option value="1">有效期内</option><option value="0">已过期</option></select></div>
             <div class="flex gap-2 items-end"><button class="ant-btn ant-btn-primary">查询</button><button class="ant-btn">重置</button></div>
             <button class="ant-btn ml-auto">导出</button>
           </div>
@@ -37,33 +37,25 @@
         <div class="ant-table-wrapper">
           <div style="overflow-x:auto">
             <table class="ant-table">
-              <thead><tr><th>VIN码</th><th>临牌号</th><th>企业名称</th><th>车辆类型</th><th>车型</th><th>有效期</th><th>开始日期</th><th>截止日期</th></tr></thead>
-              <tbody>
-                <tr><td>LSVAG2180N2000001</td><td>鄂A·T0001</td><td>襄阳智行科技有限公司</td><td>乘用车</td><td>东风风神E70</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-06-01</td><td>2026-05-31</td></tr>
-                <tr><td>LSVAG2180N2000002</td><td>鄂A·T0002</td><td>襄阳智行科技有限公司</td><td>乘用车</td><td>比亚迪汉EV</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-08-15</td><td>2026-08-14</td></tr>
-                <tr><td>LSVAG2180N2000003</td><td>沪A·W0003</td><td>上海蔚来汽车有限公司</td><td>乘用车</td><td>蔚来ET7</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-03-01</td><td>2027-02-28</td></tr>
-                <tr><td>LSVAG2180N2000004</td><td>京B·T0004</td><td>百度Apollo</td><td>商用车</td><td>金龙XMQ6127</td><td><span class="ant-tag ant-tag-default">过期</span></td><td>2025-01-15</td><td>2026-01-14</td></tr>
-                <tr><td>LSVAG2180N2000005</td><td>粤B·T0005</td><td>深圳AutoX</td><td>乘用车</td><td>小鹏P7</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-09-01</td><td>2026-09-01</td></tr>
-                <tr><td>LSVAG2180N2000006</td><td>京A·T0006</td><td>北京百度网讯科技有限公司</td><td>商用车</td><td>福田欧辉BJ6123</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-02-15</td><td>2027-02-14</td></tr>
-                <tr><td>LSVAG2180N2000007</td><td>粤A·T0007</td><td>广州小马智行科技有限公司</td><td>乘用车</td><td>广汽埃安LX</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-10-01</td><td>2026-04-01</td></tr>
-                <tr><td>LSVAG2180N2000008</td><td>鄂C·T0008</td><td>东风汽车集团有限公司</td><td>专用作业车</td><td>东风天龙KL</td><td><span class="ant-tag ant-tag-success">有效</span></td><td>2025-05-01</td><td>2026-05-01</td></tr>
-              </tbody>
+              <thead><tr><th>VIN码</th><th>临牌号</th><th>企业名称</th><th>车辆类型</th><th>车型</th><th>有效期</th><th>开始日期</th><th>截止日期</th><th>历史牌照</th></tr></thead>
+              <tbody id="plateTableBody"></tbody>
             </table>
           </div>
           <div class="flex items-center justify-between px-4 py-3">
-            <span class="text-sm text-[#00000073]">共 42 条</span>
-            <div class="flex items-center gap-4">
+            <span class="text-sm text-[#00000073]">共 <b id="plateTotal">8</b> 条</span>
+            <div class="flex items-center gap-3">
               <div class="flex items-center gap-2 text-sm text-[#00000073]">
                 <span>每页显示</span>
-                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
-                  <option value="10">10</option>
-                  <option value="20" selected>20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
+                <select class="ant-input" style="width:60px;height:28px;padding:0 6px;font-size:12px">
+                  <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option>
                 </select>
                 <span>条</span>
               </div>
-              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+              <div class="ant-pagination flex items-center gap-1">
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&lt;</span>
+                <span class="page-item active" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">1</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&gt;</span>
+              </div>
             </div>
           </div>
         </div>
@@ -101,18 +93,21 @@
           </div>
           <div class="flex items-center justify-between px-4 py-3">
             <span class="text-sm text-[#00000073]">共 58 条</span>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
               <div class="flex items-center gap-2 text-sm text-[#00000073]">
                 <span>每页显示</span>
-                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
-                  <option value="10">10</option>
-                  <option value="20" selected>20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
+                <select class="ant-input" style="width:60px;height:28px;padding:0 6px;font-size:12px">
+                  <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option>
                 </select>
                 <span>条</span>
               </div>
-              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">&gt;</span></div>
+              <div class="ant-pagination flex items-center gap-1">
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&lt;</span>
+                <span class="page-item active" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">1</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">2</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">3</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&gt;</span>
+              </div>
             </div>
           </div>
         </div>
@@ -148,18 +143,20 @@
           </div>
           <div class="flex items-center justify-between px-4 py-3">
             <span class="text-sm text-[#00000073]">共 36 条</span>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
               <div class="flex items-center gap-2 text-sm text-[#00000073]">
                 <span>每页显示</span>
-                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
-                  <option value="10">10</option>
-                  <option value="20" selected>20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
+                <select class="ant-input" style="width:60px;height:28px;padding:0 6px;font-size:12px">
+                  <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option>
                 </select>
                 <span>条</span>
               </div>
-              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">&gt;</span></div>
+              <div class="ant-pagination flex items-center gap-1">
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&lt;</span>
+                <span class="page-item active" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">1</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">2</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&gt;</span>
+              </div>
             </div>
           </div>
         </div>
@@ -196,18 +193,23 @@
           </div>
           <div class="flex items-center justify-between px-4 py-3">
             <span class="text-sm text-[#00000073]">共 156 条，每10秒自动刷新</span>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
               <div class="flex items-center gap-2 text-sm text-[#00000073]">
                 <span>每页显示</span>
-                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
-                  <option value="10">10</option>
-                  <option value="20" selected>20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
+                <select class="ant-input" style="width:60px;height:28px;padding:0 6px;font-size:12px">
+                  <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option>
                 </select>
                 <span>条</span>
               </div>
-              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">3</span><span class="page-item">...</span><span class="page-item">8</span><span class="page-item">&gt;</span></div>
+              <div class="ant-pagination flex items-center gap-1">
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&lt;</span>
+                <span class="page-item active" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">1</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">2</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">3</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">...</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">8</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&gt;</span>
+              </div>
             </div>
           </div>
         </div>
@@ -245,18 +247,20 @@
           </div>
           <div class="flex items-center justify-between px-4 py-3">
             <span class="text-sm text-[#00000073]">共 32 条</span>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
               <div class="flex items-center gap-2 text-sm text-[#00000073]">
                 <span>每页显示</span>
-                <select class="ant-select" style="min-width:80px;height:32px;padding:0 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:14px;color:#000000d9;background:#fff;cursor:pointer" onchange="changePageSize(this.value)">
-                  <option value="10">10</option>
-                  <option value="20" selected>20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
+                <select class="ant-input" style="width:60px;height:28px;padding:0 6px;font-size:12px">
+                  <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option>
                 </select>
                 <span>条</span>
               </div>
-              <div class="ant-pagination"><span class="page-item">&lt;</span><span class="page-item active">1</span><span class="page-item">2</span><span class="page-item">&gt;</span></div>
+              <div class="ant-pagination flex items-center gap-1">
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&lt;</span>
+                <span class="page-item active" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">1</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">2</span>
+                <span class="page-item cursor-pointer" style="min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px">&gt;</span>
+              </div>
             </div>
           </div>
         </div>
@@ -267,6 +271,106 @@
 <script>
 const PAGE_ID='vehicle-query';
 var tabIds=['tab-plate','tab-test','tab-disengage','tab-realtime','tab-work'];
+
+var plateData=[
+  {vin:'LSVAG2180N2000001',plate:'鄂A·T0001',company:'襄阳智行科技有限公司',type:'乘用车',model:'东风风神E70',valid:'有效',start:'2025-06-01',end:'2026-05-31',
+    history:[
+      {plate:'临A·L001',type:'临时牌照',start:'2025-03-01',end:'2025-05-31',status:'已过期'},
+      {plate:'鄂A·T0001',type:'正式牌照',start:'2025-06-01',end:'2026-05-31',status:'有效'}
+    ]
+  },
+  {vin:'LSVAG2180N2000002',plate:'鄂A·T0002',company:'襄阳智行科技有限公司',type:'乘用车',model:'比亚迪汉EV',valid:'有效',start:'2025-08-15',end:'2026-08-14',
+    history:[
+      {plate:'临A·L002',type:'临时牌照',start:'2025-06-01',end:'2025-08-14',status:'已过期'},
+      {plate:'临A·L002B',type:'临时牌照续期',start:'2025-08-15',end:'2025-09-30',status:'已过期'},
+      {plate:'鄂A·T0002',type:'正式牌照',start:'2025-10-01',end:'2026-08-14',status:'有效'}
+    ]
+  },
+  {vin:'LSVAG2180N2000003',plate:'沪A·W0003',company:'上海蔚来汽车有限公司',type:'乘用车',model:'蔚来ET7',valid:'有效',start:'2025-03-01',end:'2027-02-28',
+    history:[
+      {plate:'沪临·W003',type:'临时牌照',start:'2024-12-01',end:'2025-02-28',status:'已过期'},
+      {plate:'沪A·W0003',type:'正式牌照',start:'2025-03-01',end:'2027-02-28',status:'有效'}
+    ]
+  },
+  {vin:'LSVAG2180N2000004',plate:'京B·T0004',company:'百度Apollo',type:'商用车',model:'金龙XMQ6127',valid:'过期',start:'2025-01-15',end:'2026-01-14',
+    history:[
+      {plate:'京临·T004',type:'临时牌照',start:'2024-11-01',end:'2025-01-14',status:'已过期'},
+      {plate:'京B·T0004',type:'正式牌照',start:'2025-01-15',end:'2026-01-14',status:'已过期'},
+      {plate:'京临·T004B',type:'临时牌照(换牌中)',start:'2026-02-01',end:'2026-04-30',status:'有效'}
+    ]
+  },
+  {vin:'LSVAG2180N2000005',plate:'粤B·T0005',company:'深圳AutoX',type:'乘用车',model:'小鹏P7',valid:'有效',start:'2025-09-01',end:'2026-09-01',
+    history:[
+      {plate:'粤临·T005',type:'临时牌照',start:'2025-07-01',end:'2025-08-31',status:'已过期'},
+      {plate:'粤B·T0005',type:'正式牌照',start:'2025-09-01',end:'2026-09-01',status:'有效'}
+    ]
+  },
+  {vin:'LSVAG2180N2000006',plate:'京A·T0006',company:'北京百度网讯科技有限公司',type:'商用车',model:'福田欧辉BJ6123',valid:'有效',start:'2025-02-15',end:'2027-02-14',
+    history:[
+      {plate:'京临·T006',type:'临时牌照',start:'2024-12-15',end:'2025-02-14',status:'已过期'},
+      {plate:'京A·T0006',type:'正式牌照',start:'2025-02-15',end:'2027-02-14',status:'有效'}
+    ]
+  },
+  {vin:'LSVAG2180N2000007',plate:'粤A·T0007',company:'广州小马智行科技有限公司',type:'乘用车',model:'广汽埃安LX',valid:'有效',start:'2025-10-01',end:'2026-04-01',
+    history:[
+      {plate:'粤临·T007',type:'临时牌照',start:'2025-08-01',end:'2025-09-30',status:'已过期'},
+      {plate:'粤临·T007B',type:'临时牌照续期',start:'2025-10-01',end:'2025-12-31',status:'已过期'},
+      {plate:'粤A·T0007',type:'正式牌照',start:'2026-01-01',end:'2026-04-01',status:'有效'}
+    ]
+  },
+  {vin:'LSVAG2180N2000008',plate:'鄂C·T0008',company:'东风汽车集团有限公司',type:'专用作业车',model:'东风天龙KL',valid:'有效',start:'2025-05-01',end:'2026-05-01',
+    history:[
+      {plate:'鄂临·T008',type:'临时牌照',start:'2025-03-01',end:'2025-04-30',status:'已过期'},
+      {plate:'鄂C·T0008',type:'正式牌照',start:'2025-05-01',end:'2026-05-01',status:'有效'}
+    ]
+  }
+];
+
+function renderPlateTable(){
+  var tbody=document.getElementById('plateTableBody');
+  tbody.innerHTML=plateData.map(function(r){
+    var validTag=r.valid==='有效'?'<span class="ant-tag ant-tag-success">有效</span>':'<span class="ant-tag ant-tag-default">过期</span>';
+    var count=r.history.length;
+    return '<tr>'+
+      '<td>'+r.vin+'</td>'+
+      '<td style="font-weight:600">'+r.plate+'</td>'+
+      '<td>'+r.company+'</td>'+
+      '<td>'+r.type+'</td>'+
+      '<td>'+r.model+'</td>'+
+      '<td>'+validTag+'</td>'+
+      '<td>'+r.start+'</td>'+
+      '<td>'+r.end+'</td>'+
+      '<td><button class="ant-btn ant-btn-sm" onclick="openHistoryModal(\''+r.vin+'\')">查看('+count+')</button></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function openHistoryModal(vin){
+  var record=plateData.find(function(d){return d.vin===vin});
+  if(!record)return;
+  var rows=record.history.map(function(h,i){
+    var statusTag=h.status==='有效'?'<span class="ant-tag ant-tag-success">'+h.status+'</span>':'<span class="ant-tag ant-tag-default">'+h.status+'</span>';
+    return '<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td style="font-weight:600;color:#1677ff">'+h.plate+'</td>'+
+      '<td><span class="ant-tag ant-tag-processing" style="font-size:11px">'+h.type+'</span></td>'+
+      '<td>'+h.start+'</td>'+
+      '<td>'+h.end+'</td>'+
+      '<td>'+statusTag+'</td>'+
+    '</tr>';
+  }).join('');
+  openModal('历史牌照记录 - '+record.plate+' ('+record.vin+')',
+    '<div style="margin-bottom:12px;padding:8px 12px;background:#e6f4ff;border-radius:6px;font-size:12px"><span style="color:#1677ff;font-weight:500">VIN码：</span><code style="font-family:monospace;font-size:12px;background:#fff;padding:2px 6px;border-radius:3px">'+record.vin+'</code></div>'+
+    '<div style="overflow-x:auto">'+
+      '<table class="ant-table">'+
+        '<thead><tr><th>#</th><th>牌照号</th><th>类型</th><th>开始日期</th><th>截止日期</th><th>状态</th></tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table>'+
+    '</div>',
+    {wide:true,footer:'<button class="ant-btn" onclick="closeModal()">关闭</button>'}
+  );
+}
+
 function switchTab(el,tabId){
   document.querySelectorAll('.ant-tab').forEach(function(t){t.classList.remove('active')});
   el.classList.add('active');
@@ -274,6 +378,8 @@ function switchTab(el,tabId){
 }
 function changePageSize(val){console.log('Page size changed to:',val);}
 function showLocation(plate,lng,lat){alert('车辆 '+plate+' 位置：经度 '+lng+'，纬度 '+lat+'\n（可对接地图展示）');}
+
+renderPlateTable();
 </script>
 <script src="../../common.js"></script>
 </body>
