@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>智能网联汽车安全监测平台</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
   <script>
     tailwind.config = {
       theme: { extend: { colors: { primary: { DEFAULT: '#1677ff', hover: '#4096ff', disabled: '#85a5cc' } } } }
@@ -25,53 +26,317 @@
               <div class="stat-label">在线车辆数 / 总测试车辆</div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon bg-[#f6ffed] text-[#52c41a]"></div>
-            <div class="stat-info">
-              <div class="stat-value">96</div>
-              <div class="stat-label">今日告警数 / 累计告警</div>
+          <div id="applyTrendChart" style="width:100%;height:280px;"></div>
+        </div>
+        <div class="card overflow-hidden" style="min-width:0">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-base font-semibold text-[#000000d9]">道路测试活跃度</h4>
+            <span class="text-xs text-[#00000073]">按区域统计企业/车辆数</span>
+          </div>
+          <div id="activityChart" style="width:100%;height:280px;"></div>
+        </div>
+        <div class="card overflow-hidden" style="min-width:0">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-base font-semibold text-[#000000d9]">事故等级分布</h4>
+            <span class="text-xs text-[#00000073]">近30天事故统计</span>
+          </div>
+          <div id="accidentLevelChart" style="width:100%;height:280px;"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-4 mb-6">
+        <div class="card flex-1" style="flex:0 0 62%">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-base font-semibold text-[#000000d9]">最近准入申请</h4>
+            <a href="monitor/access-apply/road-test.html" class="text-xs text-[#1677ff] hover:text-[#4096ff] no-underline">查看全部 →</a>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="ant-table">
+              <thead>
+                <tr>
+                  <th>申请编号</th>
+                  <th>申请类型</th>
+                  <th>申请主体</th>
+                  <th>车辆数</th>
+                  <th>申请状态</th>
+                  <th>申请时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="recentApplyTbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card" style="flex:0 0 35%">
+          <h4 class="text-base font-semibold text-[#000000d9] mb-4">待办事项</h4>
+          <div class="space-y-3 mb-6" id="todoList"></div>
+          <h4 class="text-base font-semibold text-[#000000d9] mb-4 pt-4 border-t border-[#f0f0f0]">系统公告</h4>
+          <div class="space-y-3" id="noticeList"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="text-base font-semibold text-[#000000d9] mb-4">功能导航</h3>
+        <div class="grid grid-cols-4 gap-4">
+          <div class="border border-[#f0f0f0] rounded-lg p-4 hover:border-[#1677ff] transition-all">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-[#f0f0f0]">
+              <span class="text-lg">🗺️</span>
+              <span class="text-sm font-semibold text-[#000000d9]">开放道路资源管理</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <a href="road/catalog/filing.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">道路信息建档</a>
+              <a href="road/catalog/control.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">动态管控</a>
+              <a href="road/visualization/map.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">地图可视化</a>
+              <a href="road/evaluation/result.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">评估结果</a>
+              <a href="road/evaluation/config.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">评估配置</a>
+              <a href="road/evaluation/log.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">评估日志</a>
+              <a href="road/statistics/index.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">区域统计</a>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon bg-[#fffbe6] text-[#faad14]">⚠️</div>
-            <div class="stat-info">
-              <div class="stat-value">24</div>
-              <div class="stat-label">今日事故数 / 待处理</div>
+          <div class="border border-[#f0f0f0] rounded-lg p-4 hover:border-[#1677ff] transition-all">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-[#f0f0f0]">
+              <span class="text-lg">🛡️</span>
+              <span class="text-sm font-semibold text-[#000000d9]">测试示范监管</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <a href="monitor/access-info/company.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">企业登记</a>
+              <a href="monitor/access-info/vehicle.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">车辆登记</a>
+              <a href="monitor/access-info/person.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">人员登记</a>
+              <a href="monitor/access-apply/road-test.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">准入申请</a>
+              <a href="monitor/access-approve/approve.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">审批管理</a>
+              <a href="monitor/vehicle-monitor/monitor-map.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">监控一张图</a>
+              <a href="monitor/vehicle-monitor/running.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">运行监控</a>
+              <a href="monitor/vehicle-monitor/alarm.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">异常告警</a>
+              <a href="monitor/vehicle-monitor/accident.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">事故上报</a>
+              <a href="monitor/service/notice.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">信息发布</a>
+              <a href="monitor/service/fence.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">电子围栏</a>
+              <a href="monitor/public/info.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">信息公开</a>
+              <a href="monitor/public/feedback.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">在线反馈</a>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon bg-[#fff2f0] text-[#ff4d4f]">🔴</div>
-            <div class="stat-info">
-              <div class="stat-value">352</div>
-              <div class="stat-label">累计测试里程 / km</div>
+          <div class="border border-[#f0f0f0] rounded-lg p-4 hover:border-[#1677ff] transition-all">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-[#f0f0f0]">
+              <span class="text-lg">📊</span>
+              <span class="text-sm font-semibold text-[#000000d9]">监测数据分析</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <a href="data-analysis/analysis/overview.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">数据总览</a>
+              <a href="data-analysis/analysis/alarm-stats.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">告警统计</a>
+              <a href="data-analysis/analysis/violation-stats.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">事故统计</a>
+              <a href="data-analysis/analysis/running-analysis.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">运行分析</a>
+              <a href="data-analysis/analysis/mileage-analysis.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">里程分析</a>
+              <a href="data-analysis/analysis/industry-analysis.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">产业分析</a>
+              <a href="data-analysis/query/company-query.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">企业查询</a>
+              <a href="data-analysis/query/vehicle-query.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">车辆查询</a>
+              <a href="data-analysis/accident/accident-parse.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">事故解析</a>
+              <a href="data-analysis/accident/accident-feature.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">事故特征</a>
+            </div>
+          </div>
+          <div class="border border-[#f0f0f0] rounded-lg p-4 hover:border-[#1677ff] transition-all">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-[#f0f0f0]">
+              <span class="text-lg">⚙️</span>
+              <span class="text-sm font-semibold text-[#000000d9]">平台管理</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <a href="platform/dict/index.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">数据字典</a>
+              <a href="platform/log/index.html" class="text-xs px-2 py-1 rounded bg-[#fafafa] text-[#000000d9] hover:bg-[#e6f4ff] hover:text-[#1677ff] no-underline transition-colors">操作日志</a>
             </div>
           </div>
         </div>
-        <div class="card">
-          <h3 class="text-base font-semibold text-[#000000d9] mb-4">快捷入口</h3>
-          <div class="grid grid-cols-4 gap-4">
-            <a href="road/catalog/filing.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
-              <span class="text-2xl">📋</span>
-              <div><div class="text-sm font-medium text-[#000000d9]">道路信息登记</div><div class="text-xs text-[#00000073]">路段备案管理、道路属性登记</div></div>
-            </a>
-            <a href="road/visualization/map.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
-              <span class="text-2xl">🗺️</span>
-              <div><div class="text-sm font-medium text-[#000000d9]">道路可视化展示</div><div class="text-xs text-[#00000073]">电子地图、实时监控、数据可视化展示</div></div>
-            </a>
-            <a href="monitor/vehicle-monitor/monitor-map.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
-              <span class="text-2xl">🚗</span>
-              <div><div class="text-sm font-medium text-[#000000d9]">监控一张图</div><div class="text-xs text-[#00000073]">车辆状态、轨迹回放、视频监控</div></div>
-            </a>
-            <a href="monitor/access-apply/road-test.html" class="flex items-center gap-3 p-4 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all cursor-pointer no-underline">
-              <span class="text-2xl">📝</span>
-              <div><div class="text-sm font-medium text-[#000000d9]">准入申请管理</div><div class="text-xs text-[#00000073]">道路测试、示范应用、示范运营申请</div></div>
-            </a>
-          </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   </div>
-  <script>const PAGE_ID = 'home';</script>
-  <script src="./common.js"></script>
+</div>
+<script>
+var PAGE_ID = 'home';
+
+var mileageTrendChart = null;
+var applyTrendChart = null;
+var activityChart = null;
+var accidentLevelChart = null;
+
+var statusMap = {
+  draft: { label: '草稿', cls: 'ant-tag-default' },
+  pending_review: { label: '待初审', cls: 'ant-tag-processing' },
+  pending_vehicle_report: { label: '待实车报告', cls: 'ant-tag-processing' },
+  pending_expert: { label: '待评审', cls: 'ant-tag-processing' },
+  pending_joint: { label: '待联席审批', cls: 'ant-tag-processing' },
+  rejected: { label: '已退回', cls: 'ant-tag-error' },
+  withdrawn: { label: '已撤回', cls: 'ant-tag-default' },
+  pending_plate: { label: '待上传牌照', cls: 'ant-tag-warning' },
+  active: { label: '已生效', cls: 'ant-tag-success' },
+  expired: { label: '已过期', cls: 'ant-tag-default' },
+  terminated: { label: '已终止', cls: 'ant-tag-error' }
+};
+
+var recentApplications = [
+  { id: 'RT202604001', type: '初次申请', module: '道路测试', company: '襄阳智行科技', vehicleCount: 2, status: 'pending_review', time: '2026-04-10' },
+  { id: 'DA202604002', type: '续期申请', module: '示范应用', company: '东风汽车', vehicleCount: 1, status: 'active', time: '2026-04-05' },
+  { id: 'RT202604003', type: '变更申请', module: '道路测试', company: '华为MDC', vehicleCount: 1, status: 'rejected', time: '2026-04-08' },
+  { id: 'DO202604004', type: '初次申请', module: '示范运营', company: '襄阳智行科技', vehicleCount: 1, status: 'active', time: '2026-04-12' },
+  { id: 'DA202604005', type: '初次申请', module: '示范应用', company: '华为MDC', vehicleCount: 1, status: 'pending_expert', time: '2026-04-24' },
+  { id: 'RT202604006', type: '初次申请', module: '道路测试', company: '上海蔚来汽车', vehicleCount: 1, status: 'pending_plate', time: '2026-04-25' },
+  { id: 'DA202604007', type: '初次申请', module: '示范应用', company: 'AutoX', vehicleCount: 1, status: 'active', time: '2026-04-28' },
+  { id: 'DO202605001', type: '初次申请', module: '示范运营', company: '小马智行', vehicleCount: 1, status: 'pending_joint', time: '2026-05-01' },
+  { id: 'RT202605002', type: '续期申请', module: '道路测试', company: '上海蔚来汽车', vehicleCount: 1, status: 'pending_joint', time: '2026-05-05' },
+  { id: 'DA202605003', type: '初次申请', module: '示范应用', company: '元戎启行', vehicleCount: 1, status: 'draft', time: '2026-05-08' }
+];
+
+function getModuleLink(item) {
+  if (item.module === '道路测试') return 'monitor/access-apply/road-test.html';
+  if (item.module === '示范应用') return 'monitor/access-apply/demo-apply.html';
+  if (item.module === '示范运营') return 'monitor/access-apply/demo-operate.html';
+  return '#';
+}
+
+function renderRecentApplications() {
+  var html = '';
+  recentApplications.forEach(function(d) {
+    var st = statusMap[d.status] || statusMap.draft;
+    html += '<tr>' +
+      '<td><a href="' + getModuleLink(d) + '" class="text-[#1677ff] no-underline hover:text-[#4096ff]">' + d.id + '</a></td>' +
+      '<td><span class="ant-tag ant-tag-default">' + d.type + '</span></td>' +
+      '<td>' + d.company + '</td>' +
+      '<td>' + d.vehicleCount + '</td>' +
+      '<td><span class="ant-tag ' + st.cls + '">' + st.label + '</span></td>' +
+      '<td>' + d.time + '</td>' +
+      '<td><a href="' + getModuleLink(d) + '" class="ant-btn-link">查看</a></td>' +
+      '</tr>';
+  });
+  document.getElementById('recentApplyTbody').innerHTML = html;
+}
+
+function renderTodos() {
+  var todos = [
+    { text: '道路测试准入申请待审批', count: 5, link: 'monitor/access-approve/approve.html', urgent: true },
+    { text: '示范应用准入申请待审批', count: 3, link: 'monitor/access-approve/approve.html', urgent: false },
+    { text: '事故审核待处理', count: 2, link: 'monitor/vehicle-monitor/accident-review.html', urgent: true },
+    { text: '在线反馈待回复', count: 7, link: 'monitor/public/feedback.html', urgent: false }
+  ];
+  var html = '';
+  todos.forEach(function(t) {
+    html += '<a href="' + t.link + '" class="flex items-center justify-between p-3 rounded-lg border border-[#f0f0f0] hover:border-[#1677ff] hover:bg-[#e6f4ff] transition-all no-underline cursor-pointer">' +
+      '<div class="flex items-center gap-2">' +
+      (t.urgent ? '<span class="w-2 h-2 rounded-full bg-[#ff4d4f] flex-shrink-0"></span>' : '<span class="w-2 h-2 rounded-full bg-[#fa8c16] flex-shrink-0"></span>') +
+      '<span class="text-sm text-[#000000d9]">' + t.text + '</span>' +
+      '</div>' +
+      '<span class="ant-tag ' + (t.urgent ? 'ant-tag-error' : 'ant-tag-warning') + ' text-xs">' + t.count + ' 条</span>' +
+      '</a>';
+  });
+  document.getElementById('todoList').innerHTML = html;
+}
+
+function renderNotices() {
+  var notices = [
+    { title: '关于2026年第二季度道路测试阶段性报告提交通知', time: '2026-05-15' },
+    { title: '襄阳市新增开放测试道路路段公告（第12批）', time: '2026-05-10' },
+    { title: '智能网联汽车道路测试安全管理规范（修订版）发布', time: '2026-05-08' },
+    { title: '关于规范临时牌照管理的通知', time: '2026-04-28' },
+    { title: '自动驾驶测试数据上报接口升级公告', time: '2026-04-20' }
+  ];
+  var html = '';
+  notices.forEach(function(n) {
+    html += '<div class="py-2 border-b border-[#f0f0f0] last:border-b-0">' +
+      '<div class="text-sm text-[#000000d9] leading-relaxed cursor-pointer hover:text-[#1677ff] transition-colors">' + n.title + '</div>' +
+      '<div class="text-xs text-[#00000073] mt-1">' + n.time + '</div>' +
+      '</div>';
+  });
+  document.getElementById('noticeList').innerHTML = html;
+}
+
+function renderMileageTrendChart() {
+  if (mileageTrendChart) mileageTrendChart.dispose();
+  mileageTrendChart = echarts.init(document.getElementById('mileageTrendChart'));
+  mileageTrendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['自动驾驶里程(km)', '人工驾驶里程(km)'], bottom: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 52, right: 16, bottom: 36, top: 8, containLabel: false },
+    xAxis: { type: 'category', data: ['第1天', '第2天', '第3天', '第4天', '第5天', '第6天', '第7天'], axisLabel: { fontSize: 11 } },
+    yAxis: { type: 'value', name: 'km', axisLabel: { fontSize: 10, formatter: function(v) { return v; } } },
+    series: [
+      { name: '自动驾驶里程(km)', type: 'bar', data: [120, 145, 170, 190, 210, 245, 268], itemStyle: { color: '#1677ff', borderRadius: [4, 4, 0, 0] } },
+      { name: '人工驾驶里程(km)', type: 'bar', data: [85, 72, 68, 60, 55, 48, 42], itemStyle: { color: '#91caff', borderRadius: [4, 4, 0, 0] } }
+    ]
+  });
+}
+
+function renderApplyTrendChart() {
+  if (applyTrendChart) applyTrendChart.dispose();
+  applyTrendChart = echarts.init(document.getElementById('applyTrendChart'));
+  applyTrendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['道路测试', '示范应用', '示范运营'], bottom: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 44, right: 16, bottom: 36, top: 8, containLabel: false },
+    xAxis: { type: 'category', data: ['第1天', '第2天', '第3天', '第4天', '第5天', '第6天', '第7天'], axisLabel: { fontSize: 11 } },
+    yAxis: { type: 'value', name: '件', axisLabel: { fontSize: 10 }, minInterval: 1 },
+    series: [
+      { name: '道路测试', type: 'line', data: [5, 3, 7, 4, 6, 8, 5], smooth: true, lineStyle: { color: '#1677ff', width: 2 }, itemStyle: { color: '#1677ff' }, areaStyle: { color: 'rgba(22,119,255,0.06)' } },
+      { name: '示范应用', type: 'line', data: [2, 4, 3, 5, 2, 4, 3], smooth: true, lineStyle: { color: '#52c41a', width: 2 }, itemStyle: { color: '#52c41a' }, areaStyle: { color: 'rgba(82,196,26,0.06)' } },
+      { name: '示范运营', type: 'line', data: [1, 2, 1, 3, 2, 1, 2], smooth: true, lineStyle: { color: '#fa8c16', width: 2 }, itemStyle: { color: '#fa8c16' }, areaStyle: { color: 'rgba(250,140,22,0.06)' } }
+    ]
+  });
+}
+
+function renderActivityChart() {
+  if (activityChart) activityChart.dispose();
+  activityChart = echarts.init(document.getElementById('activityChart'));
+  activityChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['测试企业数', '测试车辆数'], bottom: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 44, right: 16, bottom: 36, top: 8, containLabel: false },
+    xAxis: { type: 'category', data: ['襄阳市区', '高新区', '东津新区', '经开区', '机场路', '谷城县'], axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', axisLabel: { fontSize: 10 } },
+    series: [
+      { name: '测试企业数', type: 'bar', data: [12, 8, 6, 5, 3, 2], itemStyle: { color: '#1677ff', borderRadius: [4, 4, 0, 0] }, barGap: '10%' },
+      { name: '测试车辆数', type: 'bar', data: [42, 28, 18, 15, 9, 6], itemStyle: { color: '#85a5cc', borderRadius: [4, 4, 0, 0] } }
+    ]
+  });
+}
+
+function renderAccidentLevelChart() {
+  if (accidentLevelChart) accidentLevelChart.dispose();
+  accidentLevelChart = echarts.init(document.getElementById('accidentLevelChart'));
+  accidentLevelChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} 起 ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '65%'],
+      center: ['50%', '45%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderRadius: 3, borderColor: '#fff', borderWidth: 2 },
+      label: { show: true, position: 'outside', formatter: '{b} {d}%', fontSize: 10 },
+      data: [
+        { value: 15, name: '轻微事故', itemStyle: { color: '#52c41a' } },
+        { value: 8, name: '一般事故', itemStyle: { color: '#faad14' } },
+        { value: 4, name: '重大事故', itemStyle: { color: '#fa8c16' } },
+        { value: 1, name: '特大事故', itemStyle: { color: '#ff4d4f' } }
+      ]
+    }]
+  });
+}
+
+function initAll() {
+  renderRecentApplications();
+  renderTodos();
+  renderNotices();
+  renderMileageTrendChart();
+  renderApplyTrendChart();
+  renderActivityChart();
+  renderAccidentLevelChart();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initAll();
+});
+
+window.addEventListener('resize', function() {
+  if (mileageTrendChart) mileageTrendChart.resize();
+  if (applyTrendChart) applyTrendChart.resize();
+  if (activityChart) activityChart.resize();
+  if (accidentLevelChart) accidentLevelChart.resize();
+});
+</script>
+<script src="./common.js"></script>
 </body>
 </html>
